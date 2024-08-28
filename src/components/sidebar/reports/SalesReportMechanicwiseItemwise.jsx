@@ -7,58 +7,14 @@ import 'react-datepicker/dist/react-datepicker.css';
 import norecordfound from "../../../images/norecordfound.gif";
 import "./SalesReportMechanicwiseItemwise.css";
 
-const dummyData = [
-  {
-    sl: '01',
-    invoiceNo: '1234',
-    date: '04-07-2024',
-    retailerName: 'Star Lubricants Spares- K R Puram',
-    gcin: 'SVLR-001',
-    dsr: 'Bharath',
-    product: 'Quartz 7000FUT.GF6 5W30 3X3.5L',
-    segment: 'PCMO',
-    category: 'Min',
-    size: '3.5',
-    sales: '31.5'
-  },
-  {
-    sl: '02',
-    invoiceNo: '1214',
-    date: '05-07-2024',
-    retailerName: 'Impex Automotives-Hoskote',
-    gcin: 'SVLR-074',
-    dsr: 'Bharath',
-    product: 'Quartz 8000NFC 5W30 3X3.5L',
-    segment: 'PCMO',
-    category: 'FS',
-    size: '3.5',
-    sales: '105'
-  },
-  {
-    sl: '03',
-    invoiceNo: 'SVL-00409',
-    date: '04-08-2024',
-    retailerName: 'Diamond Automobiles-Anekal',
-    gcin: 'SVLR-071',
-    dsr: 'Prashanth',
-    product: 'Hi-Perf 4T 500 15W50 5X2.5L',
-    segment: 'MCO',
-    category: 'FS',
-    size: '2.5',
-    sales: '105'
-  }
-];
-
 export default function SalesReportMechanicwiseItemwise() {
   const [mechanicsOptions, setMechanicsOptions] = useState([]);
   const [selectedMechanic, setSelectedMechanic] = useState(null);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [filteredData, setFilteredData] = useState([]);
-  const [filterApplied, setFilterApplied] = useState(false);
 
   useEffect(() => {
-    // Fetch mechanics from the users table
     const fetchMechanics = async () => {
       const { data, error } = await supabase
         .from('users')
@@ -72,26 +28,7 @@ export default function SalesReportMechanicwiseItemwise() {
     fetchMechanics();
   }, []);
 
-  const handleFilter = () => {
-    let filtered = dummyData;
-
-    if (startDate && endDate) {
-      if (startDate > endDate) {
-        alert("Pick From Date cannot be later than Pick To Date.");
-        return;
-      }
-
-      filtered = filtered.filter(data => {
-        const dataDate = new Date(data.date.split('-').reverse().join('-'));
-        return dataDate >= startDate && dataDate <= endDate;
-      });
-    }
-
-    setFilteredData(filtered);
-    setFilterApplied(true);
-  };
-
-  const formatDate = (dateString) => {
+    const formatDate = (dateString) => {
     const date = new Date(dateString);
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are zero-based
@@ -99,12 +36,38 @@ export default function SalesReportMechanicwiseItemwise() {
     return `${day}/${month}/${year}`; // Change format as needed
   };
 
+  const handleFilter = async () => {
+    if (!selectedMechanic) {
+      alert("Please select a mechanic.");
+      return;
+    }
+
+    let query = supabase
+      .from('billing_items')
+      .select('*')
+      .eq('mechid', selectedMechanic.value);
+    if (startDate && endDate) {
+      if (startDate > endDate) {
+        alert("Pick From Date cannot be later than Pick To Date.");
+        return;
+      }
+      query = query.gte('date', startDate).lte('date', endDate);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching filtered data:', error);
+    } else {
+      setFilteredData(data);
+    }
+  };
+
   const handleReset = () => {
     setSelectedMechanic(null);
     setStartDate(null);
     setEndDate(null);
     setFilteredData([]);
-    setFilterApplied(false);
   };
 
   const customSelectStyles = {
@@ -115,20 +78,6 @@ export default function SalesReportMechanicwiseItemwise() {
         borderColor: !selectedMechanic ? 'red' : provided.borderColor,
       },
     }),
-  };
-
-  useEffect(() => {
-    fetchSegments();
-  }, []);
-
-  const fetchSegments = async () => {
-    const { data: filteredData, error } = await supabase
-      .from('segment_master')
-      .select('*')
-      .eq('activestatus', 'Y'); // Filter active segments
-
-    if (error) console.error('Error fetching segments:', error.message);
-    else setFilteredData(filteredData);
   };
 
   return (
@@ -199,10 +148,10 @@ export default function SalesReportMechanicwiseItemwise() {
                 <tbody>
                   {filteredData.map((data, index) => (
                     <tr key={index}>
-                      <td>{index + 1}</td>
-                      <td>{data.segmentname.trim()}</td>
-                      <td>{1}</td>
-                      <td>{2}</td>
+                      <td>{formatDate(data.createddate)}</td>
+                      <td>{data.itemname}</td>
+                      <td>{data.qty}</td>
+                      <td>{data.totalliters}</td>
                     </tr>
                   ))}
                 </tbody>

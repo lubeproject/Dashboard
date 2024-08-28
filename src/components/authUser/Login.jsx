@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
+import CircularJSON from 'circular-json';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
@@ -11,6 +12,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState(null);
+  const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
   const togglePasswordVisibility = () => {
@@ -33,6 +35,25 @@ export default function Login() {
     //   console.error('Error logging in:', error.message);
     //   setError(error.message);
     // }
+  };
+
+  const handleChangePassword = async (event) => {
+    event.preventDefault();
+
+    if (!email) {
+      setError('Email is required.');
+      return;
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+
+    if (error) {
+      setError('Failed to send password reset email.');
+      setMessage('');
+    } else {
+      setMessage('Password reset email sent!');
+      setError('');
+    }
   };
 
   return (
@@ -71,7 +92,7 @@ export default function Login() {
             </div>
           </div>
           <div className="form-group">
-            <a href="/forgot-password" className="forgot-password-link">Forgot Password?</a>
+            <a className="forgot-password-link" onClick={handleChangePassword}>Forgot Password?</a>
           </div>
           <button type="submit">Login</button>
         </form>

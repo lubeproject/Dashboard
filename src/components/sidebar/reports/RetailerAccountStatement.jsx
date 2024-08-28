@@ -13,7 +13,9 @@ export default function RetailerAccountStatement() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [filteredData, setFilteredData] = useState([]);
+  const [filteredData1, setFilteredData1] = useState([]);
   const [filterApplied, setFilterApplied] = useState(false);
+  const [filterApplied1, setFilterApplied1] = useState(false);
 
   useEffect(() => {
     // Fetch mechanics from the users table
@@ -32,78 +34,49 @@ export default function RetailerAccountStatement() {
 
   const handleFilter = async () => {
     try {
-      // Fetch all records for the selected retailer
-      const { data: allRetailerRequests, error: retailerError } = await supabase
-        .from('retailer_request')
-        .select('*')
-        .eq('retailerid', selectedRetailer.value);
-  
-      if (retailerError) {
-        console.error('Error fetching retailer requests:', retailerError);
+      // Check if dates are valid
+      if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+        alert("Pick From Date cannot be later than Pick To Date.");
         return;
       }
   
-      console.log("All Requests for Retailer:", allRetailerRequests);
+      // Helper function to fetch data with filters
+      const fetchData = async (tableName) => {
+        let query = supabase.from(tableName).select('*').eq('retailerid', selectedRetailer.value);
   
-      // Extract reqid values
-      const reqIdArray = allRetailerRequests.map(request => request.reqid);
-  
-      if (reqIdArray.length === 0) {
-        console.warn('No requests found for the selected retailer.');
-        setFilteredData([]);
-        return;
-      }
-  
-      // Fetch all items from retailer_request_items
-      const { data: allItemsData, error: itemsError } = await supabase
-        .from('retailer_request_items')
-        .select('*')
-        .in('reqid', reqIdArray);
-  
-      if (itemsError) {
-        console.error('Error fetching items data:', itemsError);
-        return;
-      }
-  
-      console.log("All Items Data:", allItemsData);
-  
-      // Apply Date Range Filter
-      let filteredItems = allItemsData;
-      let dateFilteredItems = filteredItems;
-  
-      if (startDate && endDate) {
-        if (new Date(startDate) > new Date(endDate)) {
-          alert("Pick From Date cannot be later than Pick To Date.");
-          return;
+        if (startDate) {
+          query = query.gte('updatedtime', new Date(startDate).toISOString());
         }
-        dateFilteredItems = filteredItems.filter(item => {
-          const itemDate = new Date(item.updatedtime); // Convert the date string to a Date object
-          return itemDate >= new Date(startDate) && itemDate <= new Date(endDate);
-        });
-        console.log("Date Range Filter Applied:", startDate, "to", endDate);
-      } else if (startDate) {
-        dateFilteredItems = filteredItems.filter(item => {
-          const itemDate = new Date(item.updatedtime);
-          return itemDate >= new Date(startDate);
-        });
-        console.log("Start Date Filter Applied:", startDate);
-      } else if (endDate) {
-        dateFilteredItems = filteredItems.filter(item => {
-          const itemDate = new Date(item.updatedtime);
-          return itemDate <= new Date(endDate);
-        });
-        console.log("End Date Filter Applied:", endDate);
-      }
+        if (endDate) {
+          query = query.lte('updatedtime', new Date(endDate).toISOString());
+        }
   
-      // Set the filtered items data to state
-      setFilteredData(dateFilteredItems || []);
+        const { data, error } = await query;
+        if (error) {
+          console.error(`Error fetching data from ${tableName}:`, error);
+          return [];
+        }
+        return data;
+      };
+  
+      // Fetch data for both tables
+      const allRetailerRequests = await fetchData('invoices');
+      const allRetailerRequests1 = await fetchData('payment_reference2');
+  
+      // Update states
+      setFilteredData(allRetailerRequests || []);
+      setFilteredData1(allRetailerRequests1 || []);
       setFilterApplied(true);
-      console.log("Final Filtered Items Data:", dateFilteredItems);
+      setFilterApplied1(true);
+  
+      console.log("Filtered Requests for Retailer (invoices):", allRetailerRequests);
+      console.log("Filtered Requests for Retailer (payment_reference2):", allRetailerRequests1);
   
     } catch (error) {
       console.error('Unexpected error during filtering:', error);
     }
   };
+  
 
   const handleReset = () => {
     setStartDate(null);
@@ -130,19 +103,14 @@ export default function RetailerAccountStatement() {
     }),
   };
 
-  useEffect(() => {
-    fetchSegments();
-  }, []);
+  // Calculate totals
+  const totalDebit = filteredData.reduce((sum, data) => sum + parseFloat(data.amount || 0), 0);
+  const totalCredit = filteredData1.reduce((sum, data) => sum + parseFloat(data.amount || 0), 0);
 
-  const fetchSegments = async () => {
-    const { data: filteredData, error } = await supabase
-      .from('segment_master')
-      .select('*')
-      .eq('activestatus', 'Y'); // Filter active segments
-
-    if (error) console.error('Error fetching segments:', error.message);
-    else setFilteredData(filteredData);
-  };
+  // Calculate Collection Amount, Closing Balance, and Total
+  const collectionAmount = totalCredit;
+  const closingBalance = totalDebit - collectionAmount;
+  const finalTotal = collectionAmount + closingBalance;
 
   return (
     <main id='main' className='main'>
@@ -203,28 +171,47 @@ export default function RetailerAccountStatement() {
               <Table striped bordered hover responsive className="sales-report-table">
                 <thead>
                   <tr>
-                    <th>Sl</th>
-                    <th>Account</th>
-                    <th>Punch In</th>
-                    <th>Punch Out</th>
-                    <th>Orders</th>
-                    <th>Amt</th>
-                    <th>Remaining</th>
+                    <th>Date</th>
+                    <th>Particulars</th>
+                    <th>Debit</th>
+                    <th>Credit</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredData.map((data, index) => (
-                    <tr key={index}>
-                      <td>{index + 1}</td>
-                      <td>{data.segmentname.trim()}</td>
-                      <td>{1}</td>
-                      <td>{2}</td>
-                      <td>{3}</td>
-                      <td>{2}</td>
-                      <td>{3}</td>
+                    <tr key={`invoice-${index}`}>
+                      <td>{formatDate(data.invdate)}</td>
+                      <td>invNo. {data.tallyrefinvno}</td>
+                      <td>₹ {data.amount}</td>
+                      <td>{/* Additional data or leave blank */}</td>
+                    </tr>
+                  ))}
+                  {filteredData1.map((data, index) => (
+                    <tr key={`payment-${index}`}>
+                      <td>{formatDate(data.updatedtime)}</td>
+                      <td>{data.paymode}, ReferNo. {data.payref}</td>
+                      <td>{/* Additional data or leave blank */}</td>
+                      <td>₹ {data.amount}</td>
                     </tr>
                   ))}
                 </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan="2" className="text-end">Collection Amount :</td>
+                    <td>{}</td>
+                    <td>₹ {collectionAmount}</td>
+                  </tr>
+                  <tr>
+                    <td colSpan="2" className="text-end">Closing Balance :</td>
+                    <td>{}</td>
+                    <td>₹ {closingBalance}</td>
+                  </tr>
+                  <tr>
+                    <td colSpan="2" className="text-end">Total :</td>
+                    <td>₹ {totalDebit}</td>
+                    <td>₹ {finalTotal}</td>
+                  </tr>
+                </tfoot>
               </Table>
             )}
           </Col>

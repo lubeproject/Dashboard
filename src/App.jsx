@@ -62,6 +62,7 @@ import DSRwiseRetailersOutstandingReport from "./components/sidebar/reports/DSRw
 import ChangePassword from "./components/sidebar/ChangePassword";
 import FilterAssignRepresentative from "./components/sidebar/inventory/FilterAssignRepresentative";
 import Home from "./components/portal/Home";
+import InvoiceDetails from "./components/sidebar/reports/InvoiceDetails";
 
 
 function App() {
@@ -141,6 +142,8 @@ function App() {
         <Route path="mechanicttemwisesalesreport" element={<SalesReportMechanicwiseItemwise/>} />
         <Route path="loyaltymechanicsalesreport" element={<LoyaltyMechanicSalesReport/>} />
         <Route path="mechanicloyaltyreport" element={<MechanicLoyalPointsHistory/>} />
+        <Route path="invoicehistory" element={<InvoiceHistory/>} />
+        <Route path="invoicedetails/:invoiceId" element={<InvoiceDetails/>} />
         
         <Route path="changePassword" element={<ChangePassword/>} />
 
