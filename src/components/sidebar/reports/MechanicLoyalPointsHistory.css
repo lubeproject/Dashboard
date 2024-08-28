@@ -1,0 +1,61 @@
+/* MechanicLoyalPointsHistory.css */
+
+/* Main container padding */
+.main {
+    padding: 20px;
+}
+
+/* Table styling */
+.mechanic-loyal-points-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 5px 0;
+    font-size: 18px;
+    text-align: left;
+}
+
+/* Table headers and cells styling */
+.mechanic-loyal-points-table th, 
+.mechanic-loyal-points-table td {
+    border: 1px solid #dddddd;
+    padding: 10px;
+    text-align: center; /* Center the text in cells */
+}
+
+/* Table header background and text color */
+.mechanic-loyal-points-table th {
+    background-color: #ffa500; /* Orange background for headers */
+    color: white; /* White text for better contrast */
+    font-weight: bold;
+}
+
+/* Alternate row background color */
+.mechanic-loyal-points-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+/* Hover effect for table rows */
+.mechanic-loyal-points-table tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Title styling */
+h4 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+/* No record found image styling */
+.text-center img {
+    width: 50%;
+    margin-top: 20px;
+}
+
+/* Responsive table adjustments */
+@media (max-width: 768px) {
+    .mechanic-loyal-points-table {
+        font-size: 16px;
+    }
+}

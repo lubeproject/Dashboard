@@ -1,0 +1,37 @@
+.main {
+    padding: 20px;
+}
+
+.segment-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 18px;
+    text-align: left;
+}
+
+.segment-table th, .segment-table td {
+    border: 1px solid #dddddd;
+    padding: 8px;
+    text-align: center; /* Center the text in cells */
+}
+
+.segment-table th {
+    background-color: #ffa500; /* Orange background for headers */
+    color: white; /* White text for better contrast */
+    font-weight: bold;
+}
+
+.segment-table td:first-child, /* Apply styles to the first column (row headers) */
+.segment-table th:first-child { /* Apply styles to the first column in the header */
+    background-color: #ffa500; /* Orange background */
+    color: white; /* White text */
+}
+
+.segment-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.segment-table tr:hover {
+    background-color: #f1f1f1;
+}

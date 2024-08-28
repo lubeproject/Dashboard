@@ -1,0 +1,81 @@
+.main {
+    padding: 20px;
+}
+
+/* Center the title */
+h4.text-center {
+    color: #333;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+/* Date filter row styling for desktop */
+.date-filter-row .form-control {
+    width: 100%;
+}
+
+/* Add space between select input and buttons */
+.form-group {
+    margin-bottom: 5px; /* Adjust this value to increase or decrease space */
+}
+
+/* Button row styling for desktop */
+.button-row .btn {
+    width: 100%;
+}
+
+/* Table styling */
+.sales-report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 5px 0;
+    font-size: 18px;
+    text-align: left;
+}
+
+.sales-report-table th, 
+.sales-report-table td {
+    border: 1px solid #dddddd;
+    padding: 5px;
+    text-align: center;
+}
+
+.sales-report-table th {
+    background-color: #ffa500; /* Orange background for headers */
+    color: white; /* White text for better contrast */
+    font-weight: bold;
+}
+
+.sales-report-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.sales-report-table tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* No record found image styling */
+.no-record-img {
+    width: 50%;
+    margin-top: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    /* Stack date pickers in a single row */
+    .date-filter-row {
+        flex-direction: row;
+        gap: 5px;
+    }
+
+    /* Stack buttons in a single row */
+    .button-row {
+        flex-direction: row;
+        gap: 5px;
+    }
+
+    /* Adjust font size for mobile view */
+    .sales-report-table {
+        font-size: 16px;
+    }
+}

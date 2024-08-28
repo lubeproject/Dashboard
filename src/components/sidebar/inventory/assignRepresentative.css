@@ -1,0 +1,227 @@
+/* Main container styling */
+.main {
+    padding: 20px;
+}
+
+/* Center the title */
+h4.text-center {
+    color: #333;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+/* Form group spacing */
+.form-group {
+    margin-bottom: 15px;
+}
+
+/* Custom select input styles */
+.react-select-container {
+    margin-bottom: 15px;
+}
+
+.react-select__control {
+    border-color: #ced4da;
+    box-shadow: none;
+    &:hover {
+        border-color: #80bdff;
+    }
+}
+
+.react-select__placeholder {
+    color: #6c757d;
+}
+
+.react-select__single-value {
+    color: #495057;
+}
+
+/* Button styling */
+.button-row .btn {
+    width: 100%;
+    margin-top: 15px;
+}
+
+/* Table styling */
+.assignments-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 16px;
+    text-align: left;
+}
+
+.assignments-table th, 
+.assignments-table td {
+    border: 1px solid #dddddd;
+    padding: 10px;
+    text-align: center;
+}
+
+.assignments-table th {
+    background-color: #343a40;
+    color: white;
+    font-weight: bold;
+}
+
+.assignments-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+.assignments-table tr:hover {
+    background-color: #e9ecef;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    /* Stack select inputs in a single row */
+    .form-group {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    /* Stack buttons in a single row */
+    .button-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    /* Adjust font size for mobile view */
+    .assignments-table {
+        font-size: 14px;
+    }
+}
+
+/* CreditTermItemMaster.css */
+
+.main {
+    padding: 20px;
+    font-family: Arial, sans-serif;
+  }
+  
+  h2 {
+    margin-bottom: 20px;
+    font-size: 24px;
+  }
+  
+  .credit-term-table {
+    margin-bottom: 20px;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  th, td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  th {
+    background-color: #f4f4f4;
+  }
+  
+  tr:hover {
+    background-color: #f1f1f1;
+  }
+  
+  .actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+  
+  .action-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  
+  .edit-button {
+    color: #4caf50;
+  }
+  
+  .delete-button {
+    color: #f44336;
+  }
+  
+  .add-button-container {
+    text-align: center;
+    margin-top: 20px;
+  }
+  
+  .add-button-container button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  
+  .add-button-container button:hover {
+    background-color: #0056b3;
+  }
+  
+  .popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .popup-inner {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 400px;
+  }
+  
+  .popup-inner h5 {
+    margin-bottom: 15px;
+  }
+  
+  .popup-inner input {
+    width: calc(100% - 20px);
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .popup-buttons {
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .popup-buttons button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  
+  .popup-buttons button:hover {
+    background-color: #0056b3;
+  }
+  
+  .popup-buttons button:last-child {
+    background-color: #f44336;
+  }
+  
+  .popup-buttons button:last-child:hover {
+    background-color: #d32f2f;
+  }
+  

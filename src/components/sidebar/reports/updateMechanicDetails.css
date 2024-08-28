@@ -1,0 +1,40 @@
+#main{
+    margin-top: 60px;
+    padding: 20px 30px;
+    transition: all 0.3s;
+}
+
+.update-mechanic-form .geo-location {
+    display: flex;
+    align-items: center;
+  }
+  
+  .update-mechanic-form .geo-location button {
+    margin-right: 10px;
+  }
+  
+  .update-mechanic-form .shop-image-preview {
+    margin-top: 10px;
+    text-align: center;
+  }
+  
+  .update-mechanic-form .shop-image-preview img {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+  
+  .invalid-feedback {
+    display: block;
+  }
+  
+
+@media (max-width: 1199px){
+    #main{
+        padding: 20px;
+    }
+}
+
+
+  

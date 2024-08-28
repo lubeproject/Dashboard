@@ -1,0 +1,223 @@
+/* Sidebar Open */
+.sidebar-open {
+  left: 0;
+}
+
+/* Sidebar Closed */
+.sidebar-closed {
+  left: -300px;
+}
+
+/* Sidebar Container */
+.sidebar {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  bottom: 0;
+  width: 300px;
+  z-index: 996;
+  transition: all 0.3s ease-in-out;
+  padding: 20px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #aab7cf transparent;
+  box-shadow: 0px 0px 20px grey; /* Dark Orange Shadow */
+  background-color: #fff;
+  font-family: 'Roboto', sans-serif;
+}
+
+/* Animation for shadow */
+.sidebar:hover {
+  /* box-shadow: 0px 0px 30px rgba(255, 140, 0, 0.7);  */
+  transition: box-shadow 0.3s ease-in-out;
+}
+
+/* Button/Link Styles */
+.sidebar-nav .nav-link {
+  display: flex;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 600;
+  /* color: darkorange; */
+  color: black;
+  background: #f6f9ff;
+  padding: 10px 15px;
+  border-radius: 4px;
+  font-family: 'Roboto', sans-serif;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease-in-out;
+}
+
+/* Animation for Button/Link shadow */
+.sidebar-nav .nav-link:hover {
+  color: black;
+  background: whitesmoke;
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15); /* Darker shadow on hover */
+  transform: translateY(-2px);
+  animation: hover-effect 0.3s ease-in-out forwards;
+}
+
+/* Hover Effect Animation */
+@keyframes hover-effect {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.05);
+  }
+}
+
+.sidebar-nav .nav-link i {
+  font-size: 16px;
+  margin-right: 10px;
+  color: #0004fd;
+  transition: color 0.3s ease-in-out;
+}
+
+.sidebar-nav .nav-link:hover i {
+  color: #0026ff;
+}
+
+.sidebar-nav .nav-link .collapsed {
+  color: darkorange;
+  background: #fff;
+}
+
+.sidebar-nav .nav-link .collapsed i {
+  color: #899bbd;
+}
+
+.sidebar-nav .nav-link .bi-chevron-down {
+  margin-right: 0;
+  transition: transform 0.2s ease-in-out;
+}
+
+.sidebar-nav .nav-link:not(.collapsed) .bi-chevron-down {
+  transform: rotate(180deg);
+}
+
+/* Link Tag Hover Effect */
+.sidebar-nav .nav-content a {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #012970;
+  padding: 10px 0 10px 40px;
+  transition: all 0.3s ease-in-out;
+}
+
+
+.sidebar-nav .nav-content a:hover {
+  color: black;
+  background: #c1cada;
+  /* box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);  */
+  transform: translateY(-2px);
+  animation: link-hover-effect 0.3s ease-in-out forwards;
+  border-radius: 3%;
+}
+
+
+/* Link Hover Effect Animation */
+@keyframes link-hover-effect {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.05);
+  }
+}
+
+.sidebar-nav .nav-content a i {
+  font-size: 6px;
+  margin-right: 8px;
+  line-height: 0;
+  border-radius: 50%;
+  transition: background-color 0.3s ease-in-out;
+}
+
+/* .sidebar-nav .nav-content a:hover i {
+  background-color: #fff;
+} */
+
+.sidebar-nav .nav-content a.active {
+  color: #4154f1;
+
+}
+
+.sidebar-nav .nav-content a.active i {
+  background-color: #4154f1;
+
+}
+
+/* Other existing styles */
+@media (max-width: 1199px) {
+  .sidebar {
+    left: -300px;
+  }
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 5px;
+  height: 8px;
+  background-color: #fff;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background-color: #aab7cf;
+}
+
+@media (min-width: 1200px) {
+  #main,
+  #footer {
+    margin-left: 300px;
+  }
+}
+
+@media (max-width: 1199px) {
+  .toggle-sidebar .sidebar {
+    left: 0;
+  }
+}
+
+@media (min-width: 1200px) {
+  .toggle-sidebar #main,
+  .toggle-sidebar #footer {
+    margin-left: 0;
+  }
+
+  .toggle-sidebar .sidebar {
+    left: -300px;
+  }
+}
+
+.sidebar-nav {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.sidebar-nav li {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.sidebar-nav .nav-item {
+  margin-bottom: 5px;
+}
+
+
+.sidebar-nav .nav-heading {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #899bbd;
+  font-weight: 600;
+  margin: 10px 0 5px 15px;
+}
+
+.sidebar-nav .nav-content {
+  padding: 5px 0 0 0;
+  margin: 0;
+  list-style: none;
+}

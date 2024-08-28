@@ -1,0 +1,30 @@
+.home-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: white;
+  text-align: center;
+}
+
+.home-image {
+  max-width: 300px;
+  margin-bottom: 20px;
+  /* filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.2)); */
+}
+
+.agency-name {
+  font-family: 'Poppins', sans-serif;
+  font-size: 3rem;
+  font-weight: bold;
+  color:rgb(53, 56, 140);
+  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+  margin-top: 10px;
+}
+
+.agency-text {
+  background: transparent;
+  padding: 0;
+  margin: 0;
+}

@@ -1,0 +1,38 @@
+#main{
+    margin-top: 60px;
+    padding: 20px 30px;
+    transition: all 0.3s;
+}
+
+.dsr-day-report {
+    padding: 20px;
+  }
+  
+  .report-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 20px 0;
+  }
+  
+  .report-list li {
+    margin: 5px 0;
+    font-size: 16px;
+  }
+  
+  .highlight {
+    font-weight: bold;
+    color: darkorange;
+  }
+  
+  @media (max-width: 768px) {
+    .report-list li {
+      font-size: 14px;
+    }
+  }
+  
+
+@media (max-width: 1199px){
+    #main{
+        padding: 20px;
+    }
+}
