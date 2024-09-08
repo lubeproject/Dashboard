@@ -1,0 +1,42 @@
+/* Main container */
+#main {
+    margin-top: 60px;
+    padding: 20px 15px; /* Reduced padding for mobile */
+    transition: all 0.3s;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 1199px) {
+    #main {
+        padding: 15px; /* Further reduced padding */
+    }
+}
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+}
+
+/* Ensure the table takes full width */
+.full-width-table {
+    width: 100%;
+    table-layout: fixed; /* Fixed layout to fit content */
+}
+
+.details-button {
+    white-space: nowrap;
+    width: 100%;
+    font-size: 0.875rem; /* Slightly smaller font for mobile */
+    padding: 4px 8px; /* Smaller padding for buttons */
+}
+
+/* Adjust table styling for mobile */
+@media (max-width: 768px) {
+    .full-width-table {
+        font-size: 0.8rem; /* Smaller font size */
+    }
+    .full-width-table td,
+    .full-width-table th {
+        padding: 2px; /* Reduced padding */
+    }
+}

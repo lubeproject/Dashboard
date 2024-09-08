@@ -94,12 +94,34 @@ export default function Register() {
         deviceToken: '', // Default or input field
       };
 
-      // Insert user data into the "pending approvals" table
-      const { data, error: insertError } = await supabase
-        .from('pending_users')
-        .insert([userData]);
+      // // Insert user data into the "pending approvals" table
+      // const { data, error: insertError } = await supabase
+      //   .from('pending_users')
+      //   .insert([userData]);
 
-      if (insertError) throw insertError;
+      // if (insertError) throw insertError;
+
+        // Fetch the user from pending_users
+  // const { data: userData, error: fetchError } = await supabase
+  // .from('pending_users')
+  // .select('*')
+  // .eq('userId', userId)
+  // .single();
+
+// if (fetchError) throw fetchError;
+
+// Insert into users table
+const { data, error } = await supabase
+  .from('users')
+  .insert([userData]);
+
+if (error) throw error;
+
+// // Remove from pending_users
+// await supabase
+//   .from('pending_users')
+//   .delete()
+//   .eq('userId', userId);
 
       // Show alert and redirect
       alert('Registration successful! Your account is waiting for admin approval.');

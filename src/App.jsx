@@ -63,7 +63,7 @@ import ChangePassword from "./components/sidebar/ChangePassword";
 import FilterAssignRepresentative from "./components/sidebar/inventory/FilterAssignRepresentative";
 import Home from "./components/portal/Home";
 import InvoiceDetails from "./components/sidebar/reports/InvoiceDetails";
-
+import DsrKeyRouteOnDay from "./components/sidebar/inventory/DsrKeyRouteOnDay";
 
 function App() {
   return (
@@ -101,7 +101,7 @@ function App() {
         <Route path="visiting" element={<Visiting/>} />
         <Route path="paymententry" element={<PaymentEntry/>} />
         <Route path="billingtomechanic" element={<BillingToMechanic/>} />
-        
+        <Route path="dsrKeyRouteOnDay" element={<DsrKeyRouteOnDay />} />
         {/* <Route path="/portal/useractivatedeactivate" element={<SegmentMaster/>} />
         <Route path="/portal/adduser" element={<SegmentMaster/>} />
         <Route path="/portal/assignrepresentative" element={<SegmentMaster/>} />

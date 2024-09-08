@@ -4,6 +4,14 @@ import { Link, useNavigate } from "react-router-dom";
 
 
 export default function NavAvatar() {
+
+  const navigate = useNavigate()
+
+  const clear = () =>{
+    localStorage.removeItem("access")
+    localStorage.removeItem("sb-uvbxeltzguqqdoyrqwwi-auth-token")
+    navigate("/")
+  }
   return (
     <li className="nav-item dropdown pe-3">
       <a
@@ -51,7 +59,7 @@ export default function NavAvatar() {
           <hr className="dropdown-divider" />
         </li> */}
         <li>
-          <a className="dropdown-item d-flex align-items-center" href="/">
+          <a className="dropdown-item d-flex align-items-center" onClick={clear}>
             <i className="bi bi-box-arrow-right"></i>
             <span>Sign Out</span>
           </a>

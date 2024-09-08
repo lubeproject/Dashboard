@@ -3,9 +3,13 @@ import "./sideBar.css";
 import navList from "../../data/navItem";
 import NavItem from "../header/NavItem";
 import { Link, useNavigate } from "react-router-dom";
+import { MdRoute } from "react-icons/md";
 
 export default function SideBar() {
+  // Parse the environment variable into an array
+  const allowedEmails = process.env.REACT_APP_ACCESS.split(',');
 
+ const [access, setAccess] = useState()
 
   const handleToggleSideBar = () => {
     if (window.innerWidth < 1199) {
@@ -21,6 +25,8 @@ export default function SideBar() {
   };
 
   useEffect(() => {
+
+    setAccess(localStorage.getItem("access") );
     // Call handleResize on component mount to check the initial window size
     handleResize();
 
@@ -30,6 +36,8 @@ export default function SideBar() {
     // Clean up the event listener on component unmount
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+
 
 
   return (
@@ -59,7 +67,9 @@ export default function SideBar() {
             className="nav-content collapse "
             data-bs-parent="#sidebar-nav"
           >
-            <li>
+            {allowedEmails.includes(access) ? (
+              <>
+              <li>
               <Link
                 to="/portal/useractivatedeactivate"
                 style={{ textDecoration: "none" }}
@@ -168,10 +178,21 @@ export default function SideBar() {
                 style={{ textDecoration: "none" }}
                 onClick={handleToggleSideBar}
               >
-                <i class="bi bi-calendar2-check-fill" style={{fontSize:"20px"}}></i>
+                <i style={{fontSize:"20px"}}><MdRoute /></i>
                 <span>All DSR Day Key Route</span>
               </Link>
             </li>
+            <li>
+              <Link
+                to="/portal/billingtomechanic"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+           <i class="bi bi-receipt" style={{fontSize:"20px"}}></i>
+                <span>Billing to Mechanic</span>
+              </Link>
+            </li>
+
             <li>
               <Link to="/portal/itemrequest" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
               <i class="bi bi-send-check-fill" style={{fontSize:"20px"}}></i>
@@ -194,16 +215,57 @@ export default function SideBar() {
                 <span>Payment Entry</span>
               </Link>
             </li>
+
             <li>
               <Link
-                to="/portal/billingtomechanic"
+                to="/portal/dsrKeyRouteOnDay"
                 style={{ textDecoration: "none" }}
                 onClick={handleToggleSideBar}
               >
-           <i class="bi bi-receipt" style={{fontSize:"20px"}}></i>
-                <span>Billing to Mechanic</span>
+                <i style={{fontSize:"20px"}}><MdRoute /></i>
+                <span>DSR Key Route on day</span>
               </Link>
             </li>
+            </>
+            ) : (           <> <li>
+              <Link to="/portal/itemrequest" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
+              <i class="bi bi-send-check-fill" style={{fontSize:"20px"}}></i>
+                <span>Item Request</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="/portal/visiting" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
+              <i class="bi bi-qr-code-scan" style={{fontSize:"20px"}}></i>
+                <span>Visiting</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/portal/paymententry"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i class="bi bi-cash-coin"  style={{fontSize:"20px"}}></i>
+                <span>Payment Entry</span>
+              </Link>
+            </li>
+
+            <li>
+              <Link
+                to="/portal/dsrKeyRouteOnDay"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i style={{fontSize:"20px"}}><MdRoute /></i>
+                <span>DSR Key Route on day</span>
+              </Link>
+            </li>
+            </>
+            )}
+            
+
+
+        
           </ul>
         </li>
         <li className="nav-item">
@@ -222,7 +284,9 @@ export default function SideBar() {
             className="nav-content collapse "
             data-bs-parent="#sidebar-nav"
           >
-            <li>
+
+{allowedEmails.includes(access) ? ( <>
+  <li>
               <Link to="representativelist" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
               <i class="bi bi-layout-sidebar-inset"  style={{fontSize:"20px"}}></i>
                 <span>Representative List</span>
@@ -386,6 +450,131 @@ export default function SideBar() {
                 <span>Mechanic Loyalty Report</span>
               </Link>
             </li>
+
+</> ):(<>
+
+            <li>
+              <Link to="retailerslist" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
+              <i class="bi bi-person-lines-fill" style={{fontSize:"20px"}}></i>
+                <span>Retailers List</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="mechaniclist" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
+              <i class="bi bi-tools" style={{fontSize:"20px"}}></i>
+                <span>Mechanic List</span>
+              </Link>
+            </li>
+            
+          
+            <li>
+              <Link
+                to="retailersaccountstatement"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i class="bi bi-card-list" style={{fontSize:"20px"}}></i>
+                <span>Retailers Account Statement</span>
+              </Link>
+            </li>
+            
+            <li>
+              <Link to="DSRdayreport" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
+              <i class="bi bi-calendar2-event" style={{fontSize:"20px"}}></i>
+                <span>DSR Day Report</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="DSRdaywisecollectionreport"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i class="bi bi-collection-fill" style={{fontSize:"20px"}}></i>
+                <span>DSR Daywise Collection Report</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="DSRdaywisesalesreport"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i class="bi bi-layout-text-window" style={{fontSize:"20px"}}></i>
+                <span>DSR Daywise Sales Report</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="retailerrequestreport"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i class="bi bi-send-exclamation"  style={{fontSize:"20px"}}></i>
+                <span>Retailer Request Report</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="itemwiseretailerrequestreport"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i class="bi bi-list-nested" style={{fontSize:"20px"}}></i>
+                <span>Itemwise Retailer Request Report</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="invoicehistory" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
+              <i class="bi bi-view-list"  style={{fontSize:"20px"}}></i>
+                <span>Invoice History</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="paymenthistory" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
+              <i class="bi bi-wallet2" style={{fontSize:"20px"}}></i>
+                <span>Payment History</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="mechanicsalesreport" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
+              <i class="bi bi-gear-fill" style={{fontSize:"20px"}}></i>
+                <span>Mechanic Sales Report</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="mechanicttemwisesalesreport"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i class="bi bi-wrench-adjustable-circle" style={{fontSize:"20px"}}></i>
+                <span>Mechanic Itemwise Sales Report</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="loyaltymechanicsalesreport"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+             <i class="bi bi-wrench" style={{fontSize:"20px"}}></i>
+                <span>Loyalty Mechanic Sales Report</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="mechanicloyaltyreport"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i class="bi bi-pencil-square" style={{fontSize:"20px"}}></i>
+                <span>Mechanic Loyalty Report</span>
+              </Link>
+            </li>
+
+</>) }
+            
           </ul>
         </li>
        

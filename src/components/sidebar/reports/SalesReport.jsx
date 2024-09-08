@@ -160,31 +160,33 @@ export default function SalesReport() {
               <Table striped bordered hover responsive className="sales-report-table">
                 <thead>
                   <tr>
-                      <th>Inv. No/ Date</th>
-                      <th>Retailer </th>
-                      <th>GCIN/ DSR</th>
-                      <th>Product/ Segment/ Category</th>
+                      <th>Inv.No / Date</th>
+                      <th>Retailer / GCIN / DSR </th>
+                      <th>Product / Segment / Category</th>
                       <th>Size</th>
-                      <th>Sales</th>
+                      <th>Sales (Litres)</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredData.map((data, index) => (
-                    <tr key={index}>
-                      <td>{data.tallyrefinvno}/ {formatDate(data.updatedtime)}</td>
-                      <td>{data.retailername.trim()}</td>
-                      <td>
-                        {data.cginno} / 
-                        <span style={{ color: 'red' }}> {data.representativename.trim()}</span></td>
-                      <td>
-                        {data.itemname.trim()} 
-                        <span style={{ color: 'red' }}> {data.segmentname.trim()} </span>
-                        <span style={{ color: 'blue' }}> {data.categoryname.trim()}</span>
-                      </td>
-                      <td>{data.itemweight}</td>
-                      <td>{data.liters}</td>
-                    </tr>
-                  ))}
+                  {filteredData
+                    .sort((a, b) => new Date(b.updatedtime) - new Date(a.updatedtime)) // Sort in descending order
+                    .map((data, index) => (
+                      <tr key={index}>
+                        <td>Inv.no.{data.tallyrefinvno} <br /> {formatDate(data.updatedtime)}</td>
+                        <td>
+                          {data.retailername.trim()} <br /> {/* Retailer Name */}
+                          {data.cginno} /  
+                          <span style={{ color: 'red' }}> {data.representativename.trim()}</span> {/* GCIN/DSR on a new line */}
+                        </td>
+                        <td>
+                          {data.itemname.trim()} <br /> {/* Product Name */}
+                          <span style={{ color: 'red' }}> {data.segmentname.trim()} </span> {/* Segment Name on a new line */}
+                          <span style={{ color: 'blue' }}> {data.categoryname.trim()} </span> {/* Category Name on a new line */}
+                        </td>
+                        <td>{data.itemweight}</td>
+                        <td>{data.liters}</td>
+                      </tr>
+                    ))}
                 </tbody>
               </Table>
             )}

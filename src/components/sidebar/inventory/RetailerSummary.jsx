@@ -1,6 +1,11 @@
 import React from 'react';
 import { Container, Row, Col, Table } from 'react-bootstrap';
 import './retailerSummary.css';
+import { FaTools } from "react-icons/fa";
+import { MdOutlineWaterDrop } from "react-icons/md";
+import { IoDiamondOutline } from "react-icons/io5";
+import { PiCurrencyInrBold } from "react-icons/pi";
+
 
 const dummyPurchaseAnalysis = [
   { id: 1, Mineral: '500', Synth: '200', Psy: '300', Total: '1000', NA: '0' },
@@ -25,6 +30,30 @@ const dummyLoyalMechanics = [
 export default function RetailerSummary() {
   return (
     <main id='main' className='main'>
+      <h2><center>Retailer Summary</center></h2>
+
+
+      <div className='icons'>
+          <div>
+            <h4 style={{color:"darkorange"}}>0</h4>
+             < FaTools fontSize={"25"}/>
+          </div>
+
+          <div>
+            <h4 style={{color:"darkorange"}}>0</h4>
+             <  MdOutlineWaterDrop fontSize={"25"}/>
+          </div>
+
+          <div>
+            <h4 style={{color:"darkorange"}}>0</h4>
+             < IoDiamondOutline fontSize={"25"} />
+          </div>
+
+          <div>
+            <h4 style={{color:"darkorange"}}>0</h4>
+             < PiCurrencyInrBold fontSize={"25"}/>
+          </div>
+      </div>
       <Container className="mt-4">
         <Row className="mb-4">
           <Col>

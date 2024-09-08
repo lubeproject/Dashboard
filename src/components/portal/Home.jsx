@@ -1,8 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import welcome from "../../images/welcome.gif";
 import "./home.css";
+import { Navigate } from 'react-router-dom';
 
 export default function Home() {
+
+if (localStorage.getItem("access") === null) {
+  return <Navigate to="/" replace />; 
+}
+
   return (
     <main id="main" className="main">
       <div className="home-container">

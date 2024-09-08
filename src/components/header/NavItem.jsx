@@ -1,7 +1,17 @@
 import React, {useEffect} from 'react';
-import {Link} from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
 
 export default function NavItem({nav}) {
+
+  
+  const navigate = useNavigate()
+
+  const clear = () =>{
+    
+    localStorage.removeItem("access")
+    localStorage.removeItem("sb-uvbxeltzguqqdoyrqwwi-auth-token")
+  
+  }
 
   const handleToggleSideBar = () => {
     if (window.innerWidth < 1199) {
@@ -29,13 +39,35 @@ export default function NavItem({nav}) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Combined function
+  const handleCombinedClick = () => {
+    clear()
+    handleToggleSideBar()
+    navigate("/")
+  };
+
 
   return (
     <i className='nav-item' >
-        <Link className='nav-link collapsed' to={`${nav.path}`} style={{ textDecoration:"none"}} onClick={handleToggleSideBar}>
+        {
+          nav.path === "/" ? (
+            <>
+            <a className='nav-link collapsed'  style={{ textDecoration:"none"}} 
+            onClick={handleCombinedClick}>
+            <i className={nav.icon}></i>
+            <span>{nav.name}</span>
+        </a>
+            </>
+          ) : (
+<>
+<Link className='nav-link collapsed' to={`${nav.path}`} style={{ textDecoration:"none"}} onClick={handleToggleSideBar}>
             <i className={nav.icon}></i>
             <span>{nav.name}</span>
         </Link>
+</>
+
+          )
+        }
     </i>
   )
 }

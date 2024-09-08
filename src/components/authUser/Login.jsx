@@ -19,21 +19,22 @@ export default function Login() {
   };
 
   const handleLogin = async (e) => {
-    // e.preventDefault();
-    // setError(null);
-    // try {
-    //   const { data, error } = await supabase.auth.signInWithPassword({
-    //     email,
-    //     password,
-    //   });
-    //   if (error) throw error;
-    //   console.log('Login successful!', data);
-    //   alert('Login successful!');
-      navigate('/portal/homepage');
-    // } catch (error) {
-    //   console.error('Error logging in:', error.message);
-    //   setError(error.message);
-    // }
+    e.preventDefault();
+    setError(null);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      // console.log('Login successful!', data.session.user.email);
+      localStorage.setItem("access",data.session.user.email )
+      alert('Login successful!');
+      navigate('/portal/homepage')
+    } catch (error) {
+      console.error('Error logging in:', error.message);
+      setError(error.message);
+    }
   };
 
   const handleChangePassword = async (event) => {
