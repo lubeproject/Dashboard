@@ -31,10 +31,7 @@ export default function Dashboard() {
   const [totalAmount, setTotalAmount] = useState(0);
   const [percentageData, setPercentageData] = useState([]);
   const [access, setAccess] = useState("");
-  // Parse the environment variable into an array
-  const allowedEmails = process.env.REACT_APP_ADMIN.split(",");
-  const allowedEmailsRepresentative =
-    process.env.REACT_APP_REPRESENTATIVE.split(",");
+
   // Function to get date ranges
   const getDateRanges = () => {
     const today = new Date();

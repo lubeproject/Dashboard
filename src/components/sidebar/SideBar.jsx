@@ -8,9 +8,7 @@ import { supabase } from "../../supabaseClient";
 
 
 export default function SideBar() {
- // Parse the environment variable into an array
- const allowedEmails = process.env.REACT_APP_ADMIN.split(',');
- const allowedEmailsRepresentative = process.env.REACT_APP_REPRESENTATIVE.split(',');
+ 
 
  const [access, setAccess] = useState("")
 
