@@ -21,7 +21,7 @@ export default function PaymentApproval() {
         .from('payment_approval')
         .select(`*`)
         .eq('active', 'Y') // Assuming you want to display only pending approvals
-        .order('createdtime', { ascending: false });
+        .order('payapproveid', { ascending: true });
 
       if (error) {
         throw error;
@@ -35,8 +35,108 @@ export default function PaymentApproval() {
     }
   };
 
+  // const handleApprove = async (payapproveid) => {
+  //   try {
+  //     const { data: paymentApproval, error: paymentApprovalError } = await supabase
+  //       .from('payment_approval')
+  //       .select('*')
+  //       .eq('payapproveid', payapproveid)
+  //       .single();
+  
+  //     if (paymentApprovalError || !paymentApproval) {
+  //       throw new Error("Payment approval not found or error fetching it.");
+  //     }
+  
+  //     console.log('Payment Approval Data:', paymentApproval); // Log the data
+  
+  //     const { payid, invid, amount: approvedAmount } = paymentApproval;
+  
+  //     if (!payid || !invid) {
+  //       throw new Error("Invalid payid or invid. Make sure they are correctly defined.");
+  //     }
+  
+  //     // Fetch the invoice based on invid
+  //     const { data: invoice, error: invoiceError } = await supabase
+  //       .from('invoices')
+  //       .select('*')
+  //       .eq('invid', invid)
+  //       .single();
+  
+  //     if (invoiceError || !invoice) {
+  //       throw new Error("Invoice not found or error fetching it.");
+  //     }
+  
+  //     const updatedPaidAmount = invoice.paidamount + approvedAmount;
+  //     const paymentStatus = updatedPaidAmount >= invoice.amount ? 'Approved' : invoice.paymentstatus;
+  //     let paymentMode = invoice.paymode;
+  
+  //       const { error: updateInvoiceError } = await supabase
+  //       .from('invoices')
+  //       .update({
+  //         paidamount: updatedPaidAmount,
+  //         paymentstatus: paymentStatus,
+  //         paymode: paymentMode,
+  //         updatedtime: new Date().toISOString(),
+  //       })
+  //       .eq('invid', invid);
+  
+  
+  //     if (updateInvoiceError) {
+  //       throw new Error("Error updating the invoice.");
+  //     }
+
+  //     if (updatedPaidAmount >= invoice.amount) {
+  //       const { error: insertPaidInvoiceError } = await supabase
+  //         .from('paid_invoices')
+  //         .insert([{
+  //           payid: payid,
+  //           invid: invid,
+  //           amount: invoice.amount,
+  //           paidamount: updatedPaidAmount,
+  //           createdtime: new Date().toISOString()
+  //         }]);
+  
+  //       if (insertPaidInvoiceError) {
+  //         console.error("Error inserting into paid_invoices:", insertPaidInvoiceError);
+  //         throw new Error(insertPaidInvoiceError.message);
+  //       }
+  //     }  
+
+  //     const { error: updatePaymentReferenceError } = await supabase
+  //     .from('payment_reference')
+  //     .update({
+  //       paymentstatus: 'Approved',
+  //       updatedtime: new Date().toISOString(),
+  //     })
+  //     .eq('payid', payid);
+
+  //   if (updatePaymentReferenceError) {
+  //     throw new Error("Error updating payment status in payment_reference.");
+  //   }
+  
+  //     const { error: updatePaymentApprovalError } = await supabase
+  //       .from('payment_approval')
+  //       .update({
+  //         paymentstatus: 'Approved',
+  //         updatedtime: new Date().toISOString(),
+  //         active: 'N'
+  //       })
+  //       .eq('payapproveid', payapproveid);
+  
+  //     if (updatePaymentApprovalError) {
+  //       throw new Error("Error updating payment approval status.");
+  //     }
+  
+  //     fetchPayments();
+  //   } catch (error) {
+  //     console.error("Error approving payment:", error.message);
+  //     setError(error.message);
+  //   }
+  // };
+
   const handleApprove = async (payapproveid) => {
     try {
+      // 1. Fetch payment approval entry
       const { data: paymentApproval, error: paymentApprovalError } = await supabase
         .from('payment_approval')
         .select('*')
@@ -47,17 +147,30 @@ export default function PaymentApproval() {
         throw new Error("Payment approval not found or error fetching it.");
       }
   
-      console.log('Payment Approval Data:', paymentApproval); // Log the data
-  
-      const { payid, invid, amount: approvedAmount } = paymentApproval;
+      const { payid, invid, amount: approvedAmount,punchingid: punchingId } = paymentApproval;
+      // console.log('Payment Approval Data:', paymentApproval);
   
       if (!payid || !invid) {
         throw new Error("Invalid payid or invid. Make sure they are correctly defined.");
       }
   
-      // Fetch the invoice based on invid
+      // 2. Update the payment_approval entry first to mark it as 'Approved' and set active to 'N'
+      const { error: updatePaymentApprovalError } = await supabase
+        .from('payment_approval')
+        .update({
+          paymentstatus: 'Approved',
+          updatedtime: new Date().toISOString(),
+          active: 'N' // Mark as inactive after approval
+        })
+        .eq('payapproveid', payapproveid);
+  
+      if (updatePaymentApprovalError) {
+        throw new Error("Error updating payment approval status.");
+      }
+  
+      // 3. Fetch the corresponding invoice based on invid
       const { data: invoice, error: invoiceError } = await supabase
-        .from('invoices')
+        .from('invoices1')
         .select('*')
         .eq('invid', invid)
         .single();
@@ -66,36 +179,43 @@ export default function PaymentApproval() {
         throw new Error("Invoice not found or error fetching it.");
       }
   
-      const updatedPaidAmount = invoice.paidamount + approvedAmount;
-      const paymentStatus = updatedPaidAmount >= invoice.amount ? 'Paid' : invoice.paymentstatus;
-      let paymentMode = invoice.paymode;
+      // 4. Calculate updated paid amount and determine payment status
+      const updatedPaidAmount = (invoice.paidamount || 0) + approvedAmount;
+      const paymentStatus = updatedPaidAmount >= invoice.amount ? 'Approved' : invoice.paymentstatus;
   
-        const { error: updateInvoiceError } = await supabase
-        .from('invoices')
+      // 5. Fetch all distinct approved payment modes for this invoice from the updated payment_approval table
+      const { data: approvedPayments, error: approvedPaymentsError } = await supabase
+        .from('payment_approval')
+        .select('paymode')
+        .eq('invid', invid)
+        .eq('paymentstatus', 'Approved');
+  
+      if (approvedPaymentsError) {
+        throw new Error("Error fetching approved payment modes.");
+      }
+  
+      // Collect distinct payment modes and join them as a string
+      const distinctPaymentModes = [...new Set(approvedPayments.map(payment => payment.paymode))].join(', ');
+      // console.log("Distinct Payment Modes...");
+      // console.log(distinctPaymentModes);
+  
+      // 6. Update the invoice with the new paid amount, payment status, and distinct payment modes
+      const { error: updateInvoiceError } = await supabase
+        .from('invoices1')
         .update({
           paidamount: updatedPaidAmount,
           paymentstatus: paymentStatus,
-          paymode: paymentMode,
+          paymentmode: distinctPaymentModes,  // Set distinct payment modes
+          paymentdate: updatedPaidAmount>= invoice.amount? new Date().toISOString().split('T')[0]:null,
           updatedtime: new Date().toISOString(),
         })
         .eq('invid', invid);
-  
   
       if (updateInvoiceError) {
         throw new Error("Error updating the invoice.");
       }
   
-      // Log the data to be inserted into paid_invoices
-      // console.log({
-      //   payid,
-      //   invid,
-      //   amount: approvedAmount,
-      //   paidamount: updatedPaidAmount,
-      //   // createdby: 'system',
-      //   createdtime: new Date().toISOString(),
-      // });
-  
-      // Insert into paid_invoices table
+      // 7. If the invoice is fully paid, insert it into the paid_invoices table
       if (updatedPaidAmount >= invoice.amount) {
         const { error: insertPaidInvoiceError } = await supabase
           .from('paid_invoices')
@@ -104,50 +224,53 @@ export default function PaymentApproval() {
             invid: invid,
             amount: invoice.amount,
             paidamount: updatedPaidAmount,
-            // createdby: 'system',
-            createdtime: new Date().toISOString()
+            createdtime: new Date().toISOString(),
           }]);
   
         if (insertPaidInvoiceError) {
-          console.error("Error inserting into paid_invoices:", insertPaidInvoiceError);
-          throw new Error(insertPaidInvoiceError.message);
+          throw new Error(`Error inserting into paid_invoices: ${insertPaidInvoiceError.message}`);
         }
-      }  
-
-      const { error: updatePaymentReferenceError } = await supabase
-      .from('payment_reference')
-      .update({
-        paymentstatus: 1,
-        updatedtime: new Date().toISOString(),
-      })
-      .eq('payid', payid);
-
-    if (updatePaymentReferenceError) {
-      throw new Error("Error updating payment status in payment_reference.");
-    }
-  
-      const { error: updatePaymentApprovalError } = await supabase
-        .from('payment_approval')
-        .update({
-          paymentstatus: 'Paid',
-          updatedtime: new Date().toISOString(),
-          active: 'N'
-        })
-        .eq('payapproveid', payapproveid);
-  
-      if (updatePaymentApprovalError) {
-        throw new Error("Error updating payment approval status.");
       }
   
-      fetchPayments();
+      // 8. Update the payment_reference status to 'Approved' for the payid
+      const { error: updatePaymentReferenceError } = await supabase
+        .from('payment_reference')
+        .update({
+          paymentstatus: 'Approved',
+          updatedtime: new Date().toISOString(),
+        })
+        .eq('payid', payid);
+  
+      if (updatePaymentReferenceError) {
+        throw new Error("Error updating payment status in payment_reference.");
+      }
+
+      // 9. Update the represent_visiting1 table with the approved amount
+    if (punchingId) {
+      const { error: updateRepresentVisitingError } = await supabase
+        .from('represent_visiting1')
+        .update({
+          amount: supabase.raw('amount + ?', [approvedAmount]),
+          lastupdatetime : new Date().toISOString
+        })
+        .eq('punchingid', punchingId);
+
+      if (updateRepresentVisitingError) {
+        throw new Error(`Error updating represent_visiting1 table: ${updateRepresentVisitingError.message}`);
+      }
+    }
+
+    // 10. Fetch updated payment records after approval
+      fetchPayments(); 
+  
     } catch (error) {
+      // Handle any errors that occur during the approval process
       console.error("Error approving payment:", error.message);
       setError(error.message);
     }
   };
   
-  
-  
+    
   const convertDateFormat = (dateStr) => {
     if (!dateStr) return '';
   
@@ -187,11 +310,15 @@ export default function PaymentApproval() {
               data.map((item, index) => (
                 <tr key={index}>
                   <td>{convertDateFormat(item.chequedate)}</td>
-                  <td><span>{item.usershopname}</span><br/>
-                  <span>{item.username}</span>
+                  <td>
+                    <span>{item.usershopname}</span><br/>
+                    <span>{item.username}</span>
                   </td>
                   <td>{item.paymode}</td>
-                  <td>{item.payref}</td>
+                  <td>
+                    <span>{item.payref}</span><br/>
+                    <span>Remarks: {item.remarks}</span>
+                  </td>
                   <td>₹{item.amount.toFixed(2)}</td>
                   <td className="d-flex flex-row">
                     <Button

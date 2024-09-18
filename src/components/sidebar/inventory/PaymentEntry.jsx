@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Form, Container, Row, Col, Modal } from 'react-bootstrap';
 import Select from 'react-select';
+import Cookies from 'js-cookie';
 import { supabase } from '../../../supabaseClient';
 
 export default function PaymentEntry() {
@@ -484,10 +485,12 @@ const handleValidateOtp = () => {
   
       // Insert payment approval for all payment modes
       const invoiceId = invoiceData.length > 0 ? invoiceData[0].invid : null;
+      const punchingId = Cookies.get('punchingid');
       const { error: insertPaymentApproveError } = await supabase
         .from('payment_approval')
         .insert({
           payid: pay.payid,
+          punchingid: punchingId,
           repid: user.repid,
           invid: invoiceId,
           userid: user.value,

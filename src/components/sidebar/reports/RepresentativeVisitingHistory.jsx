@@ -15,7 +15,7 @@ export default function RepresentativeVisitingHistory() {
   const [filteredData, setFilteredData] = useState([]);
 
   useEffect(() => {
-    // Fetch mechanics from the users table
+    // Fetch representatives from the users table
     const fetchDsr = async () => {
       const { data, error } = await supabase
         .from('users')
@@ -31,40 +31,41 @@ export default function RepresentativeVisitingHistory() {
 
   const handleFilter = async () => {
     try {
-      // Step 1: Filter invoices by date range
-      let represent_visitingQuery = supabase.from('payment_reference').select('*').eq('repid', selectedDsr.value);
-  
+      // Step 1: Filter from represent_visiting1 by date range and representative
+      let visitingQuery = supabase
+        .from('represent_visiting1')
+        .select('*')
+        .eq('repid', selectedDsr.value);
+
       if (startDate && endDate) {
         if (new Date(startDate) > new Date(endDate)) {
           alert("Pick From Date cannot be later than Pick To Date.");
           return;
         }
-        represent_visitingQuery = represent_visitingQuery.gte('updatedtime', new Date(startDate).toISOString()).lte('updatedtime', new Date(endDate).toISOString());
-        console.log("Date Range Filter Applied:", startDate, "to", endDate);
+        visitingQuery = visitingQuery
+          .gte('created', new Date(startDate).toISOString())  // Ensure only date is used
+          .lte('created', new Date(endDate).toISOString());
       } else if (startDate) {
-        represent_visitingQuery = represent_visitingQuery.gte('updatedtime', new Date(startDate).toISOString());
-        console.log("Start Date Filter Applied:", startDate);
+        visitingQuery = visitingQuery.gte('created', new Date(startDate).toISOString().slice(0, 10));
       } else if (endDate) {
-        represent_visitingQuery = represent_visitingQuery.lte('updatedtime', new Date(endDate).toISOString());
-        console.log("End Date Filter Applied:", endDate);
+        visitingQuery = visitingQuery.lte('created', new Date(endDate).toISOString().slice(0, 10));
       }
-  
-      const { data: filteredRepresentVisiting, error: represent_visitingError } = await represent_visitingQuery;
-  
-      if (represent_visitingError) {
-        console.error('Error fetching filtered represent visiting:', represent_visitingError.message);
+
+      const { data: filteredVisitingData, error: visitingError } = await visitingQuery;
+
+      if (visitingError) {
+        console.error('Error fetching filtered visiting history:', visitingError.message);
         return;
       }
-  
-      if (!filteredRepresentVisiting || filteredRepresentVisiting.length === 0) {
-        console.warn('No Represent Visiting found for the selected date range.');
+
+      if (!filteredVisitingData || filteredVisitingData.length === 0) {
+        console.warn('No visiting history found for the selected date range.');
         setFilteredData([]);
         return;
       }
-  
-      setFilteredData(filteredRepresentVisiting);
-      console.log("Final Filtered Items Data:", filteredRepresentVisiting);
-  
+
+      setFilteredData(filteredVisitingData);
+      console.log("Filtered visiting data:", filteredVisitingData);
     } catch (error) {
       console.error('Unexpected error during filtering:', error);
     }
@@ -77,13 +78,52 @@ export default function RepresentativeVisitingHistory() {
     setFilteredData([]);
   };
 
+  // Format date as DD/MM/YYYY
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are zero-based
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const year = date.getFullYear();
-    return `${day}/${month}/${year}`; // Change format as needed
+    return `${day}/${month}/${year}`;
   };
+
+  // Format time as HH:MM (ignoring the date portion)
+  // const formatTime = (timeString) => {
+  //   if (!timeString || timeString.trim() === ''){
+  //     return "In Session";
+  //   }
+  //   const time = new Date(timeString);
+  //   const hours = time.getHours().toString().padStart(2, '0');
+  //   const minutes = time.getMinutes().toString().padStart(2, '0');
+  //   const seconds = time.getSeconds().toString().padStart(2, '0');
+  //   return `${hours}:${minutes}:${seconds}`;
+  // };
+
+  function formatTime(timeString) {
+    if (!timeString || timeString.trim() === '') {
+      console.log('Time string is empty or invalid');
+      return '00:00:00'; // Default or placeholder value
+    }
+    
+    // Further validation can be added here if needed
+  
+    // Example: Format the time string (e.g., "HH:mm:ss")
+    // Here, we'll assume `timeString` is in "HH:mm:ss" format or similar
+    const parts = timeString.split(':');
+    if (parts.length !== 3) {
+      console.log('Invalid time format');
+      return '00:00:00'; // Default or placeholder value
+    }
+  
+    const [hours, minutes, seconds] = parts.map(part => {
+      // Ensure each part is a valid number
+      const num = parseInt(part, 10);
+      return isNaN(num) ? '00' : num.toString().padStart(2, '0');
+    });
+  
+    return `${hours}:${minutes}:${seconds}`;
+  }
+  
 
   const customSelectStyles = {
     control: (provided, state) => ({
@@ -106,11 +146,11 @@ export default function RepresentativeVisitingHistory() {
         <Row className="mb-2">
           <Form.Group controlId="formRepresentative">
             <Select
-                value={selectedDsr}
-                onChange={setSelectedDsr}
-                options={dsrOptions}
-                placeholder="Select Representative"
-                styles={customSelectStyles}
+              value={selectedDsr}
+              onChange={setSelectedDsr}
+              options={dsrOptions}
+              placeholder="Select Representative"
+              styles={customSelectStyles}
             />
           </Form.Group>
         </Row>
@@ -156,23 +196,25 @@ export default function RepresentativeVisitingHistory() {
                   <tr>
                     <th>Date</th>
                     <th>Account</th>
-                    <th>Punch In</th>
-                    <th>Punch Out</th>
+                    <th>Punch In (Check-in)</th>
+                    <th>Punch Out (Check-out)</th>
                     <th>Orders</th>
-                    <th>Amt</th>
-                    <th>Remaining</th>
+                    <th>Amount</th>
+                    <th>Visited Day</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredData.map((data, index) => (
                     <tr key={index}>
-                      <td>{formatDate(data.updatedtime)}</td>
-                      <td>{data.usershopname.trim()}</td>
-                      <td>{data.payid}</td>
-                      <td>{data.payid}</td>
-                      <td>{data.payref}</td>
+                      <td>{formatDate(data.visitingdate)}</td>
+                      <td>{data.shopname}<br/>
+                      {data.visitor}
+                      </td>
+                      <td>{formatTime(data.checkintime)}</td>
+                      <td>{formatTime(data.checkouttime)=='00:00:00'? 'In Session':formatTime(data.checkouttime)}</td>
+                      <td>{data.orders}</td>
                       <td>{data.amount}</td>
-                      <td>{3}</td>
+                      <td>{data.visitingday}</td>
                     </tr>
                   ))}
                 </tbody>

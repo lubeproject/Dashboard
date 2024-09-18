@@ -184,6 +184,7 @@ import { FaCamera } from 'react-icons/fa';
 import { IoIosFlash, IoIosFlashOff } from "react-icons/io";
 import { FiUpload } from "react-icons/fi";
 import jsQR from "jsqr";
+import Cookies from 'js-cookie';
 import { supabase } from "../../../supabaseClient"; // Ensure this path is correct
 import "./visiting.css"; // Ensure you have the necessary styles
 
@@ -318,6 +319,18 @@ const Visiting = () => {
     }
   };
 
+  function getDayFromDate(dateString) {
+    const date = new Date(dateString);
+  
+    // Array to map day index to day names
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  
+    // Get the day (0-6 corresponds to Sunday-Saturday)
+    const dayName = days[date.getDay()];
+  
+    return dayName;
+  }
+
   const fetchAndCalculateLocation = async (qrcode) => {
     setIsLoading(true);
     try {
@@ -352,6 +365,7 @@ const Visiting = () => {
         // Insert visit record
         const currentTime = getCurrentTime();
         const visitingDate = new Date().toISOString().split('T')[0];
+        const visitingday = getDayFromDate(visitingDate);
         const now = new Date();
 
         // TODO: Replace 'repid' and 'repname' with actual representative's ID and name
@@ -376,6 +390,7 @@ const Visiting = () => {
             visitingdate: visitingDate,
             created: now,
             lastupdatetime: now,
+            visitingday:visitingday,
           }])
           .select('punchingid'); // Selecting the primary key
 
@@ -390,6 +405,7 @@ const Visiting = () => {
           const insertedId = insertData[0].punchingid;
           if (insertedId) {
             setVisitId(insertedId);
+            Cookies.set('punchingid', insertedId, { expires: 1 });
             alert('Check-in successful!');
           } else {
             console.error('Inserted ID not found.');
@@ -507,6 +523,7 @@ const Visiting = () => {
           console.error('Error updating checkout time:', error);
           setErrorMessage('Error during checkout. Please try again.');
         } else {
+          Cookies.remove('punchingid');
           console.log('Checkout time updated successfully');
           setCheckedOut(true);
           alert('Checkout successful!');
