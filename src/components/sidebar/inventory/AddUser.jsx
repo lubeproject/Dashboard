@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash, faQrcode } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '../../../supabaseClient';
 import "./addUser.css";
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 
 export default function AddUser() {
 

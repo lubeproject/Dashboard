@@ -102,8 +102,8 @@ const [access, setAccess] = useState("");
 useEffect(() => {
   // Mock function to simulate fetching access (could be from localStorage, API, etc.)
   const fetchAccess = () => {
-    const storedAccess = localStorage.getItem("role"); // or from an API
-    setAccess(storedAccess);
+   
+    setAccess(localStorage.getItem("role"));
   };
 
   fetchAccess();
