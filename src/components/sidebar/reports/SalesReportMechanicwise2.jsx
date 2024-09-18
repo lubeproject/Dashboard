@@ -52,11 +52,11 @@ export default function SalesReportMechanicwise() {
 
     // Fetch billing data from billing_mechanic table
     const { data, error } = await supabase
-      .from('user_request')
+      .from('billing_mechanic')
       .select('*')
-      .eq('userid', selectedMechanic.value)
-      .gte('createdtime', startDate.toISOString())
-      .lte('createdtime', endDate.toISOString());
+      .eq('mechid', selectedMechanic.value)
+      .gte('createddate', startDate.toISOString())
+      .lte('createddate', endDate.toISOString());
 
     if (error) {
       console.error('Error fetching billing data:', error);

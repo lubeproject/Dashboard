@@ -127,24 +127,18 @@ function CreditTermItemMaster() {
         <div className="popup">
           <div className="popup-inner">
             <h5>Add New Credit Item Term</h5>
-            <label>
-              Credit Term Name
             <input
               type="text"
               placeholder="Credit Term Name"
               value={newCreditTermName}
               onChange={(e) => setNewCreditTermName(e.target.value)}
             />
-            </label>
-            <label>
-            Days
             <input
               type="number"
               placeholder="Days"
               value={newCreditTermDays}
               onChange={(e) => setNewCreditTermDays(e.target.value)}
             />
-            </label>
             <div className="popup-buttons">
               <button onClick={handleAddCreditTerm}>Submit</button>
               <button onClick={() => setShowAddPopup(false)}>Close</button>
@@ -158,24 +152,18 @@ function CreditTermItemMaster() {
         <div className="popup">
           <div className="popup-inner">
             <h5>Edit Credit Item Term</h5>
-            <label>
-              Credit Term Name
             <input
               type="text"
               placeholder="Credit Term Name"
               value={newCreditTermName}
               onChange={(e) => setNewCreditTermName(e.target.value)}
             />
-            </label>
-            <label>
-              Days
             <input
               type="number"
               placeholder="Days"
               value={newCreditTermDays}
               onChange={(e) => setNewCreditTermDays(e.target.value)}
             />
-            </label>
             <div className="popup-buttons">
               <button onClick={handleEditCreditTerm}>Submit</button>
               <button onClick={() => setShowEditPopup(false)}>Close</button>

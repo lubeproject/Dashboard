@@ -175,7 +175,7 @@ export default function PaymentApproval() {
           <thead>
             <tr style={{ backgroundColor: "darkorange", color: "white" }}>
               <th>Date</th>
-              <th>User</th>
+              <th>Retailer</th>
               <th>Payment Mode</th>
               <th>Payref</th>
               <th>Amount(in ₹)</th>
@@ -187,9 +187,7 @@ export default function PaymentApproval() {
               data.map((item, index) => (
                 <tr key={index}>
                   <td>{convertDateFormat(item.chequedate)}</td>
-                  <td><span>{item.usershopname}</span><br/>
-                  <span>{item.username}</span>
-                  </td>
+                  <td>{item.retailername}</td>
                   <td>{item.paymode}</td>
                   <td>{item.payref}</td>
                   <td>₹{item.amount.toFixed(2)}</td>

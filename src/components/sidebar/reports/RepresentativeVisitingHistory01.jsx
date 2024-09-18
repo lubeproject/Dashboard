@@ -5,7 +5,7 @@ import Select from 'react-select';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import norecordfound from "../../../images/norecordfound.gif";
-import "./RepresentativeVisitingHistory";
+import "./RepresentativeVisitingHistory01";
 
 export default function RepresentativeVisitingHistory() {
   const [dsrOptions, setDsrOptions] = useState([]);
@@ -13,6 +13,7 @@ export default function RepresentativeVisitingHistory() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [filteredData, setFilteredData] = useState([]);
+  const [filterApplied, setFilterApplied] = useState(false);
 
   useEffect(() => {
     // Fetch mechanics from the users table
@@ -22,8 +23,8 @@ export default function RepresentativeVisitingHistory() {
         .select('userid, shopname, name, role')
         .eq('role', 'representative');
 
-      if (error) console.error('Error fetching Representatives:', error);
-      else setDsrOptions(data.map(representative => ({ value: representative.userid, label: representative.shopname, name: representative.name })));
+      if (error) console.error('Error fetching Retailers:', error);
+      else setDsrOptions(data.map(retailer => ({ value: retailer.userid, label: retailer.shopname, name: retailer.name })));
     };
 
     fetchDsr();
@@ -63,6 +64,7 @@ export default function RepresentativeVisitingHistory() {
       }
   
       setFilteredData(filteredRepresentVisiting);
+      setFilterApplied(true);
       console.log("Final Filtered Items Data:", filteredRepresentVisiting);
   
     } catch (error) {
@@ -75,6 +77,7 @@ export default function RepresentativeVisitingHistory() {
     setStartDate(null);
     setEndDate(null);
     setFilteredData([]);
+    setFilterApplied(false);
   };
 
   const formatDate = (dateString) => {
@@ -104,7 +107,7 @@ export default function RepresentativeVisitingHistory() {
           </Col>
         </Row>
         <Row className="mb-2">
-          <Form.Group controlId="formRepresentative">
+          <Form.Group controlId="formRetailer">
             <Select
                 value={selectedDsr}
                 onChange={setSelectedDsr}
@@ -167,7 +170,7 @@ export default function RepresentativeVisitingHistory() {
                   {filteredData.map((data, index) => (
                     <tr key={index}>
                       <td>{formatDate(data.updatedtime)}</td>
-                      <td>{data.usershopname.trim()}</td>
+                      <td>{data.retailershopname.trim()}</td>
                       <td>{data.payid}</td>
                       <td>{data.payid}</td>
                       <td>{data.payref}</td>

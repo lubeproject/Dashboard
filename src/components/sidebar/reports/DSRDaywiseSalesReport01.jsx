@@ -23,8 +23,8 @@ export default function DSRDaywiseSalesReport() {
         .select('userid, shopname, name, role')
         .eq('role', 'representative');
 
-      if (error) console.error('Error fetching Users:', error);
-      else setDsrOptions(data.map(user => ({ value: user.userid, label: user.shopname, name: user.name })));
+      if (error) console.error('Error fetching Retailers:', error);
+      else setDsrOptions(data.map(retailer => ({ value: retailer.userid, label: retailer.shopname, name: retailer.name })));
     };
 
     fetchDsr();
@@ -52,35 +52,26 @@ export default function DSRDaywiseSalesReport() {
         return;
       }
   
-      const userIdArray = representVisitingData.map(invoice => invoice.visitorid);
+      const retailerIdArray = representVisitingData.map(invoice => invoice.visitorid);
   
       // Step 2: Filter invoices by date range
-      let invoiceQuery = supabase.from('invoices1').select('*').in('userid', userIdArray);
+      let invoiceQuery = supabase.from('invoices').select('*').in('retailerid', retailerIdArray);
   
       if (startDate && endDate) {
-        if (new Date(startDate).toISOString() > new Date(endDate).toISOString()) {
+        if (new Date(startDate) > new Date(endDate)) {
           alert("Pick From Date cannot be later than Pick To Date.");
           return;
         }
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
-  
-        // Convert dates to UTC format using toISOString()
         invoiceQuery = invoiceQuery
           .gte('updatedtime', new Date(startDate).toISOString())
-          .lte('updatedtime', adjustedEndDate.toISOString());
-        
-        console.log("Date Range Filter Applied:", startDate, "to", adjustedEndDate);
+          .lte('updatedtime', new Date(endDate).toISOString());
+        console.log("Date Range Filter Applied:", startDate, "to", endDate);
       } else if (startDate) {
         invoiceQuery = invoiceQuery.gte('updatedtime', new Date(startDate).toISOString());
         console.log("Start Date Filter Applied:", startDate);
       } else if (endDate) {
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
-        
-        // Convert endDate to UTC format
-        invoiceQuery = invoiceQuery.lte('updatedtime', adjustedEndDate.toISOString());
-        console.log("End Date Filter Applied:", adjustedEndDate);
+        invoiceQuery = invoiceQuery.lte('updatedtime', new Date(endDate).toISOString());
+        console.log("End Date Filter Applied:", endDate);
       }
   
       const { data: filteredInvoices, error: invoiceError } = await invoiceQuery;
@@ -123,6 +114,8 @@ export default function DSRDaywiseSalesReport() {
     }
   };
   
+  
+  
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const day = date.getDate().toString().padStart(2, '0');
@@ -158,7 +151,7 @@ export default function DSRDaywiseSalesReport() {
           </Col>
         </Row>
         <Row className="mb-4">
-          <Form.Group controlId="formUser">
+          <Form.Group controlId="formRetailer">
             <Select
                 value={selectedDsr}
                 onChange={setSelectedDsr}

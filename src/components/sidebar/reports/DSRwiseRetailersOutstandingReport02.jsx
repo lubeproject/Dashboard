@@ -146,107 +146,53 @@ export default function DSRwiseRetailersOutstandingReport() {
         .select('userid, shopname, name, role')
         .eq('role', 'representative');
 
-      if (error) {
-        console.error('Error fetching DSRs:', error);
-      } else {
-        setDsrOptions(data.map(dsr => ({
-          value: dsr.userid,
-          label: dsr.shopname,
-          name: dsr.name,
-          role: dsr.role
-        })));
-      }
+      if (error) console.error('Error fetching DSRs:', error);
+      else setDsrOptions(data.map(dsr => ({ value: dsr.userid, label: dsr.shopname, name: dsr.name })));
     };
 
     fetchDsr();
   }, []);
 
   useEffect(() => {
-    const fetchInvoicesAndUsers = async () => {
-      if (!selectedDsr) {
-        console.log('No DSR selected');
-        return;
-      }
-
-      try {
-        // Fetch all users assigned to the selected representative
-        const { data: assignedUsers, error: assignedUsersError } = await supabase
+    const fetchInvoices = async () => {
+      if (selectedDsr) {
+        // Step 1: Fetch users with the same representativeid as the selected DSR
+        const { data: retailers, error: retailerError } = await supabase
           .from('users')
           .select('userid, shopname, name, cginno')
-          .eq('representativeid', selectedDsr.value)
-          .eq('role', 'retailer');
+          .eq('representativeid', selectedDsr.value);
 
-        if (assignedUsersError) {
-          console.error('Error fetching assigned users:', assignedUsersError);
-          return;
-        }
+        if (retailerError) {
+          console.error('Error fetching retailers:', retailerError);
+        } else {
+          // Step 2: Fetch invoices for these retailers
+          const retailerIds = retailers.map(retailer => retailer.userid);
+          const { data: invoices, error: invoiceError } = await supabase
+            .from('invoices')
+            .select('*')
+            .in('retailerid', retailerIds);
 
-        // Fetch all invoices for the selected representative
-        const { data: invoices, error: invoiceError } = await supabase
-          .from('invoices1')
-          .select('*')
-          .eq('repid', selectedDsr.value);
-
-        if (invoiceError) {
-          console.error('Error fetching invoices:', invoiceError);
-          return;
-        }
-
-        // Extract unique user IDs from invoices
-        const userIdsFromInvoices = [...new Set(invoices.map(invoice => invoice.userid))];
-
-        // Fetch users based on those IDs
-        const { data: usersFromInvoices, error: usersFromInvoicesError } = await supabase
-          .from('users')
-          .select('userid, shopname, name, cginno')
-          .in('userid', userIdsFromInvoices);
-
-        if (usersFromInvoicesError) {
-          console.error('Error fetching users from invoices:', usersFromInvoicesError);
-          return;
-        }
-
-        // Combine users who are assigned and those who have previously transacted
-        const userMap = new Map();
-        assignedUsers.forEach(user => userMap.set(user.userid, {
-          ...user,
-          GCINNo : user.cginno,
-          invoices: []
-        }));
-        usersFromInvoices.forEach(user => {
-          if (!userMap.has(user.userid)) {
-            userMap.set(user.userid, {
-              ...user,
-              GCINNo : user.cginno,
-              invoices: []
+          if (invoiceError) {
+            console.error('Error fetching invoices:', invoiceError);
+          } else {
+            // Step 3: Combine invoices with retailer information
+            const retailerData = retailers.map(retailer => {
+              const retailerInvoices = invoices.filter(invoice => invoice.retailerid === retailer.userid);
+              return {
+                retailerid: retailer.userid,
+                shopname: retailer.shopname,
+                name: retailer.name,
+                GCINNo: retailer.cginno || 'N/A',
+                invoices: retailerInvoices.length > 0 ? retailerInvoices : [{ tallyrefinvno: '', invdate: '', amount: 0, paidamount: 0, paymentdate: '' }],
+              };
             });
+            setFilteredData(retailerData);
           }
-        });
-
-        // Map invoices to corresponding users
-        invoices.forEach(invoice => {
-          const user = userMap.get(invoice.userid);
-          if (user) {
-            user.invoices.push({
-              tallyrefinvno: invoice.tallyrefinvno || 'N/A',
-              invdate: invoice.invdate || '',
-              amount: invoice.amount || 0,
-              paidamount: invoice.paidamount || 0,
-              paymentdate: invoice.paymentdate || ''
-            });
-          }
-        });
-
-        // Convert map to array
-        const combinedData = Array.from(userMap.values());
-        setFilteredData(combinedData);
-
-      } catch (error) {
-        console.error('Error fetching invoices and users:', error);
+        }
       }
     };
 
-    fetchInvoicesAndUsers();
+    fetchInvoices();
   }, [selectedDsr]);
 
   const formatDate = (dateString) => {
@@ -258,15 +204,15 @@ export default function DSRwiseRetailersOutstandingReport() {
     return `${day}/${month}/${year}`;
   };
 
-  const renderTable = (user) => {
+  const renderTable = (retailer) => {
     let totalValue = 0;
     let totalBalance = 0;
 
     return (
-      <div key={user.userid} className="user-section">
+      <div key={retailer.retailerid} className="retailer-section">
         <h5>
-          <span style={{color: "darkorange"}}>User: </span>{user.shopname}   
-          <span style={{color: "darkorange", marginLeft: "50px"}}>GCIN No: </span>{user.GCINNo || 'N/A'}
+          <span style={{color: "darkorange"}}>Retailer: </span>{retailer.shopname}   
+          <span style={{color: "darkorange", marginLeft: "50px"}}>GCIN No: </span>{retailer.GCINNo || 'N/A'}
         </h5>
         <Table striped bordered hover responsive>
           <thead>
@@ -279,7 +225,7 @@ export default function DSRwiseRetailersOutstandingReport() {
             </tr>
           </thead>
           <tbody>
-            {user.invoices.map((invoice, index) => {
+            {retailer.invoices.map((invoice, index) => {
               const balance = invoice.amount - invoice.paidamount;
               const payDate = invoice.paymentdate || new Date();
               const duedays = invoice.invdate ? Math.floor(
@@ -347,7 +293,7 @@ export default function DSRwiseRetailersOutstandingReport() {
         </Row>
         <Row>
           <Col>
-            {filteredData.length > 0 ? filteredData.map(user => renderTable(user)) :
+            {filteredData.length > 0 ? filteredData.map(retailer => renderTable(retailer)) :
               <div className="text-center">
                 <img src={norecordfound} alt="No Record Found" className="no-record-img"/>
               </div>

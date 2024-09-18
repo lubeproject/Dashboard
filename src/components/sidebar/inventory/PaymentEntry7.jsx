@@ -30,8 +30,6 @@ export default function PaymentEntry() {
   const [userMobile, setUserMobile] = useState('');
   const [isValid, setIsValid] = useState(true);
   const [paymentApprovals, setPaymentApprovals] = useState([]);
-  const [isOTPSent, setIsOTPSent] = useState(false);
-  const [error, setError] = useState(null);
   
 
   useEffect(() => {
@@ -154,84 +152,21 @@ export default function PaymentEntry() {
     setSelectedInvoices([invid]);
   };
 
-  const sendOtp = async (mobileNo, otp,amount) => {
-    
-    try {
-      const apiKey = '6b8e745587e644c9b9d0ee71186c6a4b14aa847dfb334d8fb8af718ca6080ee2';
-      const tmpid = '1607100000000253031';
-      const sid = 'CENENS';
-      const to = `91${mobileNo}`;
-      const msg = `Dear Customer, OTP to authenticate your cash payment of ${amount} is ${otp}. Please share to complete your transaction. Thank You for doing business with us.S V Agency by CENTROID ENGINEERING SOLUTIONS`;
-      // const url = `https://us-central1-fuelstation-79ae1.cloudfunctions.net/api/send-sms`;
-      // const requestData = {
-      //   apikey: apiKey,
-      //   tempid: tmpid,
-      //   senderid: sid,
-      //   msg: msg,
-      //   phone: to
-      // };
-      
-  // const response = await axios.post(url, {apiKey,tmpid,sid,to, msg});
-  
-  // console.log('SMS sent successfully:', response.data);
-  
-  // if (response.data.status === 'success') {
-  //   return { status: 'success' };
-  // } else {
-  //   throw new Error('Failed to send SMS');
-  // }
-  // } catch (error) {
-  // console.error('Error sending SMS:', error);
-  // throw error;
-  // }
-  // };
-  const url = `https://api.msg4.cloud.robeeta.com/sms.aspx?apikey=${apiKey}&tmpid=${tmpid}&sid=${sid}&to=${to}&msg=${encodeURIComponent(msg)}`;
-  console.log(url);  
-  const response = await fetch(url);
+  const handleGenerateOtp = () => {
+    const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedOtp(newOtp);
+    alert(`OTP sent to ${userMobile}: ${newOtp}`);
+  };
 
-    if (response.ok) {
-      const textResponse = await response.text();
-      
-      // Parse the XML response
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(textResponse, "text/xml");
-
-      const status = xmlDoc.getElementsByTagName("STATUS")[0].textContent;
-      const message = xmlDoc.getElementsByTagName("MESSAGE")[0].textContent;
-
-      if (status === 'OK' && message === 'SMS SENT') {
-        setIsOTPSent(true);
-        setError(null);
-        alert('OTP sent successfully!');
-      } else {
-        throw new Error('Failed to send OTP');
-      }
+  const handleValidateOtp = () => {
+    if (otp === generatedOtp) {
+      setIsOtpValidated(true);
+      alert('OTP validated successfully!');
     } else {
-      throw new Error('Failed to send OTP');
+      setIsOtpValidated(false);
+      alert('Invalid OTP. Please try again.');
     }
-  } catch (err) {
-    setError('Failed to send OTP');
-    console.error('Error sending OTP:', err);
-  }
-};
-
-const handleGenerateOtp = () => {
-  const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
-  setGeneratedOtp(newOtp);
-  sendOtp(userMobile,newOtp,'Rs.'+amount);
-  console.log(`new otp is ${newOtp}`);
-  alert(`OTP sent to ${userMobile}`);
-};
-
-const handleValidateOtp = () => {
-  if (otp === generatedOtp) {
-    setIsOtpValidated(true);
-    alert('OTP validated successfully!');
-  } else {
-    setIsOtpValidated(false);
-    alert('Invalid OTP. Please try again.');
-  }
-};
+  };
 
   // const handleSubmit = async (e) => {
   //   e.preventDefault();
@@ -384,21 +319,17 @@ const handleValidateOtp = () => {
     
     // Validate input
     if (!user || !selectedInvoices.length || !amount || 
-      (!paymentReference && !otp) || !remarks ||  (paymentMode.label === 'Adjustment' && !adjustMode)) {
-    setIsValid(false);
-    console.log('Validation failed.');
-    return;
-  }
+        (!paymentReference && !otp) || !remarks ||  (paymentMode.label === 'Adjustment' && !adjustMode)||
+        (paymentMode.label === 'Cash' && !isOtpValidated)) {
+      setIsValid(false);
+      console.log('Validation failed.');
+      return;
+    }
 
-  if (!isOtpValidated && paymentMode?.label === 'Cash') {
-    setIsOtpValidated(false);
-    alert("Please validate the OTP before submitting.");
+    if (!paymentMode || !paymentMode.label) {
+      alert("Please select a payment mode");
+      return;
   }
-
-  if (!paymentMode || !paymentMode.label) {
-    alert("Please select a payment mode");
-    return;
-}
   
     try {
       // Fetch invoice data
@@ -600,7 +531,7 @@ return (
                 placeholder="Enter payment reference"
                 value={paymentReference}
                 onChange={(e) => setPaymentReference(e.target.value)}
-                disabled={paymentMode && (paymentMode.label === 'Cash' || paymentMode.label === 'Adjustment')}
+                disabled={paymentMode && (paymentMode.label === 'Cash' || paymentMode.label === 'Adjustment') && !isOtpValidated}
               />
             </Form.Group>
           </Col>
@@ -641,15 +572,15 @@ return (
                   type="text"
                   placeholder="Enter OTP"
                   value={otp}
-                  disabled={isOtpValidated} 
                   onChange={(e) => setOtp(e.target.value)}
                 />
               </Form.Group>
-              <Button onClick={handleGenerateOtp} disabled={isOtpValidated} >Generate OTP</Button>
-              <Button onClick={handleValidateOtp} disabled={isOtpValidated} >Validate OTP</Button>
+              <Button onClick={handleGenerateOtp}>Generate OTP</Button>
+              <Button onClick={handleValidateOtp}>Validate OTP</Button>
             </Col>
           </Row>
         )}
+        
         {/* Remarks and Submit */}
         <Row className="justify-content-md-center">
           <Col xs lg="12">

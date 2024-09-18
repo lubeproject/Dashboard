@@ -4,12 +4,15 @@ import navList from "../../data/navItem";
 import NavItem from "../header/NavItem";
 import { Link, useNavigate } from "react-router-dom";
 import { MdRoute } from "react-icons/md";
+import { supabase } from "../../supabaseClient";
+
 
 export default function SideBar() {
-  // Parse the environment variable into an array
-  const allowedEmails = process.env.REACT_APP_ACCESS.split(',');
+ // Parse the environment variable into an array
+ const allowedEmails = process.env.REACT_APP_ADMIN.split(',');
+ const allowedEmailsRepresentative = process.env.REACT_APP_REPRESENTATIVE.split(',');
 
- const [access, setAccess] = useState()
+ const [access, setAccess] = useState("")
 
   const handleToggleSideBar = () => {
     if (window.innerWidth < 1199) {
@@ -26,7 +29,35 @@ export default function SideBar() {
 
   useEffect(() => {
 
-    setAccess(localStorage.getItem("access") );
+   
+  //   const dataCheck = async () => {
+  //     // Step 2: Perform the query
+  //     const { data, error } = await supabase
+  //       .from('users')
+  //       .select('email, role')
+  //       .eq('email', localStorage.getItem("access")); // Using exact match with `eq` instead of `ilike`
+
+  //     // Step 3: Handle the query result
+  //     if (error) {
+  //       throw error;
+  //     }
+  
+  //     if (data && data.length > 0) {
+  //       const user = data[0]; // Expecting only one result, take the first one
+  //       setAccess(user.role);
+  //     } else {
+  //       console.log("No matching email found");
+  //     }
+  
+  // };
+  // dataCheck()
+    const fetchAccess = () => {
+      const storedAccess = localStorage.getItem("role"); // or from an API
+      setAccess(storedAccess);
+    };
+
+    fetchAccess();
+
     // Call handleResize on component mount to check the initial window size
     handleResize();
 
@@ -67,7 +98,7 @@ export default function SideBar() {
             className="nav-content collapse "
             data-bs-parent="#sidebar-nav"
           >
-            {allowedEmails.includes(access) ? (
+            {access === "admin" ? (
               <>
               <li>
               <Link
@@ -216,7 +247,7 @@ export default function SideBar() {
               </Link>
             </li>
 
-            <li>
+            {/* <li>
               <Link
                 to="/portal/dsrKeyRouteOnDay"
                 style={{ textDecoration: "none" }}
@@ -226,8 +257,19 @@ export default function SideBar() {
                 <span>DSR Key Route on day</span>
               </Link>
             </li>
+            <li>
+              <Link
+                to="/portal/viewQrCode"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i class="bi bi-qr-code" style={{fontSize:"20px"}}></i>
+           
+                <span>QR Code</span>
+              </Link>
+            </li> */}
             </>
-            ) : (           <> <li>
+            ) : (  access === "representative" ?  <> <li>
               <Link to="/portal/itemrequest" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
               <i class="bi bi-send-check-fill" style={{fontSize:"20px"}}></i>
                 <span>Item Request</span>
@@ -260,6 +302,37 @@ export default function SideBar() {
                 <span>DSR Key Route on day</span>
               </Link>
             </li>
+            </> : <>
+            <li>
+              <Link to="/portal/itemrequest" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
+              <i class="bi bi-send-check-fill" style={{fontSize:"20px"}}></i>
+                <span>Item Request</span>
+              </Link>
+            </li>
+
+            <li>
+              <Link
+                to="/portal/billingtomechanic"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+           <i class="bi bi-receipt" style={{fontSize:"20px"}}></i>
+                <span>Billing to Mechanic</span>
+              </Link>
+            </li>
+
+
+            <li>
+              <Link
+                to="/portal/viewQrCode"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i class="bi bi-qr-code" style={{fontSize:"20px"}}></i>
+           
+                <span>QR Code</span>
+              </Link>
+            </li>
             </>
             )}
             
@@ -285,7 +358,7 @@ export default function SideBar() {
             data-bs-parent="#sidebar-nav"
           >
 
-{allowedEmails.includes(access) ? ( <>
+{access === "admin" ? ( <>
   <li>
               <Link to="representativelist" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
               <i class="bi bi-layout-sidebar-inset"  style={{fontSize:"20px"}}></i>
@@ -451,7 +524,7 @@ export default function SideBar() {
               </Link>
             </li>
 
-</> ):(<>
+</> ):( access === "representative" ? <>
 
             <li>
               <Link to="retailerslist" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
@@ -573,7 +646,76 @@ export default function SideBar() {
               </Link>
             </li>
 
-</>) }
+</> : access === "retailer" ? <>
+<li>
+              <Link to="mechaniclist" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
+              <i class="bi bi-tools" style={{fontSize:"20px"}}></i>
+                <span>Mechanic List</span>
+              </Link>
+            </li>
+
+            <li>
+              <Link
+                to="retailersaccountstatement"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i class="bi bi-card-list" style={{fontSize:"20px"}}></i>
+                <span>Retailers Account Statement</span>
+              </Link>
+            </li>
+
+            <li>
+              <Link
+                to="retailerrequestreport"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i class="bi bi-send-exclamation"  style={{fontSize:"20px"}}></i>
+                <span>Retailer Request Report</span>
+              </Link>
+            </li>
+
+            <li>
+              <Link
+                to="itemwiseretailerrequestreport"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i class="bi bi-list-nested" style={{fontSize:"20px"}}></i>
+                <span>Itemwise Retailer Request Report</span>
+              </Link>
+            </li>
+
+            <li>
+              <Link to="invoicehistory" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
+              <i class="bi bi-view-list"  style={{fontSize:"20px"}}></i>
+                <span>Invoice History</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="paymenthistory" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
+              <i class="bi bi-wallet2" style={{fontSize:"20px"}}></i>
+                <span>Payment History</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="mechanicsalesreport" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
+              <i class="bi bi-gear-fill" style={{fontSize:"20px"}}></i>
+                <span>Mechanic Sales Report</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="mechanicttemwisesalesreport"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i class="bi bi-wrench-adjustable-circle" style={{fontSize:"20px"}}></i>
+                <span>Mechanic Itemwise Sales Report</span>
+              </Link>
+            </li>
+</> : access === "mechanic" ?  <> </> : <></>) }
             
           </ul>
         </li>

@@ -123,15 +123,12 @@ function SegmentMaster() {
         <div className="popup">
           <div className="popup-inner">
             <h5>Add New Segment</h5>
-            <label>
-              Segment Name
             <input
               type="text"
               placeholder="Segment Name"
               value={newSegmentName}
               onChange={(e) => setNewSegmentName(e.target.value)}
             />
-            </label>
             <div className="popup-buttons">
               <button onClick={handleAddSegment}>Submit</button>
               <button onClick={() => setShowAddPopup(false)}>Close</button>
@@ -145,15 +142,12 @@ function SegmentMaster() {
         <div className="popup">
           <div className="popup-inner">
             <h5>Edit Segment</h5>
-            <label>
-              Segment Name
             <input
               type="text"
               placeholder="Segment Name"
               value={newSegmentName}
               onChange={(e) => setNewSegmentName(e.target.value)}
             />
-            </label>
             <div className="popup-buttons">
               <button onClick={handleEditSegment}>Submit</button>
               <button onClick={() => setShowEditPopup(false)}>Close</button>

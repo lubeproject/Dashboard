@@ -8,7 +8,7 @@
 // import "./PaymentHistory.css";
 
 // export default function PaymentHistory() {
-//   const [usersOptions, setRetailersOptions] = useState([]);
+//   const [retailersOptions, setRetailersOptions] = useState([]);
 //   const [paymentStatus, setPaymentStatus] = useState([]);
 //   const [selectedRetailer, setSelectedRetailer] = useState(null);
 //   const [selectedPayment, setSelectedPayment] = useState(null);
@@ -210,32 +210,58 @@ import norecordfound from "../../../images/norecordfound.gif";
 import "./PaymentHistory.css";
 
 export default function PaymentHistory() {
-  const [usersOptions, setUsersOptions] = useState([]);
+  const [retailersOptions, setRetailersOptions] = useState([]);
   const [paymentStatusOptions, setPaymentStatusOptions] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedRetailer, setSelectedRetailer] = useState(null);
   const [selectedPaymentStatus, setSelectedPaymentStatus] = useState(null);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [filteredData, setFilteredData] = useState([]);
+  const [filterApplied, setFilterApplied] = useState(false);
+  const [paymentModeMap, setPaymentModeMap] = useState({});
+  const [paymentStatusMap, setPaymentStatusMap] = useState({});
 
   useEffect(() => {
-    // Fetch users and payment statuses
+    // Fetch retailers and payment statuses
     const fetchInitialData = async () => {
-    const { data: usersData, error: usersError } = await supabase
-      .from('users')
-      .select('userid, shopname,name')
-      .in('role', ['retailer','mechanic'])
-      .order('userid', { ascending: true });
-
-
-      if (usersError) console.error('Error fetching Users:', usersError);
-      else setUsersOptions(usersData.map(user => ({ value: user.userid, label: user.shopname })));
-    const { data: paymentStatusData, error: paymentStatusError } = await supabase
-    .from('payment_status')
-    .select('paystatusid, paymentstatus');
+      const { data: retailersData, error: retailersError } = await supabase
+        .from('users')
+        .select('userid, shopname,name')
+        .eq('role', 'retailer');
+  
+      const { data: paymentStatusData, error: paymentStatusError } = await supabase
+        .from('payment_status')
+        .select('paystatusid, paymentstatus');
+  
+      const { data: paymentModesData, error: paymentModesError } = await supabase
+        .from('payment_mode')
+        .select('paymodeid, paymentname');
+  
+      if (retailersError) console.error('Error fetching Retailers:', retailersError);
+      else setRetailersOptions(retailersData.map(retailer => ({ value: retailer.userid, label: retailer.shopname })));
   
       if (paymentStatusError) console.error('Error fetching Payment Status:', paymentStatusError);
-      else setPaymentStatusOptions(paymentStatusData.map(status => ({ value: status.paystatusid, label: status.paymentstatus })));
+      else {
+        const allValue = paymentStatusData.find(status => status.paymentstatus === 'All')?.paystatusid || null;
+  
+        setPaymentStatusOptions([
+          { value: allValue, label: 'All' },
+          ...paymentStatusData.filter(status => status.paymentstatus !== 'All').map(status => ({ value: status.paystatusid, label: status.paymentstatus }))
+        ]);
+  
+        setPaymentStatusMap(paymentStatusData.reduce((acc, status) => {
+          acc[status.paystatusid] = status.paymentstatus;
+          return acc;
+        }, {}));
+      }
+  
+      if (paymentModesError) console.error('Error fetching Payment Modes:', paymentModesError);
+      else {
+        setPaymentModeMap(paymentModesData.reduce((acc, mode) => {
+          acc[mode.paymodeid] = mode.paymentname;
+          return acc;
+        }, {}));
+      }
     };  
 
     fetchInitialData();
@@ -249,225 +275,116 @@ export default function PaymentHistory() {
     return `${day}/${month}/${year}`; // Change format as needed
   };
 
-  // const handleFilter = async () => {
-  //   if (!selectedRetailer) {
-  //     alert('Please select a retailer');
-  //     return;
-  //   }
-  
-  //   try {
-  //     let approvalData = [];
-  //     let referenceData = [];
-  
-  //     // Fetch data based on the selected payment status
-  //     if (selectedPaymentStatus && selectedPaymentStatus.value === paymentStatusOptions.find(option => option.label === 'All')?.value) {
-  //       // Fetch "To be cleared" data from payment_approval
-  //       const { data: approvalDataResponse, error: approvalError } = await supabase
-  //         .from('payment_approval')
-  //         .select('*')
-  //         .eq('retailerid', selectedRetailer.value)
-  //         .eq('paymentstatus', 'To be cleared')
-  //         .gte('createdtime', startDate.toISOString())
-  //         .lte('createdtime', endDate.toISOString());
-  
-  //       if (approvalError) throw approvalError;
-  //       approvalData = approvalDataResponse.map(item => ({
-  //         ...item,
-  //         paymentstatus: paymentStatusMap[item.paymentstatus] || item.paymentstatus, // Custom status for payment_approval
-  //         paymentmode: paymentModeMap[item.paymode] || item.paymode, // Map payment mode
-  //       }));
-  
-  //       // Fetch "Paid" and "Pending" data from payment_reference
-  //       const { data: referenceDataResponse, error: referenceError } = await supabase
-  //         .from('payment_reference')
-  //         .select('*')
-  //         .eq('retailerid', selectedRetailer.value)
-  //         .in('paymentstatus', ["Approved" ])
-  //         .gte('createdtime', startDate.toISOString())
-  //         .lte('createdtime', endDate.toISOString());
-  
-  //       if (referenceError) throw referenceError;
-  //       referenceData = referenceDataResponse.map(item => ({
-  //         ...item,
-  //         paymentmode: paymentModeMap[item.paymode] || item.paymode, // Map payment mode ID to name
-  //         paymentstatus: paymentStatusMap[item.paymentstatus] || item.paymentstatus, // Map status ID to name
-  //       }));
-  
-  //       setFilteredData([...approvalData, ...referenceData]);
-  
-  //     } else if (selectedPaymentStatus && selectedPaymentStatus.label === 'To be cleared') {
-  //       // Fetch data only from payment_approval for "To be cleared"
-  //       const { data: approvalDataResponse, error: approvalError } = await supabase
-  //         .from('payment_approval')
-  //         .select('*')
-  //         .eq('retailerid', selectedRetailer.value)
-  //         .eq('paymentstatus', 'To be cleared')
-  //         .gte('createdtime', startDate.toISOString())
-  //         .lte('createdtime', endDate.toISOString());
-  
-  //       if (approvalError) throw approvalError;
-  //       const processedApprovalData = approvalDataResponse.map(item => ({
-  //         ...item,
-  //         paymentstatus: 'To be cleared', // Custom status for payment_approval
-  //         paymentmode: paymentModeMap[item.paymode] || item.paymode, // Map payment mode
-  //       }));
-  
-  //       setFilteredData(processedApprovalData);
-  
-  //     } else {
-  //       // Fetch data from payment_reference for Paid or Pending statuses
-  //       let query = supabase
-  //         .from('payment_reference')
-  //         .select('*')
-  //         .eq('retailerid', selectedRetailer.value);
-  
-  //       if (selectedPaymentStatus && selectedPaymentStatus.value) {
-  //         query = query.eq('paymentstatus', selectedPaymentStatus.value);
-  //       }
-  
-  //       if (startDate) {
-  //         query = query.gte('createdtime', startDate.toISOString());
-  //       }
-  
-  //       if (endDate) {
-  //         query = query.lte('createdtime', endDate.toISOString());
-  //       }
-  
-  //       const { data, error } = await query;
-  
-  //       if (error) throw error;
-  
-  //       const mappedData = data.map(payment => ({
-  //         ...payment,
-  //         paymentmode: paymentModeMap[payment.paymode] || payment.paymode, // Map payment mode ID to name
-  //         paymentstatus: paymentStatusMap[payment.paymentstatus] || payment.paymentstatus, // Map status ID to name
-  //       }));
-  
-  //       setFilteredData(mappedData);
-  //     }
-  
-  //     setFilterApplied(true);
-  //   } catch (error) {
-  //     console.error('Error fetching filtered data:', error);
-  //   }
-  // };
-
   const handleFilter = async () => {
-    if (!selectedUser) {
-      alert('Please select a user');
+    if (!selectedRetailer) {
+      alert('Please select a retailer');
       return;
     }
   
     try {
       let approvalData = [];
       let referenceData = [];
-      const adjustedEndDate = new Date(endDate);
-      adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
   
-      // Handle "To be cleared"
-      if (selectedPaymentStatus && selectedPaymentStatus.label === 'To be cleared') {
+      // Fetch data based on the selected payment status
+      if (selectedPaymentStatus && selectedPaymentStatus.value === paymentStatusOptions.find(option => option.label === 'All')?.value) {
+        // Fetch "To be cleared" data from payment_approval
         const { data: approvalDataResponse, error: approvalError } = await supabase
           .from('payment_approval')
           .select('*')
-          .eq('userid', selectedUser.value)
+          .eq('retailerid', selectedRetailer.value)
           .eq('paymentstatus', 'To be cleared')
           .gte('createdtime', startDate.toISOString())
-          .lt('createdtime', adjustedEndDate.toISOString());
+          .lte('createdtime', endDate.toISOString());
   
         if (approvalError) throw approvalError;
         approvalData = approvalDataResponse.map(item => ({
           ...item,
-          paymentstatus: 'To be cleared', // Custom status for payment_approval
-          paymentmode: item.paymode, // Map payment mode
+          paymentstatus: paymentStatusMap[item.paymentstatus] || item.paymentstatus, // Custom status for payment_approval
+          paymentmode: paymentModeMap[item.paymode] || item.paymode, // Map payment mode
         }));
-        setFilteredData(approvalData);
   
-      // Handle "Approved"
-      } else if (selectedPaymentStatus && selectedPaymentStatus.label === 'Approved') {
+        // Fetch "Paid" and "Pending" data from payment_reference
         const { data: referenceDataResponse, error: referenceError } = await supabase
           .from('payment_reference')
           .select('*')
-          .eq('userid', selectedUser.value)
-          .eq('paymentstatus', 'Approved')
+          .eq('retailerid', selectedRetailer.value)
+          .in('paymentstatus', [1, 2])
           .gte('createdtime', startDate.toISOString())
-          .lt('createdtime', adjustedEndDate.toISOString());
+          .lte('createdtime', endDate.toISOString()); // Assuming 1 and 2 correspond to Paid and Pending
   
         if (referenceError) throw referenceError;
         referenceData = referenceDataResponse.map(item => ({
           ...item,
-          paymentmode: item.paymode, // Map payment mode ID to name
-          paymentstatus: item.paymentstatus, // Map status ID to name
-        }));
-        setFilteredData(referenceData);
-  
-      // Handle "Pending"
-      } else if (selectedPaymentStatus && selectedPaymentStatus.label === 'Pending') {
-        const { data: referenceDataResponse, error: referenceError } = await supabase
-          .from('invoices1')
-          .select('*')
-          .eq('userid', selectedUser.value)
-          .eq('paymentstatus', 'Pending')
-          .gte('createdtime', startDate.toISOString())
-          .lt('createdtime', adjustedEndDate.toISOString());
-  
-        if (referenceError) throw referenceError;
-        referenceData = referenceDataResponse.map(item => ({
-          ...item,
-          paymentmode: item.paymode||'', // Map payment mode ID to name
-          amount: item.amount- item.paidamount,
-          paymentstatus: item.paymentstatus, // Map status ID to name
-        }));
-        setFilteredData(referenceData);
-  
-      // Handle "All"
-      } else if (selectedPaymentStatus && selectedPaymentStatus.label === 'All') {
-        // Fetch "To be cleared" from payment_approval
-        const { data: approvalDataResponse, error: approvalError } = await supabase
-          .from('payment_approval')
-          .select('*')
-          .eq('userid', selectedUser.value)
-          .eq('paymentstatus', 'To be cleared')
-          .gte('createdtime', startDate.toISOString())
-          .lt('createdtime', adjustedEndDate.toISOString());
-  
-        if (approvalError) throw approvalError;
-        approvalData = approvalDataResponse.map(item => ({
-          ...item,
-          paymentstatus: 'To be cleared', // Custom status for payment_approval
-          paymentmode: item.paymode, // Map payment mode
-        }));
-  
-        // Fetch "Approved" from payment_reference
-        const { data: referenceDataResponse, error: referenceError } = await supabase
-          .from('payment_reference')
-          .select('*')
-          .eq('userid', selectedUser.value)
-          .eq('paymentstatus', 'Approved')
-          .gte('createdtime', startDate.toISOString())
-          .lt('createdtime', adjustedEndDate.toISOString());
-  
-        if (referenceError) throw referenceError;
-        referenceData = referenceDataResponse.map(item => ({
-          ...item,
-          paymentmode: item.paymode, // Map payment mode ID to name
-          paymentstatus: item.paymentstatus, // Map status ID to name
+          paymentmode: paymentModeMap[item.paymode] || item.paymode, // Map payment mode ID to name
+          paymentstatus: paymentStatusMap[item.paymentstatus] || item.paymentstatus, // Map status ID to name
         }));
   
         setFilteredData([...approvalData, ...referenceData]);
+  
+      } else if (selectedPaymentStatus && selectedPaymentStatus.label === 'To be cleared') {
+        // Fetch data only from payment_approval for "To be cleared"
+        const { data: approvalDataResponse, error: approvalError } = await supabase
+          .from('payment_approval')
+          .select('*')
+          .eq('retailerid', selectedRetailer.value)
+          .eq('paymentstatus', 'To be cleared')
+          .gte('createdtime', startDate.toISOString())
+          .lte('createdtime', endDate.toISOString());
+  
+        if (approvalError) throw approvalError;
+        const processedApprovalData = approvalDataResponse.map(item => ({
+          ...item,
+          paymentstatus: 'To be cleared', // Custom status for payment_approval
+          paymentmode: paymentModeMap[item.paymode] || item.paymode, // Map payment mode
+        }));
+  
+        setFilteredData(processedApprovalData);
+  
+      } else {
+        // Fetch data from payment_reference for Paid or Pending statuses
+        let query = supabase
+          .from('payment_reference')
+          .select('*')
+          .eq('retailerid', selectedRetailer.value);
+  
+        if (selectedPaymentStatus && selectedPaymentStatus.value) {
+          query = query.eq('paymentstatus', selectedPaymentStatus.value);
+        }
+  
+        if (startDate) {
+          query = query.gte('createdtime', startDate.toISOString());
+        }
+  
+        if (endDate) {
+          query = query.lte('createdtime', endDate.toISOString());
+        }
+  
+        const { data, error } = await query;
+  
+        if (error) throw error;
+  
+        const mappedData = data.map(payment => ({
+          ...payment,
+          paymentmode: paymentModeMap[payment.paymode] || payment.paymode, // Map payment mode ID to name
+          paymentstatus: paymentStatusMap[payment.paymentstatus] || payment.paymentstatus, // Map status ID to name
+        }));
+  
+        setFilteredData(mappedData);
       }
   
+      setFilterApplied(true);
     } catch (error) {
       console.error('Error fetching filtered data:', error);
     }
   };
-  
       
   const handleReset = () => {
-    setSelectedUser(null);
+    setSelectedRetailer(null);
     setSelectedPaymentStatus(null);
     setStartDate(null);
     setEndDate(null);
     setFilteredData([]);
+    setFilterApplied(false);
   };
 
   return (
@@ -480,12 +397,12 @@ export default function PaymentHistory() {
         </Row>
         <Row className="mb-2 select-row">
           <Col md={6} xs={12} className="mb-2">
-            <Form.Group controlId="formUser">
+            <Form.Group controlId="formRetailer">
               <Select
-                value={selectedUser}
-                onChange={setSelectedUser}
-                options={usersOptions}
-                placeholder="Select User"
+                value={selectedRetailer}
+                onChange={setSelectedRetailer}
+                options={retailersOptions}
+                placeholder="Select Retailer"
               />
             </Form.Group>
           </Col>
@@ -541,7 +458,7 @@ export default function PaymentHistory() {
                 <thead>
                   <tr>
                     <th>Date</th>
-                    <th>User</th>
+                    <th>Retailer</th>
                     <th>Payment Mode</th>
                     <th>Amount</th>
                     <th>Status</th>
@@ -552,8 +469,8 @@ export default function PaymentHistory() {
                     <tr key={index}>
                       <td>{formatDate(data.createdtime)}</td>
                       <td>
-                            {data.usershopname}<br/>
-                            {data.username}
+                            {data.retailershopname}<br />
+                            {data.retailername}
                       </td>
                       <td>{data.paymentmode}<br/>
                           {data.payref} 

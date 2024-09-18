@@ -7,14 +7,14 @@ export default function InvoiceDetails() {
   const { invoiceId } = useParams(); // Get invoice ID from URL
   const [invoice, setInvoice] = useState(null);
   const [invoiceItems, setInvoiceItems] = useState([]);
-  const [userAddress, setUserAddress] = useState(''); // State for user's address
+  const [retailerAddress, setRetailerAddress] = useState(''); // State for retailer's address
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchInvoiceDetails = async () => {
       // Fetch invoice details
       const { data: invoiceData, error: invoiceError } = await supabase
-        .from('invoices1')
+        .from('invoices')
         .select('*')
         .eq('invid', invoiceId)
         .single();
@@ -24,35 +24,23 @@ export default function InvoiceDetails() {
       } else {
         setInvoice(invoiceData);
 
-        // Fetch user address using userid from invoice
-        const { data: userData, error: userError } = await supabase
+        // Fetch retailer address using retailerid from invoice
+        const { data: retailerData, error: retailerError } = await supabase
           .from('users')
           .select('address')
-          .eq('userid', invoiceData.userid)
+          .eq('userid', invoiceData.retailerid)
           .single();
 
-        if (userError) {
-          console.error('Error fetching user address:', userError);
+        if (retailerError) {
+          console.error('Error fetching retailer address:', retailerError);
         } else {
-          setUserAddress(userData.address);
+          setRetailerAddress(retailerData.address);
         }
       }
 
       // Fetch invoice items
-    //   const { data: itemsData, error: itemsError } = await supabase
-    //     .from('invoice_items')
-    //     .select('*')
-    //     .eq('invid', invoiceId);
-
-    //   if (itemsError) {
-    //     console.error('Error fetching invoice items:', itemsError);
-    //   } else {
-    //     setInvoiceItems(itemsData);
-    //   }
-    // };
-
-    const { data: itemsData, error: itemsError } = await supabase
-        .from('invoice_items1')
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('invoice_items')
         .select('*')
         .eq('invid', invoiceId);
 
@@ -62,9 +50,6 @@ export default function InvoiceDetails() {
         setInvoiceItems(itemsData);
       }
     };
-
-
-
 
     fetchInvoiceDetails();
   }, [invoiceId]);
@@ -105,9 +90,9 @@ export default function InvoiceDetails() {
                       Request Id: {invoice.reqid} / {formatDate(invoice.invdate)}
                     </Card.Subtitle>
                     <Card.Text>
-                      <strong>User:</strong> {invoice.usershopname} <br />
-                      {invoice.username} <br />
-                      <strong>Address:</strong> {userAddress} <br /> {/* Display the user's address here */}
+                      <strong>Retailer:</strong> {invoice.retailershopname} <br />
+                      {invoice.retailername} <br />
+                      <strong>Address:</strong> {retailerAddress} <br /> {/* Display the retailer's address here */}
                     </Card.Text>
                   </Card.Body>
                 </Card>
@@ -135,8 +120,8 @@ export default function InvoiceDetails() {
                         <tr key={item.invitemid}>
                           <td>{index + 1}</td>
                           <td>{item.itemname}</td>
-                          <td>{item.qty}</td>
-                          <td>{item.noofboxes.toFixed(2)}</td>
+                          <td>{item.deliveredqty}</td>
+                          <td>{item.noofboxes}</td>
                           <td>{item.liters}</td>
                         </tr>
                       ))

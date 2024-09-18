@@ -202,7 +202,6 @@
 /////=========================================================================================================================================================
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from "react-router-dom";
 import { Button, Form, Container, Row, Col, Table } from 'react-bootstrap';
 import { supabase } from '../../../supabaseClient'; // Import your Supabase client
 import Select from 'react-select';
@@ -212,10 +211,10 @@ export default function FilterAssignRepresentative() {
   const [shopNames, setShopNames] = useState([]);
   const [visitingDays, setVisitingDays] = useState([]);
   const [selectedRepresentative, setSelectedRepresentative] = useState(null);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedRetailer, setSelectedRetailer] = useState(null);
+  const [selectedMechanic, setSelectedMechanic] = useState(null);
   const [selectedVisitingDay, setSelectedVisitingDay] = useState(null);
   const [filteredAssignments, setFilteredAssignments] = useState([]);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchRepresentatives = async () => {
@@ -232,8 +231,7 @@ export default function FilterAssignRepresentative() {
       const { data, error } = await supabase
         .from('users')
         .select('userid, shopname, role') // Fetch shopname and role
-        .in('role', ['retailer', 'mechanic'])
-        .order('userid',{ascending:true}); // Adjust roles based on your needs
+        .in('role', ['retailer', 'mechanic']); // Adjust roles based on your needs
 
       if (error) console.error('Error fetching shop names:', error);
       else setShopNames(data.map(shop => ({ value: shop.userid, label: shop.shopname, role: shop.role })));
@@ -262,8 +260,22 @@ export default function FilterAssignRepresentative() {
     let query = supabase.from('representassigned_master').select('*');
     query = query.eq('representativeid', selectedRepresentative.value);
   
-    if (selectedUser) {
-      query = query.eq('visitorid', selectedUser.value);
+    if (selectedRetailer || selectedMechanic) {
+      // Construct OR condition for `selectedRetailer` and `selectedMechanic`
+      let orCondition = '';
+      
+      if (selectedRetailer) {
+        orCondition += `visitorid.eq.${selectedRetailer.value}`;
+      }
+      
+      if (selectedMechanic) {
+        if (orCondition) {
+          orCondition += ',';
+        }
+        orCondition += `visitorid.eq.${selectedMechanic.value}`;
+      }
+  
+      query = query.or(orCondition);
     }
   
     if (selectedVisitingDay) {
@@ -278,14 +290,14 @@ export default function FilterAssignRepresentative() {
 
   const handleReset = () => {
     setSelectedRepresentative(null);
-    setSelectedUser(null);
+    setSelectedRetailer(null);
+    setSelectedMechanic(null);
     setSelectedVisitingDay(null);
     setFilteredAssignments([]);
   };
 
-  const handleBack = () => {
-    navigate('/portal/assignrepresentative'); // Navigate back to Assign Representative
-  };
+  const retailers = shopNames.filter(shop => shop.role === 'retailer');
+  const mechanics = shopNames.filter(shop => shop.role === 'mechanic');
 
   return (
     <main id="main" className='main'>
@@ -307,20 +319,33 @@ export default function FilterAssignRepresentative() {
             </Col>
           </Form.Group>
 <br/>
-          <Form.Group as={Row} controlId="userSelect">
+          <Form.Group as={Row} controlId="retailerSelect">
             <Form.Label column sm="2">
-              User
+              Retailer
             </Form.Label>
             <Col sm="10">
               <Select
-                value={selectedUser}
-                onChange={setSelectedUser}
-                options={shopNames}
-                placeholder="Select a User"
+                value={selectedRetailer}
+                onChange={setSelectedRetailer}
+                options={retailers}
+                placeholder="Select a Retailer"
               />
             </Col>
           </Form.Group>
 <br/>
+          <Form.Group as={Row} controlId="mechanicSelect">
+            <Form.Label column sm="2">
+              Mechanic
+            </Form.Label>
+            <Col sm="10">
+              <Select
+                value={selectedMechanic}
+                onChange={setSelectedMechanic}
+                options={mechanics}
+                placeholder="Select a Mechanic"
+              />
+            </Col>
+          </Form.Group>
 <br/>
           <Form.Group as={Row} controlId="visitingDaySelect">
             <Form.Label column sm="2">
@@ -372,14 +397,6 @@ export default function FilterAssignRepresentative() {
             ))}
           </tbody>
         </Table>
-
-           <Row>
-              <Col className="text-center">
-                <Button variant="secondary" onClick={handleBack}>
-                  Back to Assign Representative
-                </Button>
-              </Col>
-            </Row>
       </Container>
     </main>
   );

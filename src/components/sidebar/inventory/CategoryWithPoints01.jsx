@@ -127,24 +127,18 @@ function CategoryWithPoints() {
         <div className="popup">
           <div className="popup-inner">
             <h5>Add New Category</h5>
-            <label>
-              Category Name
             <input
               type="text"
               placeholder="Category Name"
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
             />
-            </label>
-            <label>
-            Points Per Liter
             <input
               type="number"
               placeholder="Points Per Liter"
               value={newCategoryPoints}
               onChange={(e) => setNewCategoryPoints(e.target.value)}
             />
-            </label>
             <div className="popup-buttons">
               <button onClick={handleAddCategory}>Submit</button>
               <button onClick={() => setShowAddPopup(false)}>Close</button>
@@ -158,24 +152,18 @@ function CategoryWithPoints() {
         <div className="popup">
           <div className="popup-inner">
             <h5>Edit Category</h5>
-            <label>
-              Category Name
             <input
               type="text"
               placeholder="Category Name"
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
             />
-            </label>
-            <label>
-            Points Per Liter
             <input
               type="number"
               placeholder="Points Per Liter"
               value={newCategoryPoints}
               onChange={(e) => setNewCategoryPoints(e.target.value)}
             />
-            </label>
             <div className="popup-buttons">
               <button onClick={handleEditCategory}>Submit</button>
               <button onClick={() => setShowEditPopup(false)}>Close</button>

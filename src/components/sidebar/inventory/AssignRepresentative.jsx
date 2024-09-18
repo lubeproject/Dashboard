@@ -617,7 +617,7 @@ export default function AssignRepresentative() {
   const [representatives, setRepresentatives] = useState([]);
   const [shopNames, setShopNames] = useState([]);
   const [visitingDays, setVisitingDays] = useState([]);
-  const [selectedRole, setSelectedRole] = useState('Mechanic'); // Default is Mechanic
+  // const [selectedRole, setSelectedRole] = useState('Mechanic'); // Default is Mechanic
   const [selectedRepresentative, setSelectedRepresentative] = useState(null);
   const [selectedShopName, setSelectedShopName] = useState(null);
   const [selectedVisitingDay, setSelectedVisitingDay] = useState(null);
@@ -655,11 +655,12 @@ export default function AssignRepresentative() {
     const fetchShopNames = async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('userid, shopname, name') // Fetch shopname and name
-        .eq('role', selectedRole.toLowerCase());
+        .select('userid, shopname, name,role') // Fetch shopname and name
+        .in('role',['retailer','mechanic'])
+        .order('userid',{ascending:true});
 
-      if (error) console.error(`Error fetching ${selectedRole} shop names:`, error);
-      else setShopNames(data.map(shop => ({ value: shop.userid, label: shop.shopname, name: shop.name })));
+      if (error) console.error(`Error fetching shop names:`, error);
+      else setShopNames(data.map(shop => ({ value: shop.userid, label: shop.shopname, name: shop.name, role: shop.role })));
     };
 
     fetchShopNames();
@@ -668,7 +669,7 @@ export default function AssignRepresentative() {
     setSelectedRepresentative(null);
     setSelectedShopName(null);
     setSelectedVisitingDay(null);
-  }, [selectedRole]);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -691,7 +692,7 @@ export default function AssignRepresentative() {
     const assignmentData = {
       representativename: selectedRepresentative.label,
       representativeid: selectedRepresentative.value,
-      role: selectedRole,
+      role: selectedShopName.role,
       visitor: visitorName, // Ensure visitor has a value
       shopname: selectedShopName.label,
       visitingdayid: selectedVisitingDay.value, // visitingdayid of visitingday
@@ -733,7 +734,7 @@ export default function AssignRepresentative() {
         </Row>
 
         <Form onSubmit={handleSubmit} className="mt-4">
-          <Form.Group as={Row} controlId="roleSelect">
+          {/* <Form.Group as={Row} controlId="roleSelect">
             <Form.Label column sm="2">
               Choose One
             </Form.Label>
@@ -757,7 +758,7 @@ export default function AssignRepresentative() {
                 />
               </div>
             </Col>
-          </Form.Group>
+          </Form.Group> */}
 <br/>
           <Form.Group as={Row} controlId="representativeSelect">
             <Form.Label column sm="2">
@@ -775,14 +776,14 @@ export default function AssignRepresentative() {
 <br/>
           <Form.Group as={Row} controlId="shopNameSelect">
             <Form.Label column sm="2">
-              {selectedRole} Shop Name
+              User Shop Name
             </Form.Label>
             <Col sm="10">
               <Select
                 value={selectedShopName}
                 onChange={setSelectedShopName}
                 options={shopNames}
-                placeholder={`Select a ${selectedRole} Shop Name`}
+                placeholder={`Select a Shop Name`}
               />
             </Col>
           </Form.Group>

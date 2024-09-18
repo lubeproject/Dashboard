@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash, faQrcode } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '../../../supabaseClient';
 import "./addUser.css";
+import bcrypt from 'bcryptjs';
 
 export default function AddUser() {
 
@@ -118,6 +119,14 @@ export default function AddUser() {
           }));
           return;
         }
+        if (formData.password.length < 6) {
+          setErrors('Password must be at least 6 characters long');
+          return;
+        }
+        
+// Step 1: Hash the password
+const saltRounds = 10;
+const hashedPassword = await bcrypt.hash(formData.password, saltRounds);
 
         const { data, error } = await supabase
           .from('users')
@@ -128,7 +137,7 @@ export default function AddUser() {
               email: formData.email,
               mobile: formData.mobileNumber,
               address: formData.address,
-              password: formData.password,
+              password: hashedPassword,
               role: formData.userType,
               enablecheck: formData.rewardPointsApplicable ? 'Y' : 'N',
               qrcode: formData.qrCode,

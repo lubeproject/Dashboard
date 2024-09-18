@@ -134,33 +134,24 @@ function GiftItemMaster() {
         <div className="popup">
           <div className="popup-inner">
             <h5>Add New Gift Item Master</h5>
-            <label>
-              Item Name
             <input 
               type="text" 
               placeholder="Item Name" 
               value={newItemName} 
               onChange={(e) => setNewItemName(e.target.value)} 
             />
-            </label>
-            <label>
-            Quantity
             <input 
               type="number" 
               placeholder="Quantity" 
               value={newQuantity} 
               onChange={(e) => setNewQuantity(e.target.value)} 
             />
-            </label>
-            <label>
-            Redeem Points
             <input 
               type="number" 
               placeholder="Redeem Points" 
               value={newRedeemPoints} 
               onChange={(e) => setNewRedeemPoints(e.target.value)} 
             />
-            </label>
             <div className="popup-buttons">
               <button onClick={handleAddItem}>Submit</button>
               <button onClick={() => setShowAddPopup(false)}>Close</button>
@@ -174,33 +165,24 @@ function GiftItemMaster() {
         <div className="popup">
           <div className="popup-inner">
             <h5>Edit Gift Item Master</h5>
-            <label>
-              Item Name
             <input 
               type="text" 
               placeholder="Item Name" 
               value={newItemName} 
               onChange={(e) => setNewItemName(e.target.value)} 
             />
-            </label>
-            <label>
-            Quantity
             <input 
               type="number" 
               placeholder="Quantity" 
               value={newQuantity} 
               onChange={(e) => setNewQuantity(e.target.value)} 
             />
-            </label>
-            <label>
-            Redeem Points
             <input 
               type="number" 
               placeholder="Redeem Points" 
               value={newRedeemPoints} 
               onChange={(e) => setNewRedeemPoints(e.target.value)} 
             />
-            </label>
             <div className="popup-buttons">
               <button onClick={handleEditItem}>Submit</button>
               <button onClick={() => setShowEditPopup(false)}>Close</button>

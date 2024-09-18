@@ -236,8 +236,6 @@ function ItemMaster() {
         <div className="popup">
           <div className="popup-inner">
             <h5>Add New Item Master</h5>
-            <label>
-              Select Segment
             <select
               value={newSegmentId}
               onChange={(e) => setNewSegmentId(e.target.value)}
@@ -249,9 +247,6 @@ function ItemMaster() {
                 </option>
               ))}
             </select>
-            </label>
-            <label>
-              Select Category
             <select
               value={newCategoryId}
               onChange={(e) => setNewCategoryId(e.target.value)}
@@ -263,43 +258,30 @@ function ItemMaster() {
                 </option>
               ))}
             </select>
-            </label>
-            <label>
-            Item Master Name
             <input
               type="text"
               placeholder="Item Master Name"
               value={newItemMasterName}
               onChange={(e) => setNewItemMasterName(e.target.value)}
             />
-            </label>
-            <label>
-            Number of Items in Box
             <input
               type="text"
               placeholder="Number of Items in Box"
               value={newNoofItemsinBox}
               onChange={(e) => setNewNoofItemsinBox(e.target.value)}
             />
-            </label>
-            <label>
-            Item Weight
             <input
               type="text"
               placeholder="Item Weight"
               value={newItemWeight}
               onChange={(e) => setNewItemWeight(e.target.value)}
             />
-            </label>
-            <label>
-            RRP
             <input
               type="text"
               placeholder="RRP"
               value={newItemRRPrice}
               onChange={(e) => setNewItemRRPrice(e.target.value)}
             />
-            </label>
             <div className='popup-buttons'>
             <button onClick={handleAddItemMaster}>Add Item Master</button>
             <button onClick={handleCancel}>Cancel</button>
@@ -313,8 +295,6 @@ function ItemMaster() {
         <div className="popup">
           <div className="popup-inner">
             <h5>Edit Item Master</h5>
-            <label>
-              Select Segment
             <select
               value={newSegmentId}
               onChange={(e) => setNewSegmentId(e.target.value)}
@@ -326,9 +306,6 @@ function ItemMaster() {
                 </option>
               ))}
             </select>
-            </label>
-            <label>
-              Select Category
             <select
               value={newCategoryId}
               onChange={(e) => setNewCategoryId(e.target.value)}
@@ -340,43 +317,30 @@ function ItemMaster() {
                 </option>
               ))}
             </select>
-            </label>
-            <label>
-              Item Name
             <input
               type="text"
               placeholder="Item Master Name"
               value={newItemMasterName}
               onChange={(e) => setNewItemMasterName(e.target.value)}
             />
-            </label>
-            <label>
-            Number of Items in Box
             <input
               type="text"
               placeholder="Number of Items in Box"
               value={newNoofItemsinBox}
               onChange={(e) => setNewNoofItemsinBox(e.target.value)}
             />
-            </label>
-            <label>
-            Item Weight
             <input
               type="text"
               placeholder="Item Weight"
               value={newItemWeight}
               onChange={(e) => setNewItemWeight(e.target.value)}
             />
-            </label>
-            <label>
-            RRP
             <input
               type="text"
               placeholder="RRP"
               value={newItemRRPrice}
               onChange={(e) => setNewItemRRPrice(e.target.value)}
             />
-            </label>
             <div className='popup-buttons'>
             <button onClick={handleEditItemMaster}>Save Changes</button>
             <button onClick={handleCancel}>Cancel</button>

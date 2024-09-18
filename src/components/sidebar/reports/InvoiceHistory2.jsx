@@ -212,9 +212,9 @@ import { useNavigate } from 'react-router-dom';
 import './InvoiceHistory.css';
 
 export default function InvoiceHistory() {
-  const [usersOptions, setUsersOptions] = useState([]);
+  const [retailersOptions, setRetailersOptions] = useState([]);
   const [paymentStatus, setPaymentStatus] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedRetailer, setSelectedRetailer] = useState(null);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -224,16 +224,15 @@ export default function InvoiceHistory() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch users from the users table
-    const fetchUsers = async () => {
+    // Fetch retailers from the users table
+    const fetchRetailers = async () => {
       const { data, error } = await supabase
         .from('users')
         .select('*')
-        .in('role', ['retailer','mechanic'])
-        .order('userid', { ascending: true });
+        .eq('role', 'retailer');
 
-      if (error) console.error('Error fetching Users:', error);
-      else setUsersOptions(data.map(user => ({ value: user.userid, label: user.shopname, name: user.name,role: user.role})));
+      if (error) console.error('Error fetching Retailers:', error);
+      else setRetailersOptions(data.map(retailer => ({ value: retailer.userid, label: retailer.shopname, name:retailer.name })));
     };
 
     // Fetch payment statuses
@@ -246,24 +245,24 @@ export default function InvoiceHistory() {
       else setPaymentStatus(data.map(status => ({ value: status.paystatusid, label: status.paymentstatus })));
     };
 
-    fetchUsers();
+    fetchRetailers();
     fetchPaymentStatus();
   }, []);
 
   useEffect(() => {
-    if (selectedUser) {
-      fetchPaymentApprovals(selectedUser.value);
+    if (selectedRetailer) {
+      fetchPaymentApprovals(selectedRetailer.value);
     } else {
       setPaymentApprovals([]);
     }
-  }, [selectedUser]);
+  }, [selectedRetailer]);
 
-  const fetchPaymentApprovals = async (userId) => {
+  const fetchPaymentApprovals = async (retailerId) => {
     const { data, error } = await supabase
       .from('payment_approval')
       .select('*')
       .eq('active', 'Y')
-      .eq('userid', userId);
+      .eq('retailerid', retailerId);
 
     if (error) {
       console.error('Error fetching payment approvals:', error);
@@ -283,20 +282,20 @@ export default function InvoiceHistory() {
       };
 
       const handleFilter = async () => {
-        if (!selectedUser) {
-          alert('Please select a user');
+        if (!selectedRetailer) {
+          alert('Please select a retailer');
           return;
         }
-        let query = supabase.from('invoices1').select('*');
+        let query = supabase.from('invoices').select('*');
       
-        if (selectedUser) {
-          query = query.eq('userid', selectedUser.value);
+        if (selectedRetailer) {
+          query = query.eq('retailerid', selectedRetailer.value);
         }
       
         if (selectedPayment) {
           // Handle the case where "All" is selected
-          if (selectedPayment.label === 'All') { // Assuming "All" has value 3
-            query = query.in('paymentstatus', ['Approved', 'Pending']);
+          if (selectedPayment.value === 3) { // Assuming "All" has value 3
+            query = query.in('paymentstatus', ['Paid', 'Pending', 'To be cleared']);
           } else {
             query = query.eq('paymentstatus', selectedPayment.label);
           }
@@ -323,7 +322,7 @@ export default function InvoiceHistory() {
       
 
   const handleReset = () => {
-    setSelectedUser(null);
+    setSelectedRetailer(null);
     setSelectedPayment(null);
     setStartDate(null);
     setEndDate(null);
@@ -346,12 +345,12 @@ export default function InvoiceHistory() {
         </Row>
         <Row className="mb-2 select-row">
           <Col md={6} xs={12} className="mb-2">
-            <Form.Group controlId="formUser">
+            <Form.Group controlId="formRetailer">
               <Select
-                value={selectedUser}
-                onChange={setSelectedUser}
-                options={usersOptions}
-                placeholder="Select User"
+                value={selectedRetailer}
+                onChange={setSelectedRetailer}
+                options={retailersOptions}
+                placeholder="Select Retailer"
               />
             </Form.Group>
           </Col>
