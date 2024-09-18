@@ -116,7 +116,7 @@ useEffect(() => {
       <Route path="/" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/portal" element={<Portal />}>
-      {access === "admin"  ? <>
+    
         <Route path="homepage" element={<Home/>} />
         <Route path="dashboard" element={<Dashboard/>} />
         <Route path="customer" element={<Customers/>} />
@@ -174,75 +174,7 @@ useEffect(() => {
         <Route path="invoicedetails/:invoiceId" element={<InvoiceDetails/>} />
         
         <Route path="changePassword" element={<ChangePassword/>} />
-      </> :  access === "representative" ? <> 
-        <Route path="homepage" element={<Home/>} />
-        <Route path="dashboard" element={<Dashboard/>} />
-        <Route path="customer" element={<Customers/>} />
-        <Route path="supplier" element={<Suppliers/>} />
-        <Route path="logistic" element={<Logistic/>} />
-
-        <Route path="myprofile" element={<MyProfile/>} />
-        <Route path="workinprogress" element={<WorkProgress/>} />
-
-        <Route path="dsrKeyRouteOnDay" element={<DsrKeyRouteOnDay />} />
-        <Route path="itemrequest" element={<ItemRequest/>} />
-        <Route path="visiting" element={<Visiting/>} />
-        <Route path="paymententry" element={<PaymentEntry/>} />
-
-
-        {/* Under Report components */}
-
-        <Route path="retailerslist" element={<RetailerList/>} />
-        <Route path="updateRetailerDetails" element={<UpdateRetailerDetails/>} />
-        <Route path="mechaniclist" element={<MechanicList/>} />
-        <Route path="updateMechanicDetails" element={<UpdateMechanicDetails/>} />
-        <Route path="retailersaccountstatement" element={<RetailerAccountStatement/>} />
-        <Route path="DSRdayreport" element={<DSRDayReport/>} />
-        <Route path="DSRdaywisecollectionreport" element={<DSRDaywiseCollectionReport/>} />
-        <Route path="DSRdaywisesalesreport" element={<DSRDaywiseSalesReport/>} />
-        <Route path="retailerrequestreport" element={<RetailerRequestReport/>} />
-        <Route path="itemwiseretailerrequestreport" element={<ItemwiseRetailerRequestReport/>} />
-        <Route path="invoicehistory" element={<InvoiceHistory/>} />
-        <Route path="paymenthistory" element={<PaymentHistory/>} />
-        <Route path="mechanicsalesreport" element={<SalesReportMechanicwise/>} />
-        <Route path="mechanicttemwisesalesreport" element={<SalesReportMechanicwiseItemwise/>} />
-        <Route path="loyaltymechanicsalesreport" element={<LoyaltyMechanicSalesReport/>} />
-        <Route path="mechanicloyaltyreport" element={<MechanicLoyalPointsHistory/>} />
-        <Route path="invoicehistory" element={<InvoiceHistory/>} />
-        <Route path="invoicedetails/:invoiceId" element={<InvoiceDetails/>} />
-        
-        <Route path="changePassword" element={<ChangePassword/>} />
-      </> : <>
-      <Route path="homepage" element={<Home/>} />
-        <Route path="dashboard" element={<Dashboard/>} />
-        <Route path="customer" element={<Customers/>} />
-        <Route path="supplier" element={<Suppliers/>} />
-        <Route path="logistic" element={<Logistic/>} />
-
-        <Route path="myprofile" element={<MyProfile/>} />
-        <Route path="workinprogress" element={<WorkProgress/>} />
-
-      <Route path="itemrequest" element={<ItemRequest/>} />
-      <Route path="billingtomechanic" element={<BillingToMechanic/>} />
-      <Route path="viewQrCode" element={<ViewQrCode />} />
-
-   {/* Under Report components */}
-
-      <Route path="mechaniclist" element={<MechanicList/>} />
-        <Route path="updateMechanicDetails" element={<UpdateMechanicDetails/>} />
-        <Route path="retailersaccountstatement" element={<RetailerAccountStatement/>} /><Route path="retailerrequestreport" element={<RetailerRequestReport/>} />
-        <Route path="itemwiseretailerrequestreport" element={<ItemwiseRetailerRequestReport/>} />
-        <Route path="invoicehistory" element={<InvoiceHistory/>} />
-        <Route path="paymenthistory" element={<PaymentHistory/>} />
-        <Route path="mechanicsalesreport" element={<SalesReportMechanicwise/>} />
-        <Route path="mechanicttemwisesalesreport" element={<SalesReportMechanicwiseItemwise/>} />
-        <Route path="invoicehistory" element={<InvoiceHistory/>} />
-        <Route path="invoicedetails/:invoiceId" element={<InvoiceDetails/>} />
-        
-        <Route path="changePassword" element={<ChangePassword/>} />
-      </> 
       
-      }
         
       </Route>
     </Routes>
