@@ -4,7 +4,7 @@ import { supabase } from "../../supabaseClient";
 import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import "./Login.css";
 
 // export default function Login() {
