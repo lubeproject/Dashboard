@@ -6,9 +6,9 @@ import { Button, Modal, Form, Container, Row, Col } from 'react-bootstrap';
 import { supabase } from '../../../supabaseClient'; // Import your Supabase client
 
 export default function ItemRequest() {
-  const [retailersOptions, setRetailersOptions] = useState([]);
+  const [usersOptions, setUsersOptions] = useState([]);
   const [items, setItems] = useState([]);
-  const [selectedRetailer, setSelectedRetailer] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [selectedItems, setSelectedItems] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
   const [quantity, setQuantity] = useState('');
@@ -17,15 +17,15 @@ export default function ItemRequest() {
   const [isValidModel, setIsValidModel] = useState(true);
 
   useEffect(() => {
-    // Fetch mechanics from the users table
-    const fetchRetailers = async () => {
+    const fetchUsers = async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('userid, shopname, name, role')
-        .eq('role', 'retailer');
+        .select('*')
+        .in('role', ['retailer','mechanic'])
+        .order('userid', { ascending: true });
 
-      if (error) console.error('Error fetching Retailers:', error);
-      else setRetailersOptions(data.map(retailer => ({ value: retailer.userid, label: retailer.shopname, name: retailer.name })));
+      if (error) console.error('Error fetching Users:', error);
+      else setUsersOptions(data.map(user => ({ value: user.userid, label: user.shopname, name: user.name,role: user.role})));
     };
 
     // Fetch items from the item_master table
@@ -41,7 +41,7 @@ export default function ItemRequest() {
         categoryid:item.categoryid,categoryname: item.categoryname,segmentname:item.segmentname })));
     };
 
-    fetchRetailers();
+    fetchUsers();
     fetchItems();
   }, []);
 
@@ -49,7 +49,7 @@ export default function ItemRequest() {
   const handleClose = () => setShow(false);
 
   const handleChange = (selectedOption) => {
-    setSelectedRetailer(selectedOption);
+    setSelectedUser(selectedOption);
     setIsValid(true);
   };
 
@@ -100,7 +100,7 @@ const handleDeleteItem = (index) => {
 const handleSubmit = async (e) => {
   e.preventDefault();
 
-  if (!selectedRetailer || selectedItems.length === 0) {
+  if (!selectedUser || selectedItems.length === 0) {
     setIsValid(false);
     return;
   }
@@ -110,14 +110,15 @@ const handleSubmit = async (e) => {
   const totalAmount = selectedItems.reduce((acc, item) => acc + (parseInt(item.quantity, 10) * item.rrprice), 0);
   const totalLiters = selectedItems.reduce((acc, item) => acc + (parseInt(item.quantity, 10) * item.itemweight * item.noofitemsinbox), 0);
 
-  // Prepare request data to insert into retailer_request table
+  // Prepare request data to insert into User_request table
   const requestData = {
-    retailerid: selectedRetailer.value,
-    retailername: selectedRetailer.name,
-    retailershopname: selectedRetailer.label || '', // Use an empty string if shop name is not available
-    role: 'retailer',
+    userid: selectedUser.value,
+    username: selectedUser.name,
+    usershopname: selectedUser.label || '', // Use an empty string if shop name is not available
+    role: selectedUser.role,
     totalliters: totalLiters,
     totalqty: totalQty,
+    pendingqty : totalQty,
     deliveredqty: 0,
     totalamount: totalAmount,
     orderstatus: 'pending',
@@ -129,9 +130,9 @@ const handleSubmit = async (e) => {
   };
 
   try {
-    // Insert request data into retailer_request table
+    // Insert request data into user_request table
     const { data: requestDataResponse, error: requestError } = await supabase
-      .from('retailer_request')
+      .from('user_request')
       .insert([requestData])
       .select('reqid') // Retrieve all columns or specify the columns you need
       .single();
@@ -142,13 +143,13 @@ const handleSubmit = async (e) => {
     }
 
     if (!requestDataResponse || !requestDataResponse.reqid) {
-      throw new Error('No ID returned from retailer_request insert operation');
+      throw new Error('No ID returned from user_request insert operation');
     }
     const reqId = requestDataResponse.reqid;
     console.log('Item Request details saved:', requestDataResponse);
 
 
-    // Store each selected item in retailer_request_items table
+    // Store each selected item in user_request_items table
     for (let i = 0; i < selectedItems.length; i++) {
       const selectedItem = selectedItems[i];
       const quantity = parseInt(selectedItem.quantity, 10); // Ensure quantity is an integer
@@ -166,6 +167,8 @@ const handleSubmit = async (e) => {
     
       const requestItemData = {
         reqid: reqId, // Use the same request ID from requestData
+        userid: selectedUser.value,
+        username: selectedUser.name,
         itemid: selectedItem.id,
         categoryid: selectedItem.categoryid,
         itemname: selectedItem.name,
@@ -189,7 +192,7 @@ const handleSubmit = async (e) => {
       console.log('Request Item Data:', requestItemData);
 
       const { data: requestItemResponse, error: requestItemError } = await supabase
-        .from('retailer_request_items')
+        .from('user_request_items')
         .insert([requestItemData]);
 
       if (requestItemError) {
@@ -200,7 +203,7 @@ const handleSubmit = async (e) => {
     }
 
     alert('Item Request details saved successfully!');
-    setSelectedRetailer(null);
+    setSelectedUser(null);
     setSelectedItems([]);
     setIsValid(true);
 
@@ -224,13 +227,13 @@ const handleSubmit = async (e) => {
         </Row>
 
         <Form onSubmit={handleSubmit}>
-          <Form.Group controlId="retailerSelect">
-            <Form.Label>Select Retailer</Form.Label>
+          <Form.Group controlId="userSelect">
+            <Form.Label>Select User</Form.Label>
             <Select
-              value={selectedRetailer}
+              value={selectedUser}
               onChange={handleChange}
-              options={retailersOptions}
-              placeholder="Select Retailer"
+              options={usersOptions}
+              placeholder="Select User"
               className={!isValid ? 'is-invalid' : ''}
               styles={{
                 control: (base, state) => ({
@@ -242,14 +245,14 @@ const handleSubmit = async (e) => {
                 })
               }}
             />
-            {!isValid && <div className="invalid-feedback d-block">Please select a Retailer.</div>}
+            {!isValid && <div className="invalid-feedback d-block">Please select a User.</div>}
           </Form.Group>
           <br />
           <div className="item-request-table">
         <table>
           <thead>
             <tr>
-            <th><center>Slno</center></th>
+            <th><center>slno</center></th>
               <th><center>Itemid</center></th>
               <th><center>Item Name</center></th>
               <th><center>Box(es)</center></th>
@@ -311,7 +314,7 @@ const handleSubmit = async (e) => {
           <Modal.Body>
             <Form onSubmit={handleModelSubmit}>
               <Form.Group controlId="formSelectOption">
-                <Form.Label>Select Option</Form.Label>
+                <Form.Label>Select Item</Form.Label>
                 <Select
                   value={selectedItem}
                   onChange={setSelectedItem}

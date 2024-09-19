@@ -1,24 +1,25 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../../supabaseClient';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
-import './Register.css';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "../../supabaseClient";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import "./Register.css";
 
 export default function Register() {
-  const [role, setRole] = useState();
-  const [mobile, setMobile] = useState('');
-  const [name, setName] = useState('');
-  const [shopname, setShopname] = useState('');
-  const [address, setAddress] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [name, setName] = useState("");
+  const [shopname, setShopname] = useState("");
+  const [address, setAddress] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [passwordMatch, setPasswordMatch] = useState(true);
-  const [error, setError] = useState(null);
-  const [otp, setOtp] = useState('');
+  const [error, setError] = useState({});
+  const [roleError, setRoleError] = useState(false);
+  const [otp, setOtp] = useState("");
   const [generatedOtp, setGeneratedOtp] = useState(null);
   const [isOTPSent, setIsOTPSent] = useState(false);
   const [isOtpValidated, setIsOtpValidated] = useState(false);
@@ -44,9 +45,90 @@ export default function Register() {
     setConfirmPasswordVisible(!confirmPasswordVisible);
   };
 
+  const handleInputChange = (field, value) => {
+    switch (field) {
+      case "role":
+        setRole(value);
+        if (value) setError((prev) => ({ ...prev, role: null }));
+        break;
+      case "mobile":
+        setMobile(value);
+        if (value) setError((prev) => ({ ...prev, mobile: null }));
+        break;
+      case "name":
+        setName(value);
+        if (value) setError((prev) => ({ ...prev, name: null }));
+        break;
+      case "shopname":
+        setShopname(value);
+        if (value) setError((prev) => ({ ...prev, shopname: null }));
+        break;
+      case "address":
+        setAddress(value);
+        if (value) setError((prev) => ({ ...prev, address: null }));
+        break;
+      case "email":
+        setEmail(value);
+        if (value) setError((prev) => ({ ...prev, email: null }));
+        break;
+      default:
+        break;
+    }
+  };
+
+  const validateFields = () => {
+    const newErrors = {};
+
+    if (!role) newErrors.role = "Please select a role";
+    if (!mobile) newErrors.mobile = "Please enter your mobile number";
+    if (!name) newErrors.name = "Please enter your name";
+    if (role !== "representative" && !shopname)
+      newErrors.shopname = "Please enter your shop name";
+    if (!address) newErrors.address = "Please enter your address";
+    if (!email) newErrors.email = "Please enter your email";
+    if (!password) newErrors.password = "Please enter your password";
+    if (!confirmPassword)
+      newErrors.confirmPassword = "Please confirm your password";
+    if (password !== confirmPassword)
+      newErrors.passwordMatch = "Passwords do not match";
+
+   // If there are any errors, show an alert
+   if (Object.keys(newErrors).length > 0) {
+    alert("You missed filling the box");
+    setError(newErrors);
+    return false;
+  }
+
+  setError(newErrors);
+  return true;
+  };
+
+  const handleValidateOtp = () => {
+    if (otp === generatedOtp) {
+      setIsOtpValidated(true);
+    
+      alert("OTP validated successfully!");
+      return true; // Return true when OTP is valid
+    } else {
+      setIsOtpValidated(false);
+      alert("Invalid OTP. Please try again.");
+      return false; // Return false when OTP is invalid
+    }
+  };
+  
+
   const handleRegister = async (e) => {
     e.preventDefault();
-    setError(null);
+    setError({});
+
+    if (!validateFields()) return;
+   
+    // Validate OTP before proceeding with registration
+    if (!handleValidateOtp()) {
+      return; // Stop registration if OTP is invalid
+    }
+
+    console.log("OTP validated");
     if (password !== confirmPassword) {
       setPasswordMatch(false);
       return;
@@ -55,83 +137,86 @@ export default function Register() {
     try {
       setIsRegistering(true);
       if (!isOtpValidated) {
-        alert('Please validate OTP first.');
+        alert("Please validate OTP first.");
         setIsRegistering(false);
         return;
       }
 
-      const { user, error: signupError } = await supabase.auth.signUp({
-        email,
-        password,
-        role
-      });
-
-      if (signupError) throw signupError;
-
       const userData = {
-        role:role,
-        mobile:mobile,
-        name:name,
-        address:address,
-        email:email,
-        password:password,
-        shopname: role === 'representative' ? name : shopname,
-        enablecheck: role === 'representative' ? 'N' : 'Y',
-        qrcode: '',
-        active: 'N',
+        role: role,
+        mobile: mobile,
+        name: name,
+        address: address,
+        email: email,
+        password: password,
+        shopname: role === "representative" ? name : shopname,
+        enablecheck: role === "representative" ? "N" : "Y",
+        qrcode: "",
+        active: "N",
         updatedby: 0,
-        visitingday: '',
-        shopimgurl: '',
-        shippingaddress: '',
-        segment: '',
+        visitingday: "",
+        shopimgurl: "",
+        shippingaddress: "",
+        segment: "",
         rewardpoints: 0,
-        representativename: '',
+        representativename: "",
         representativeid: 0,
-        monthlypotential: '',
-        longitude: '',
-        latitude: '',
-        creditterm: '',
-        creditdays: '',
-        cginno: '',
+        monthlypotential: "",
+        longitude: "",
+        latitude: "",
+        creditterm: "",
+        creditdays: "",
+        cginno: "",
         dob: null,
         lastupdatedtime: new Date().toISOString(),
         locateddate: null,
-        noofemployees: '',
-        shopimgurl2: '',
-        spacetype: '',
-        totalarea: '',
-        workshoparea: '',
+        noofemployees: "",
+        shopimgurl2: "",
+        spacetype: "",
+        totalarea: "",
+        workshoparea: "",
         createdtime: new Date().toISOString(),
         updatedtime: new Date().toISOString(),
-        devicetoken: '',
+        devicetoken: "",
+        action: "request"
       };
 
-      const { data, error } = await supabase.from('pending_users').insert([userData]);
+      // Insert the new user into the pending_users table
+      const { data, error } = await supabase
+        .from("pending_users")
+        .insert([userData]);
 
-      if (error) throw error;
-
-      alert('Registration successful! Your account is waiting for admin approval.');
-      navigate('/');
+      if (error) {
+        console.error('Error:', error.message);
+      }else {
+        alert(
+          "Registration successful! Your account is waiting for admin approval."
+        );
+        navigate("/");
+      }
+     
     } catch (error) {
-      console.error('Error registering:', error.message);
+      console.error("Error registering:", error.message);
       setError(error.message);
     } finally {
       setIsRegistering(false);
     }
   };
 
-
   const sendOtp = async (mobileNo, otp) => {
     try {
-      const apiKey = '6b8e745587e644c9b9d0ee71186c6a4b14aa847dfb334d8fb8af718ca6080ee2';
-      const tmpid = '1607100000000253030';
-      const sid = 'CENENS';
+      const apiKey =
+        "6b8e745587e644c9b9d0ee71186c6a4b14aa847dfb334d8fb8af718ca6080ee2";
+      const tmpid = "1607100000000253030";
+      const sid = "CENENS";
       const to = `91${mobileNo}`;
       const msg = `Dear Customer, OTP to authenticate your profile update is ${otp}. Please share to complete your registration process. Thank You for joining us.
 S V Agency 
 by CENTROID ENGINEERING SOLUTIONS`;
 
-      const url = `https://api.msg4.cloud.robeeta.com/sms.aspx?apikey=${apiKey}&tmpid=${tmpid}&sid=${sid}&to=${to}&msg=${encodeURIComponent(msg)}`;
+      const url = `https://api.msg4.cloud.robeeta.com/sms.aspx?apikey=${apiKey}&tmpid=${tmpid}&sid=${sid}&to=${to}&msg=${encodeURIComponent(
+        msg
+      )}`;
 
       console.log(url);
       const response = await fetch(url);
@@ -145,51 +230,55 @@ by CENTROID ENGINEERING SOLUTIONS`;
         const status = xmlDoc.getElementsByTagName("STATUS")[0].textContent;
         const message = xmlDoc.getElementsByTagName("MESSAGE")[0].textContent;
 
-        if (status === 'OK' && message === 'SMS SENT') {
+        if (status === "OK" && message === "SMS SENT") {
           setIsOTPSent(true);
           setError(null);
           setResendDisabled(false);
-          alert('OTP sent successfully!');
+          alert("OTP sent successfully!");
         } else {
-          throw new Error('Failed to send OTP');
+          throw new Error("Failed to send OTP");
         }
       } else {
-        throw new Error('Failed to send OTP');
+        throw new Error("Failed to send OTP");
       }
     } catch (err) {
-      setError('Failed to send OTP');
-      console.error('Error sending OTP:', err);
+      setError("Failed to send OTP");
+      console.error("Error sending OTP:", err);
     }
   };
 
   async function checkMobileNumberExists(mobileNumber) {
     const { data, error } = await supabase
-      .from('users')
-      .select('mobile')
-      .eq('mobile', mobileNumber);
-  
+      .from("users")
+      .select("mobile")
+      .eq("mobile", mobileNumber);
+
     if (error) {
       console.error("Error fetching user:", error);
       return false;
     }
-  
+
     // If data is not empty, the mobile number exists
     return data.length > 0;
   }
 
-  const handleGenerateOtp = async() => {
+  const handleGenerateOtp = async () => {
+    if (!validateFields()) return;
+
     const mobileExists = await checkMobileNumberExists(mobile);
 
-  if (mobileExists) {
-    // Alert the user that the mobile number is already registered
-    alert("User with this mobile number already exists.");
-    return; // Prevent registration
-  }
+    if (mobileExists) {
+      // Alert the user that the mobile number is already registered
+      alert("User with this mobile number already exists.");
+      return; // Prevent registration
+    }
+
     const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
     setGeneratedOtp(newOtp);
     sendOtp(mobile, newOtp);
     setResendDisabled(false);
     alert(`OTP sent to ${mobile}`);
+    setIsOTPSent(true)
   };
 
   const handleResendOtp = () => {
@@ -197,21 +286,13 @@ by CENTROID ENGINEERING SOLUTIONS`;
     setResendDisabled(true);
   };
 
-  const handleValidateOtp = () => {
-    if (otp === generatedOtp) {
-      setIsOtpValidated(true);
-      alert('OTP validated successfully!');
-    } else {
-      setIsOtpValidated(false);
-      alert('Invalid OTP. Please try again.');
-    }
-  };
-
   return (
     <div className="register-container">
       <div className="register-box">
-        <h2><b>Register to Lube</b></h2>
-        {error && <p className="error-message">{error}</p>}
+        <h2>
+          <b>Register to Lube</b>
+        </h2>
+        {error.form && <p className="error-message">{error.form}</p>}
         <form onSubmit={handleRegister}>
           <div className="inline-group">
             <div className="form-group">
@@ -220,13 +301,17 @@ by CENTROID ENGINEERING SOLUTIONS`;
                 id="role"
                 name="role"
                 value={role}
-                onChange={(e) => setRole(e.target.value)}
+                onChange={(e) => handleInputChange("role", e.target.value)}
                 required
               >
+                <option value="" disabled hidden>
+                  Select Role
+                </option>
                 <option value="representative">Representative</option>
                 <option value="retailer">Retailer</option>
                 <option value="mechanic">Mechanic</option>
               </select>
+              {error.role && <p className="error-message">{error.role}</p>}
             </div>
             <div className="form-group">
               <label htmlFor="mobile">Mobile Number:</label>
@@ -235,9 +320,10 @@ by CENTROID ENGINEERING SOLUTIONS`;
                 id="mobile"
                 name="mobile"
                 value={mobile}
-                onChange={(e) => setMobile(e.target.value)}
+                onChange={(e) => handleInputChange("mobile", e.target.value)}
                 required
               />
+              {error.mobile && <p className="error-message">{error.mobile}</p>}
             </div>
           </div>
           <div className="form-group">
@@ -247,11 +333,12 @@ by CENTROID ENGINEERING SOLUTIONS`;
               id="name"
               name="name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => handleInputChange("name", e.target.value)}
               required
             />
+            {error.name && <p className="error-message">{error.name}</p>}
           </div>
-          {role !== 'representative' && (
+          {role !== "representative" && (
             <div className="form-group">
               <label htmlFor="shopname">Shop Name:</label>
               <input
@@ -259,9 +346,12 @@ by CENTROID ENGINEERING SOLUTIONS`;
                 id="shopname"
                 name="shopname"
                 value={shopname}
-                onChange={(e) => setShopname(e.target.value)}
-                required={role === 'retailer' || role === 'mechanic'}
+                onChange={(e) => handleInputChange("shopname", e.target.value)}
+                required={role === "retailer" || role === "mechanic"}
               />
+              {error.shopname && (
+                <p className="error-message">{error.shopname}</p>
+              )}
             </div>
           )}
           <div className="form-group">
@@ -271,9 +361,10 @@ by CENTROID ENGINEERING SOLUTIONS`;
               id="address"
               name="address"
               value={address}
-              onChange={(e) => setAddress(e.target.value)}
+              onChange={(e) => handleInputChange("address", e.target.value)}
               required
             />
+            {error.address && <p className="error-message">{error.address}</p>}
           </div>
           <div className="form-group">
             <label htmlFor="email">Email Address:</label>
@@ -282,15 +373,16 @@ by CENTROID ENGINEERING SOLUTIONS`;
               id="email"
               name="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => handleInputChange("email", e.target.value)}
               required
             />
+            {error.email && <p className="error-message">{error.email}</p>}
           </div>
           <div className="form-group">
             <label htmlFor="password">Password:</label>
             <div className="password-container">
               <input
-                type={passwordVisible ? 'text' : 'password'}
+                type={passwordVisible ? "text" : "password"}
                 id="password"
                 name="password"
                 value={password}
@@ -302,13 +394,16 @@ by CENTROID ENGINEERING SOLUTIONS`;
                 className="eye-icon"
                 onClick={togglePasswordVisibility}
               />
+              {error.password && (
+                <p className="error-message">{error.password}</p>
+              )}
             </div>
           </div>
           <div className="form-group">
             <label htmlFor="confirmPassword">Confirm Password:</label>
             <div className="password-container">
               <input
-                type={confirmPasswordVisible ? 'text' : 'password'}
+                type={confirmPasswordVisible ? "text" : "password"}
                 id="confirmPassword"
                 name="confirmPassword"
                 value={confirmPassword}
@@ -321,7 +416,12 @@ by CENTROID ENGINEERING SOLUTIONS`;
                 onClick={toggleConfirmPasswordVisibility}
               />
             </div>
-            {!passwordMatch && <p className="error-message">Passwords didn't match</p>}
+            {!passwordMatch && (
+              <p className="error-message">Passwords didn't match</p>
+            )}
+            {error.confirmPassword && (
+              <p className="error-message">{error.confirmPassword}</p>
+            )}
           </div>
 
           {
@@ -336,26 +436,27 @@ by CENTROID ENGINEERING SOLUTIONS`;
                 disabled={isRegistering || isOtpValidated}
                 required
               />
-              <button type="button" className="button" onClick={handleGenerateOtp} disabled={isOTPSent || isRegistering || isOtpValidated}>
-              Generate OTP
+              <button
+                type="button"
+                onClick={handleGenerateOtp}
+                disabled={isOTPSent}
+              >
+                {isOTPSent ? "Resend OTP" : "Generate OTP"}
               </button>
-              {isOTPSent && (
-              <button type="button" className="button" onClick={handleResendOtp} disabled={resendDisabled || isRegistering}>
-                Resend OTP
-              </button>
-            )}
-              <button type="button" className="button" onClick={handleValidateOtp} disabled={isRegistering || isOtpValidated}>
-                Validate OTP
-              </button>
+              {error.otp && <p className="error-message">{error.otp}</p>}
             </div>
           }
 
           <div className="form-group">
-            <button type="submit" className="button" disabled={isRegistering || !isOtpValidated}>
+            <button
+              type="submit"
+              className="button"
+              // disabled={isRegistering}
+          
+            >
               Register
             </button>
           </div>
-
         </form>
         <p>
           Already have an account? <Link to="/">Log in</Link>
