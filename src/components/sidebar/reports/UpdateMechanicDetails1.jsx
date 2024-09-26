@@ -26,10 +26,8 @@ const UpdateMechanicDetails = () => {
     geoLocation: mechanic?.latitude && mechanic?.longitude
     ? `${mechanic.latitude}, ${mechanic.longitude}`
     : '',
-    shopImage: mechanic?.shopimgurl?.trim() || '',
-    shopImage2: mechanic?.shopimgurl2?.trim() || '',
-    shopImageFile: null,
-    shopImage2File: null,
+    shopImage1: mechanic?.shopimgurl?.trim() || '',
+    shopImage2: mechanic?.shopimgurl2?.trim() || ''
   });
 
   const [errors, setErrors] = useState({});
@@ -46,15 +44,11 @@ const UpdateMechanicDetails = () => {
     });
   };
 
-  const handleImageChange = (e, fieldName) => {
+  const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFormData({
-        ...formData,
-        [fieldName]: URL.createObjectURL(file),
-        [`${fieldName}File`]: file,
-      });
-      setErrors({ ...errors, [fieldName]: '' });
+      setFormData({ ...formData, shopImage: URL.createObjectURL(file) });
+      setErrors({ ...errors, shopImage: '' });
     }
   };
 
@@ -137,36 +131,6 @@ const UpdateMechanicDetails = () => {
   //     setErrors(formErrors);
   //   }
   // };
-
-  const uploadImage = async (file, folderName) => {
-    const mobileNumber = formData.mobileNumber;
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${mobileNumber}.${fileExtension}`;
-
-    const { data, error } = await supabase.storage
-      .from('shopimages')
-      .upload(`${folderName}/${fileName}`, file, {
-        upsert: true, // This option allows replacing the existing file
-      });
-
-    if (error) {
-      console.error('Error uploading image:', error);
-      return null;
-    }
-
-    const { data: publicData, error: urlError } = supabase
-      .storage
-      .from('shopimages')
-      .getPublicUrl(`${folderName}/${fileName}`);
-
-    if (urlError) {
-      console.error('Error getting public URL:', urlError);
-      return null;
-    }
-
-    return publicData.publicUrl;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formattedDob = convertDateFormat(formData.dob);
@@ -177,24 +141,6 @@ const UpdateMechanicDetails = () => {
     const formErrors = validateForm();
     if (Object.keys(formErrors).length === 0) {
       try {
-        let shopImageUrl = formData.shopImage;
-        let shopImage2Url = formData.shopImage2;
-
-        if (formData.shopImageFile) {
-          shopImageUrl = await uploadImage(formData.shopImageFile, 'Image1');
-          if (!shopImageUrl) {
-            setErrors({ ...errors, shopImage: 'Failed to upload image' });
-            return;
-          }
-        }
-
-        if (formData.shopImage2File) {
-          shopImage2Url = await uploadImage(formData.shopImage2File, 'Image2');
-          if (!shopImage2Url) {
-            setErrors({ ...errors, shopImage2: 'Failed to upload image' });
-            return;
-          }
-        }
         const { error } = await supabase
           .from('users')
           .update({
@@ -204,8 +150,8 @@ const UpdateMechanicDetails = () => {
             email: formData.email,
             address: formData.address,
             qrcode: formData.qrCode,
-            shopimgurl: shopImageUrl,
-            shopimgurl2: shopImage2Url,
+            shopimgurl1: formData.shopImage1,
+            shopimgurl2: formData.shopImage2,
             totalarea: formData.totalarea,
             noofemployees: formData.noofemployees,
             monthlypotential: formData.monthlyPotential,
@@ -481,12 +427,12 @@ const UpdateMechanicDetails = () => {
                 <Form.Control
                   type="file"
                   name="shopImage1"
-                  onChange={(e) => handleImageChange(e, 'shopImage')}
-                  isInvalid={!!errors.shopImage}
+                  onChange={handleImageChange}
+                  isInvalid={!!errors.shopImage1}
                 />
-                {formData.shopImageFile && (
+                {formData.shopImage1 && (
                   <div className="shop-image-preview">
-                    <img src={formData.shopImage} alt="Shop Preview" className="rounded-circle" />
+                    <img src={formData.shopImage1} alt="Shop Preview" className="rounded-circle" />
                   </div>
                 )}
                 <Form.Control.Feedback type="invalid">{errors.shopImage1}</Form.Control.Feedback>
@@ -498,11 +444,11 @@ const UpdateMechanicDetails = () => {
                 <Form.Control
                   type="file"
                   name="shopImage2"
-                  onChange={(e) => handleImageChange(e, 'shopImage')}
+                  onChange={handleImageChange}
                   isInvalid={!!errors.shopImage2}
                 />
-                {formData.shopImage2File && (
-                  <div className="shop-image-preview 2">
+                {formData.shopImage2 && (
+                  <div className="shop-image-preview">
                     <img src={formData.shopImage2} alt="Shop Preview" className="rounded-circle" />
                   </div>
                 )}

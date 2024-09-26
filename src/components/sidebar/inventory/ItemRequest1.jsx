@@ -1,10 +1,9 @@
-import React, { useState, useRef, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import "./ItemRequest.css";
 import Select from 'react-select';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { Button, Modal, Form, Container, Row, Col } from 'react-bootstrap';  
 import { supabase } from '../../../supabaseClient'; // Import your Supabase client
-import { UserContext } from "../../context/UserContext";
 
 export default function ItemRequest() {
   const [usersOptions, setUsersOptions] = useState([]);
@@ -16,7 +15,6 @@ export default function ItemRequest() {
   const [show, setShow] = useState(false);
   const [isValid, setIsValid] = useState(true);
   const [isValidModel, setIsValidModel] = useState(true);
-  const { user} = useContext(UserContext);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -43,18 +41,7 @@ export default function ItemRequest() {
         categoryid:item.categoryid,categoryname: item.categoryname,segmentname:item.segmentname })));
     };
 
-    if (user?.role === 'retailer' || user?.role === 'mechanic') {
-      setUsersOptions([
-        {
-          value: user.userid,
-          label: user.shopname,
-          name: user.name,
-          role: user.role
-        }
-      ]);
-    } else {
-      fetchUsers();
-    }
+    fetchUsers();
     fetchItems();
   }, []);
 
@@ -136,8 +123,8 @@ const handleSubmit = async (e) => {
     totalamount: totalAmount,
     orderstatus: 'pending',
     orderref: '', // Add a reference if available
-    createdby: user?.userid||1,
-    updatedby: user?.userid||1,
+    // createdby: 1, // Replace with the actual user ID or username if available
+    // updatedby: 1, // Replace with the actual user ID or username if available
     createdtime: new Date().toISOString(), // Format datetime to YYYY-MM-DDTHH:mm:ss.sssZ
     updatedtime: new Date().toISOString() // Format datetime to YYYY-MM-DDTHH:mm:ss.sssZ
   };

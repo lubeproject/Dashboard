@@ -8,9 +8,9 @@ import { supabase } from '../../../supabaseClient';
 import "./RetailerRequestReport.css";
 
 export default function RetailerRequestReport() {
-  const [usersOptions, setUsersOptions] = useState([]);
+  const [retailersOptions, setRetailersOptions] = useState([]);
   const [orderStatus, setOrderStatus] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedRetailer, setSelectedRetailer] = useState(null);
   // const [selectedItems, setSelectedItems] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [startDate, setStartDate] = useState(null);
@@ -20,14 +20,14 @@ export default function RetailerRequestReport() {
 
   useEffect(() => {
     // Fetch mechanics from the users table
-    const fetchUsers = async () => {
+    const fetchRetailers = async () => {
       const { data, error } = await supabase
         .from('users')
         .select('userid, shopname, name, role')
         .eq('role', 'retailer');
 
-      if (error) console.error('Error fetching Users:', error);
-      else setUsersOptions(data.map(user => ({ value: user.userid, label: user.shopname, name: user.name })));
+      if (error) console.error('Error fetching Retailers:', error);
+      else setRetailersOptions(data.map(retailer => ({ value: retailer.userid, label: retailer.shopname, name: retailer.name })));
     };
 
     // Fetch items from the item_master table
@@ -40,27 +40,27 @@ export default function RetailerRequestReport() {
       else setOrderStatus(data.map(order => ({ value: order.orderstatusid, label: order.orderstatus})));
     };
 
-    fetchUsers();
+    fetchRetailers();
     fetchOrderStatus();
   }, []);
 
   const handleFilter = async () => {
     try {
-      // Fetch all records for the selected user
-      const { data: allUserRequests, error: userError } = await supabase
-        .from('user_request')
+      // Fetch all records for the selected retailer
+      const { data: allRetailerRequests, error: retailerError } = await supabase
+        .from('retailer_request')
         .select('*')
-        .eq('userid', selectedUser.value);
+        .eq('retailerid', selectedRetailer.value);
   
-      if (userError) {
-        console.error('Error fetching retailer requests:', userError);
+      if (retailerError) {
+        console.error('Error fetching retailer requests:', retailerError);
         return;
       }
   
-      console.log("All Requests for Retailer:", allUserRequests);
+      console.log("All Requests for Retailer:", allRetailerRequests);
   
       // Extract reqid values
-      const reqIdArray = allUserRequests.map(request => request.reqid);
+      const reqIdArray = allRetailerRequests.map(request => request.reqid);
   
       if (reqIdArray.length === 0) {
         console.warn('No requests found for the selected retailer.');
@@ -68,9 +68,9 @@ export default function RetailerRequestReport() {
         return;
       }
   
-      // Fetch all items from user_request_items
+      // Fetch all items from retailer_request_items
       const { data: allItemsData, error: itemsError } = await supabase
-        .from('user_request_items')
+        .from('retailer_request_items')
         .select('*')
         .in('reqid', reqIdArray);
   
@@ -108,13 +108,11 @@ export default function RetailerRequestReport() {
           alert("Pick From Date cannot be later than Pick To Date.");
           return;
         }
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.updatedtime); // Convert the date string to a Date object
-          return itemDate >= new Date(startDate) && itemDate <= adjustedEndDate;
+          return itemDate >= new Date(startDate) && itemDate <= new Date(endDate);
         });
-        console.log("Date Range Filter Applied:", startDate, "to", adjustedEndDate);
+        console.log("Date Range Filter Applied:", startDate, "to", endDate);
       } else if (startDate) {
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.updatedtime);
@@ -122,13 +120,11 @@ export default function RetailerRequestReport() {
         });
         console.log("Start Date Filter Applied:", startDate);
       } else if (endDate) {
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.updatedtime);
-          return itemDate <= adjustedEndDate;
+          return itemDate <= new Date(endDate);
         });
-        console.log("End Date Filter Applied:", adjustedEndDate);
+        console.log("End Date Filter Applied:", endDate);
       }
   
       // Set the filtered items data to state
@@ -150,7 +146,7 @@ export default function RetailerRequestReport() {
   };
 
   const handleReset = () => {
-    setSelectedUser(null);
+    setSelectedRetailer(null);
     setSelectedOrder(null);
     setStartDate(null);
     setEndDate(null);
@@ -161,9 +157,9 @@ export default function RetailerRequestReport() {
   const customSelectStyles = {
     control: (provided, state) => ({
       ...provided,
-      borderColor: !selectedUser ? 'red' : provided.borderColor,
+      borderColor: !selectedRetailer ? 'red' : provided.borderColor,
       '&:hover': {
-        borderColor: !selectedUser ? 'red' : provided.borderColor,
+        borderColor: !selectedRetailer ? 'red' : provided.borderColor,
       },
     }),
   };
@@ -173,16 +169,16 @@ export default function RetailerRequestReport() {
       <Container className="mt-3">
         <Row className="mb-4">
           <Col>
-            <h4 className="text-center">Retailerwise Request Report</h4>
+            <h4 className="text-center">Item Request Report Retailerwise</h4>
           </Col>
         </Row>
         <Row className="mb-2 select-row">
           <Col md={6} xs={12} className="mb-2">
-            <Form.Group controlId="formUser">
+            <Form.Group controlId="formRetailer">
               <Select
-                value={selectedUser}
-                onChange={setSelectedUser}
-                options={usersOptions}
+                value={selectedRetailer}
+                onChange={setSelectedRetailer}
+                options={retailersOptions}
                 placeholder="Select Retailer"
                 styles={customSelectStyles}
               />

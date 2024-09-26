@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { Container, Row, Col, Image } from 'react-bootstrap';
 import { FaBuilding, FaUser, FaPhone, FaEnvelope } from 'react-icons/fa';
 import company_logo from "../../images/logo.gif";
 import './myProfile.css';
+import { UserContext } from "../context/UserContext";
 
 export default function MyProfile() {
+  const { user } = useContext(UserContext);
+  
   return (
     <main id='main' className='main'>
       <Container className="my-4">
@@ -17,9 +20,9 @@ export default function MyProfile() {
             </Row>
          <Row>
          <h4><i class="bi bi-buildings"></i> SVL Agency</h4>
-            <h5><i class="bi bi-person"></i> Balaji</h5>
-            <h5><i class="bi bi-telephone"></i> 8056282159</h5>
-            <h5><i class="bi bi-envelope-check"></i> balaji@centroides.com</h5>
+            <h5><i class="bi bi-person"></i> {user.name}</h5>
+            <h5><i class="bi bi-telephone"></i> {user.mobile}</h5>
+            <h5><i class="bi bi-envelope-check"></i> {user.email}</h5>
          </Row>
           </Col>
         </Row>

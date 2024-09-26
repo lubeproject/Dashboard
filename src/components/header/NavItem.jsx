@@ -8,7 +8,7 @@ export default function NavItem({nav}) {
 
   const clear = () =>{
     
-    localStorage.removeItem("access")
+    localStorage.removeItem("user")
     localStorage.removeItem("sb-uvbxeltzguqqdoyrqwwi-auth-token")
   
   }
@@ -52,11 +52,11 @@ export default function NavItem({nav}) {
         {
           nav.path === "/" ? (
             <>
-            <a className='nav-link collapsed'  style={{ textDecoration:"none"}} 
+            <Link className='nav-link collapsed'  style={{ textDecoration:"none"}} 
             onClick={handleCombinedClick}>
             <i className={nav.icon}></i>
             <span>{nav.name}</span>
-        </a>
+        </Link>
             </>
           ) : (
 <>

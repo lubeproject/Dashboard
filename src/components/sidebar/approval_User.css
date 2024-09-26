@@ -1,0 +1,125 @@
+/* Approval_User.css */
+
+#main{
+    margin-top: 60px;
+    padding: 20px 30px;
+    transition: all 0.3s;
+}
+
+
+@media (max-width: 1199px){
+    #main{
+        padding: 20px;
+    }
+}
+
+
+
+
+/* Title */
+.approval-user-title {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+}
+
+/* Table container */
+.approval-user-table-container {
+  overflow-x: auto;
+  width: 100%;
+}
+
+/* Table styling */
+.approval-user-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+}
+
+.approval-user-table th,
+.approval-user-table td {
+  text-align: center;
+  padding: 12px;
+  border: 1px solid #dee2e6;
+}
+
+.approval-user-table th {
+  background-color: #007bff;
+  color: white;
+  font-weight: bold;
+}
+
+.approval-user-table tbody tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+/* Action buttons styling */
+.action-button {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  margin: 0 5px;
+  transition: all 0.3s ease;
+}
+
+/* Modal styling */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.close-button {
+  float: right;
+  cursor: pointer;
+  font-size: 20px;
+  color: #333;
+}
+
+.close-button:hover {
+  color: red;
+}
+
+/* User details in modal */
+.user-details p {
+  margin: 10px 0;
+  font-size: 16px;
+}
+
+.user-details strong {
+  color: #007bff;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .approval-user-container {
+    padding: 15px;
+  }
+
+  .approval-user-title {
+    font-size: 20px;
+  }
+
+  .modal-content {
+    padding: 15px;
+  }
+}

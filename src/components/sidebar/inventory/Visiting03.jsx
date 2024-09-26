@@ -223,14 +223,6 @@ const Visiting = () => {
     });
   };
 
-  useEffect(() => {
-    const storedPunchingId = Cookies.get("punchingid");
-    if (storedPunchingId) {
-      setVisitId(storedPunchingId);
-      console.log(`Restored punchingid from cookie: ${storedPunchingId}`);
-    }
-  }, []);
-
 
   const fetchUserDetails = async (qrcode) => {
     try {
@@ -415,15 +407,15 @@ const Visiting = () => {
         const now = new Date();
 
         // TODO: Replace 'repid' and 'repname' with actual representative's ID and name
-        const repId = user.userid; // Placeholder for representative ID
-        const repName = user.name; // Placeholder for representative name
+        const repId = 0; // Placeholder for representative ID
+        const repName = "Currentuser"; // Placeholder for representative name
 
         const { data: insertData, error: insertError } = await supabase
           .from("represent_visiting1")
           .insert([
             {
-              repid: repId||0,
-              repname: repName||'SV Agency',
+              repid: repId,
+              repname: repName,
               visitorid: userid,
               visitor: name,
               shopname: shopname,
@@ -575,7 +567,7 @@ const Visiting = () => {
             checkouttime: getCurrentTime(),
             lastupdatetime: new Date(),
           })
-          .eq("punchingid", visitId);
+          .eq("punchingid", visitId); // Ensure 'punchingid' is the correct primary key
      
         if (error) {
           console.error("Error updating checkout time:", error);

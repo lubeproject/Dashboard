@@ -606,14 +606,12 @@
 /////====================================================================================================================================================================
 
 
-import React, { useState, useRef, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import { Button, Form, Container, Row, Col, Table } from 'react-bootstrap';
 import { supabase } from '../../../supabaseClient'; // Import your Supabase client
 import Select from 'react-select';
 import { FaFilter } from 'react-icons/fa';
-import { UserContext } from "../../context/UserContext";
-
 
 export default function AssignRepresentative() {
   const [representatives, setRepresentatives] = useState([]);
@@ -625,7 +623,6 @@ export default function AssignRepresentative() {
   const [selectedVisitingDay, setSelectedVisitingDay] = useState(null);
   const [assignments, setAssignments] = useState([]);
   const navigate = useNavigate();
-  const { user} = useContext(UserContext);
 
   useEffect(() => {
     // Fetch representatives from the database
@@ -674,61 +671,21 @@ export default function AssignRepresentative() {
     setSelectedVisitingDay(null);
   }, []);
 
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-  
-  //   // Check if all required fields are selected
-  //   if (!selectedRepresentative || !selectedShopName || !selectedVisitingDay) {
-  //     console.error('Please select all required fields.');
-  //     return;
-  //   }
-  
-  //   // Debugging: Log the selected values
-  //   console.log('Selected Representative:', selectedRepresentative);
-  //   console.log('Selected Shop Name:', selectedShopName);
-  //   console.log('Selected Visiting Day:', selectedVisitingDay);
-  
-  //   // Ensure that `name` and `value` are accessible
-  //   const visitorName = selectedShopName ? selectedShopName.name : 'Unknown';
-  //   const visitorId = selectedShopName ? selectedShopName.value : null;
-  
-  //   const assignmentData = {
-  //     representativename: selectedRepresentative.label,
-  //     representativeid: selectedRepresentative.value,
-  //     role: selectedShopName.role,
-  //     visitor: visitorName, // Ensure visitor has a value
-  //     shopname: selectedShopName.label,
-  //     visitingdayid: selectedVisitingDay.value, // visitingdayid of visitingday
-  //     visitingday: selectedVisitingDay.label,
-  //     visitorid: visitorId, // userid of shopname
-  //     active: 'Y',
-  //     lastupdatetime: new Date().toISOString(),
-  //     created: new Date().toISOString(),
-  //   };
-  
-  //   console.log('Assignment Data:', assignmentData); // Log the data being sent to Supabase
-  
-  //   const { data, error } = await supabase
-  //     .from('representassigned_master') // Replace with your table name
-  //     .insert([assignmentData]);
-  
-  //   if (error) {
-  //     console.error('Error saving assignment:', error);
-  //   } else {
-  //     console.log('Assignment saved:', data);
-  //     setAssignments([...assignments, assignmentData]);
-  //   }
-  // };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
   
+    // Check if all required fields are selected
     if (!selectedRepresentative || !selectedShopName || !selectedVisitingDay) {
       console.error('Please select all required fields.');
       return;
     }
   
-    // Get details of selected shop/visitor
+    // Debugging: Log the selected values
+    console.log('Selected Representative:', selectedRepresentative);
+    console.log('Selected Shop Name:', selectedShopName);
+    console.log('Selected Visiting Day:', selectedVisitingDay);
+  
+    // Ensure that `name` and `value` are accessible
     const visitorName = selectedShopName ? selectedShopName.name : 'Unknown';
     const visitorId = selectedShopName ? selectedShopName.value : null;
   
@@ -736,100 +693,30 @@ export default function AssignRepresentative() {
       representativename: selectedRepresentative.label,
       representativeid: selectedRepresentative.value,
       role: selectedShopName.role,
-      visitor: visitorName,
+      visitor: visitorName, // Ensure visitor has a value
       shopname: selectedShopName.label,
-      visitingdayid: selectedVisitingDay.value,
+      visitingdayid: selectedVisitingDay.value, // visitingdayid of visitingday
       visitingday: selectedVisitingDay.label,
-      visitorid: visitorId,
+      visitorid: visitorId, // userid of shopname
       active: 'Y',
       lastupdatetime: new Date().toISOString(),
-      updatedby:user?.userid ,
-      createdby:user?.userid ,
-      // 'created' field is excluded here intentionally
+      created: new Date().toISOString(),
     };
   
-    try {
-      // Check if the shop is already assigned a representative
-      const { data: existingAssignment, error: fetchError } = await supabase
-        .from('representassigned_master')
-        .select('*')
-        .eq('visitorid', visitorId)
-        .single(); // Single to ensure we only get one result
+    console.log('Assignment Data:', assignmentData); // Log the data being sent to Supabase
   
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        // If there's an error but not the "No Rows Found" error, log the error
-        console.error('Error checking existing assignment:', fetchError);
-        return;
-      }
+    const { data, error } = await supabase
+      .from('representassigned_master') // Replace with your table name
+      .insert([assignmentData]);
   
-      if (existingAssignment) {
-        // If the shop is already assigned, update the existing assignment
-        const { data: updatedData, error: updateError } = await supabase
-          .from('representassigned_master')
-          .update({
-            representativename: selectedRepresentative.label,
-            representativeid: selectedRepresentative.value,
-            role: selectedShopName.role,
-            visitor: visitorName,
-            shopname: selectedShopName.label,
-            visitingdayid: selectedVisitingDay.value,
-            visitingday: selectedVisitingDay.label,
-            visitorid: visitorId,
-            active: 'Y',
-            updatedby:user?.userid ,
-            lastupdatetime: new Date().toISOString(),
-            // 'created' field is omitted here
-          })
-          .eq('visitorid', visitorId); // Assuming 'visitorid' is the primary key
-  
-        if (updateError) {
-          console.error('Error updating assignment:', updateError);
-          return;
-        }
-  
-        console.log('Assignment updated:', updatedData);
-      } else {
-        // If no existing assignment, insert a new one
-        const { data: insertedData, error: insertError } = await supabase
-          .from('representassigned_master')
-          .insert([assignmentData]);
-  
-        if (insertError) {
-          console.error('Error saving new assignment:', insertError);
-          return;
-        }
-  
-        console.log('New assignment saved:', insertedData);
-      }
-  
-      // After updating/inserting into representassigned_master, update the users table
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({
-          representativename: selectedRepresentative.label,
-          representativeid: selectedRepresentative.value,
-          updatedby:user?.userid ,
-          visitingday: selectedVisitingDay.label,
-          lastupdatedtime: new Date().toISOString(),
-          updatedtime: new Date().toISOString()
-        })
-        .eq('userid', visitorId);
-  
-      if (updateError) {
-        console.error('Error updating users table:', updateError);
-        return;
-      }
-  
-      console.log('User table updated for visitor:', visitorId);
-  
-      // Update local state to display in the table
+    if (error) {
+      console.error('Error saving assignment:', error);
+    } else {
+      console.log('Assignment saved:', data);
       setAssignments([...assignments, assignmentData]);
-    } catch (err) {
-      console.error('Error assigning representative:', err);
     }
   };
   
-    
   const handleFilterClick = () => {
     // Navigate to the filter page (Implement the actual navigation logic)
     console.log('Filter icon clicked. Navigate to filter page.');
@@ -847,6 +734,31 @@ export default function AssignRepresentative() {
         </Row>
 
         <Form onSubmit={handleSubmit} className="mt-4">
+          {/* <Form.Group as={Row} controlId="roleSelect">
+            <Form.Label column sm="2">
+              Choose One
+            </Form.Label>
+            <Col sm="10">
+              <div>
+                <Form.Check
+                  inline
+                  label="Mechanic"
+                  type="radio"
+                  value="Mechanic"
+                  checked={selectedRole === 'Mechanic'}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                />
+                <Form.Check
+                  inline
+                  label="Retailer"
+                  type="radio"
+                  value="Retailer"
+                  checked={selectedRole === 'Retailer'}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                />
+              </div>
+            </Col>
+          </Form.Group> */}
 <br/>
           <Form.Group as={Row} controlId="representativeSelect">
             <Form.Label column sm="2">

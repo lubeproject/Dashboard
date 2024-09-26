@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext} from "react";
 import { supabase } from "../../supabaseClient";
 import "./Dashboard.css";
+import { UserContext } from "../context/UserContext";
 
 export default function Dashboard() {
   const [categoryData, setCategoryData] = useState({});
@@ -31,7 +32,7 @@ export default function Dashboard() {
   const [totalAmount, setTotalAmount] = useState(0);
   const [percentageData, setPercentageData] = useState([]);
   const [access, setAccess] = useState("");
-
+  const { user } = useContext(UserContext);
   // Function to get date ranges
   const getDateRanges = () => {
     const today = new Date();
@@ -537,7 +538,7 @@ export default function Dashboard() {
 
   return (
     <main id="main" className="main">
-      {access === "admin" ? (
+      {user.role === "admin" ? (
         <>
           <h2>
             <center>Purchase Analysis (Litres)</center>{" "}
@@ -878,7 +879,7 @@ export default function Dashboard() {
             </tbody>
           </table>
         </>
-      ) : access === "representative" ? (
+      ) : user.role  === "representative" ? (
         <>
           <div className="dashboard">
             <br />
@@ -1002,7 +1003,7 @@ export default function Dashboard() {
             </div>
           </div>
         </>
-      ) : access === "retailer" ? (
+      ) : user.role  === "retailer" ? (
         <>
           <div className="dashboard">
             {/* First child: H4 Tag with username */}
@@ -1072,7 +1073,7 @@ export default function Dashboard() {
             </div>
           </div>
         </>
-      ) : access === "mechanic" ? (
+      ) : user.role  === "mechanic" ? (
         <>
           {" "}
           <div className="mechanic-dashboard">

@@ -227,6 +227,21 @@ export default function UserActivateDeactivate() {
           <Col>
             <h4 className="text-center">User Activate / Deactivate</h4>
           </Col>
+
+          
+
+
+        </Row>
+
+
+        <Row className="mb-4">
+          
+
+          <Col style={{maxWidth:"200px"}}>
+            <button className="text-right w-10" onClick={()=> navigate("/portal/adduser")}><i class="bi bi-plus-lg "></i>  Add User</button>
+          </Col>
+
+
         </Row>
         <Table striped bordered hover responsive>
           <thead>

@@ -60,8 +60,8 @@ export default function RetailerAccountStatement() {
       };
   
       // Fetch data for both tables
-      const allRetailerRequests = await fetchData('invoices1');
-      const allRetailerRequests1 = await fetchData('payment_reference');
+      const allRetailerRequests = await fetchData('invoices');
+      const allRetailerRequests1 = await fetchData('payment_reference2');
   
       // Update states
       setFilteredData(allRetailerRequests || []);
@@ -70,7 +70,7 @@ export default function RetailerAccountStatement() {
       setFilterApplied1(true);
   
       console.log("Filtered Requests for Retailer (invoices):", allRetailerRequests);
-      console.log("Filtered Requests for Retailer (payment_reference):", allRetailerRequests1);
+      console.log("Filtered Requests for Retailer (payment_reference2):", allRetailerRequests1);
   
     } catch (error) {
       console.error('Unexpected error during filtering:', error);

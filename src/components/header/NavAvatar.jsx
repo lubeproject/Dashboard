@@ -8,7 +8,7 @@ export default function NavAvatar() {
   const navigate = useNavigate()
 
   const clear = () =>{
-    localStorage.removeItem("access")
+    localStorage.removeItem("user")
     localStorage.removeItem("sb-uvbxeltzguqqdoyrqwwi-auth-token")
     navigate("/")
   }
@@ -32,10 +32,10 @@ export default function NavAvatar() {
         <li>
           <hr className="dropdown-divider" />
         </li>
-        <a className="dropdown-item d-flex align-items-center" href="/portal/myprofile" >
+        <Link className="dropdown-item d-flex align-items-center" to="/portal/myprofile" >
           <i className="bi bi-person"></i>
           <span>My Profile</span>
-        </a>
+        </Link>
         <li>
           <hr className="dropdown-divider" />
         </li>

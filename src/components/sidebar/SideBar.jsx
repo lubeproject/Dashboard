@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext} from 'react';
 import "./sideBar.css";
 import navList from "../../data/navItem";
 import NavItem from "../header/NavItem";
 import { Link, useNavigate } from "react-router-dom";
 import { MdRoute } from "react-icons/md";
 import { supabase } from "../../supabaseClient";
+import { UserContext } from "../context/UserContext";
 
 
 export default function SideBar() {
  
-
+  const { user } = useContext(UserContext);
  const [access, setAccess] = useState("")
 
   const handleToggleSideBar = () => {
@@ -96,7 +97,7 @@ export default function SideBar() {
             className="nav-content collapse "
             data-bs-parent="#sidebar-nav"
           >
-            {access === "admin" ? (
+            {user.role === "admin" ? (
               <>
               <li>
               <Link
@@ -108,12 +109,12 @@ export default function SideBar() {
                 <span>User Activate/Deactivate</span>
               </Link>
             </li>
-            <li>
+            {/* <li>
               <Link to="/portal/adduser" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
               <i class="bi bi-person-plus-fill" style={{fontSize:"20px"}}></i>
                 <span>Add User</span>
               </Link>
-            </li>
+            </li> */}
             <li>
               <Link
                 to="/portal/assignrepresentative"
@@ -167,7 +168,7 @@ export default function SideBar() {
                 onClick={handleToggleSideBar}
               >
                <i class="bi bi-database-fill-add" style={{fontSize:"20px"}}></i>
-                <span>Add Retailer Stock</span>
+                <span>Billing</span>
               </Link>
             </li>
             <li>
@@ -211,7 +212,7 @@ export default function SideBar() {
                 <span>All DSR Day Key Route</span>
               </Link>
             </li>
-            <li>
+            {/* <li>
               <Link
                 to="/portal/billingtomechanic"
                 style={{ textDecoration: "none" }}
@@ -220,7 +221,7 @@ export default function SideBar() {
            <i class="bi bi-receipt" style={{fontSize:"20px"}}></i>
                 <span>Billing to Mechanic</span>
               </Link>
-            </li>
+            </li> */}
 
             <li>
               <Link to="/portal/itemrequest" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
@@ -267,7 +268,7 @@ export default function SideBar() {
               </Link>
             </li> */}
             </>
-            ) : (  access === "representative" ?  <> <li>
+            ) : (  user.role === "representative" ?  <> <li>
               <Link to="/portal/itemrequest" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
               <i class="bi bi-send-check-fill" style={{fontSize:"20px"}}></i>
                 <span>Item Request</span>
@@ -300,7 +301,7 @@ export default function SideBar() {
                 <span>DSR Key Route on day</span>
               </Link>
             </li>
-            </> : <>
+            </> : user.role === "retailer" ? <>
             <li>
               <Link to="/portal/itemrequest" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
               <i class="bi bi-send-check-fill" style={{fontSize:"20px"}}></i>
@@ -331,6 +332,30 @@ export default function SideBar() {
                 <span>QR Code</span>
               </Link>
             </li>
+            </> : user.role === "mechanic" ? <>
+            <li>
+              <Link
+                to="/portal/redeemRewards"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i class="bi bi-gift" style={{fontSize:"20px"}}></i>
+                <span>Redeem Reward</span>
+              </Link>
+            </li> 
+            <li>
+              <Link
+                to="/portal/viewQrCode"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i class="bi bi-qr-code" style={{fontSize:"20px"}}></i>
+           
+                <span>QR Code</span>
+              </Link>
+            </li>
+            </> : <>
+            
             </>
             )}
             
@@ -356,7 +381,7 @@ export default function SideBar() {
             data-bs-parent="#sidebar-nav"
           >
 
-{access === "admin" ? ( <>
+{user.role === "admin" ? ( <>
   <li>
               <Link to="representativelist" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
               <i class="bi bi-layout-sidebar-inset"  style={{fontSize:"20px"}}></i>
@@ -522,7 +547,7 @@ export default function SideBar() {
               </Link>
             </li>
 
-</> ):( access === "representative" ? <>
+</> ):( user.role === "representative" ? <>
 
             <li>
               <Link to="retailerslist" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
@@ -644,7 +669,7 @@ export default function SideBar() {
               </Link>
             </li>
 
-</> : access === "retailer" ? <>
+</> : user.role === "retailer" ? <>
 <li>
               <Link to="mechaniclist" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
               <i class="bi bi-tools" style={{fontSize:"20px"}}></i>
@@ -713,12 +738,43 @@ export default function SideBar() {
                 <span>Mechanic Itemwise Sales Report</span>
               </Link>
             </li>
-</> : access === "mechanic" ?  <> </> : <></>) }
+</> : user.role === "mechanic" ?  <>
+             <li>
+              <Link
+                to="/portal/mechanicPurchaseReport"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i class="bi bi-journal-bookmark" style={{fontSize:"20px"}}></i>
+                <span>Mechanic Purchase Report</span>
+              </Link>
+            </li> 
+            
+            
+            <li>
+              <Link
+                to="/portal/mechanicttemwisepurchasereport"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i class="bi bi-journal-bookmark-fill" style={{fontSize:"20px"}}></i>
+                <span>Mechanic Itemwise Purchase Report</span>
+              </Link>
+            </li> 
+            </> : <></>) }
             
           </ul>
         </li>
        
-        <li className="nav-heading">PAGES</li>
+{user.role === "admin" ? <><li className="nav-item">
+          <Link className="nav-link" to="/portal/user-approval"  onClick={handleToggleSideBar}>
+          <i class="bi bi-check2-all"></i>
+            <span>Approval-user</span>
+          </Link>
+        </li>
+        <li className="nav-heading">PAGES</li></> : null
+        }
+        
         {navList.map((nav) => (
           <NavItem key={nav._id} nav={nav} />
         ))}

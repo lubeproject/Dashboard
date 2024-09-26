@@ -1,10 +1,9 @@
-import React,{useState, useRef, useEffect, useContext} from 'react';
+import React,{useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
 import "./allDsrDayKeyRoute.css";
 import { Container, Row, Col, Button, Form, Table } from 'react-bootstrap';
 import Select from 'react-select';
 import { useNavigate } from 'react-router-dom';
-import { UserContext } from "../../context/UserContext";
 
 export default function AllDsrDayKeyRoute() {
   const [dsrOptions, setDsrOptions] = useState([]);
@@ -13,7 +12,6 @@ export default function AllDsrDayKeyRoute() {
   const [selectedDay, setSelectedDay] = useState(null);
   const [filteredData, setFilteredData] = useState([]);
   const navigate = useNavigate();
-  const { user} = useContext(UserContext);
 
   useEffect(() => {
     // Fetch mechanics from the users table
@@ -23,8 +21,8 @@ export default function AllDsrDayKeyRoute() {
         .select('userid, shopname, name, role')
         .eq('role', 'representative');
 
-      if (error) console.error('Error fetching Representatives:', error);
-      else setDsrOptions(data.map(representative => ({ value: representative.userid, label: representative.shopname, name: representative.name, role: representative.role })));
+      if (error) console.error('Error fetching Retailers:', error);
+      else setDsrOptions(data.map(retailer => ({ value: retailer.userid, label: retailer.shopname, name: retailer.name })));
     };
 
     // Fetch mechanics from the users table
@@ -34,24 +32,10 @@ export default function AllDsrDayKeyRoute() {
         .select('visitingdayid, visitingday');
 
       if (error) console.error('Error fetching Visiting Days:', error);
-      else setDaysOptions(data.map(representative => ({ value: representative.visitingdayid, label: representative.visitingday})));
+      else setDaysOptions(data.map(retailer => ({ value: retailer.visitingdayid, label: retailer.visitingday})));
     };
 
-
-    if (user?.role === 'representative') {
-      setDsrOptions([
-        {
-          value: user?.userid,
-          label: user?.shopname,
-          name: user?.name,
-          role: user?.role
-        }
-      ]);
-    } else {
-      fetchDsr();
-    }
-
-    // fetchDsr();
+    fetchDsr();
     fetchDays();
   }, []);
 

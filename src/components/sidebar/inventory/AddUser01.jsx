@@ -22,14 +22,6 @@ export default function AddUser() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
-  const [otp, setOtp] = useState("");
-  const [generatedOtp, setGeneratedOtp] = useState(null);
-  const [isOTPSent, setIsOTPSent] = useState(false);
-  const [isOtpValidated, setIsOtpValidated] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [error, setError] = useState({});
-  const [resendDisabled, setResendDisabled] = useState(false);
-  const [mobile, setMobile] = useState("");
 
   const validateField = (name, value) => {
     let error = '';
@@ -92,25 +84,8 @@ export default function AddUser() {
     }));
   };
 
-  const handleValidateOtp = () => {
-    if (otp === generatedOtp) {
-      setIsOtpValidated(true);
-    
-      alert("OTP validated successfully!");
-      return true; // Return true when OTP is valid
-    } else {
-      setIsOtpValidated(false);
-      alert("Invalid OTP. Please try again.");
-      return false; // Return false when OTP is invalid
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!handleValidateOtp()) {
-      alert('The OTP entered is Invalid!!!');
-      return;
-    }
 
     const newErrors = {};
     if (!formData.userType) newErrors.userType = 'User type is required';
@@ -222,91 +197,6 @@ const hashedPassword = await bcrypt.hash(formData.password, saltRounds);
       </label>
     );
   };
-
-  const sendOtp = async (mobileNo, otp) => {
-    try {
-      const apiKey =
-        "6b8e745587e644c9b9d0ee71186c6a4b14aa847dfb334d8fb8af718ca6080ee2";
-      const tmpid = "1607100000000253030";
-      const sid = "CENENS";
-      const to = `91${mobileNo}`;
-      const msg = `Dear Customer, OTP to authenticate your profile update is ${otp}. Please share to complete your registration process. Thank You for joining us.
-S V Agency 
-by CENTROID ENGINEERING SOLUTIONS`;
-
-      const url = `https://api.msg4.cloud.robeeta.com/sms.aspx?apikey=${apiKey}&tmpid=${tmpid}&sid=${sid}&to=${to}&msg=${encodeURIComponent(
-        msg
-      )}`;
-
-      console.log(url);
-      const response = await fetch(url);
-
-      if (response.ok) {
-        const textResponse = await response.text();
-
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(textResponse, "text/xml");
-
-        const status = xmlDoc.getElementsByTagName("STATUS")[0].textContent;
-        const message = xmlDoc.getElementsByTagName("MESSAGE")[0].textContent;
-
-        if (status === "OK" && message === "SMS SENT") {
-          setIsOTPSent(true);
-          setError(null);
-          setResendDisabled(false);
-          alert("OTP sent successfully!");
-        } else {
-          throw new Error("Failed to send OTP");
-        }
-      } else {
-        throw new Error("Failed to send OTP");
-      }
-    } catch (err) {
-      setError("Failed to send OTP");
-      console.error("Error sending OTP:", err);
-    }
-  };
-
-  async function checkMobileNumberExists(mobileNumber) {
-    const { data, error } = await supabase
-      .from("users")
-      .select("mobile")
-      .eq("mobile", mobileNumber);
-
-    if (error) {
-      console.error("Error fetching user:", error);
-      return false;
-    }
-
-    // If data is not empty, the mobile number exists
-    return data.length > 0;
-  }
-
-  const handleGenerateOtp = async () => {
-    if (!validateField()) return;
-
-    const mobileExists = await checkMobileNumberExists(mobile);
-
-    if (mobileExists) {
-      // Alert the user that the mobile number is already registered
-      alert("User with this mobile number already exists.");
-      return; // Prevent registration
-    }
-
-    const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedOtp(newOtp);
-    sendOtp(mobile, newOtp);
-    setResendDisabled(false);
-    alert(`OTP sent to ${mobile}`);
-    setIsOTPSent(true)
-  };
-
-  const handleResendOtp = () => {
-    sendOtp(mobile, generatedOtp);
-    setResendDisabled(true);
-  };
-
-  
 
   return (
 //     <main id='main' className='main'>
@@ -715,29 +605,6 @@ by CENTROID ENGINEERING SOLUTIONS`;
               />
             </Form.Group>
           )}
-
-{
-            <div className="form-group">
-              <label htmlFor="otp">Enter OTP:</label>
-              <input
-                type="text"
-                id="otp"
-                name="otp"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                disabled={isRegistering || isOtpValidated}
-                required
-              />
-              <button
-                type="button"
-                onClick={handleGenerateOtp}
-                disabled={isOTPSent}
-              >
-                {isOTPSent ? "Resend OTP" : "Generate OTP"}
-              </button>
-              {error.otp && <p className="error-message">{error.otp}</p>}
-            </div>
-          }
 
           <Button variant="primary" type="submit" block>
             Submit

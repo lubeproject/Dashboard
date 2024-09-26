@@ -1,0 +1,73 @@
+#main{
+    margin-top: 60px;
+    padding: 20px 30px;
+    transition: all 0.3s;
+}
+
+
+@media (max-width: 1199px){
+    #main{
+        padding: 20px;
+    }
+}
+
+
+
+.redeem-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+  }
+  
+  .center-text {
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  
+  .reward-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    margin: 20px 0;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    background-color: #f9f9f9;
+  }
+  
+  .reward-info h5 {
+    margin: 0;
+    font-size: 18px;
+  }
+  
+  .reward-info h6 {
+    margin: 5px 0;
+    font-size: 16px;
+    color: #555;
+  }
+  
+
+  .redeem-button-parent{
+display: flex;
+width: 40%;
+margin: 10px auto;
+  }
+
+  .redeem-button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 20px;
+    font-size: 16px;
+    width: 100%;
+  }
+  
+  .redeem-button:hover {
+    background-color: #0056b3;
+  }
+  

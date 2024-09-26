@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import "./App.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "remixicon/fonts/remixicon.css";
@@ -66,9 +66,15 @@ import Home from "./components/portal/Home";
 import InvoiceDetails from "./components/sidebar/reports/InvoiceDetails";
 import DsrKeyRouteOnDay from "./components/sidebar/inventory/DsrKeyRouteOnDay";
 import ViewQrCode from "./components/sidebar/inventory/ViewQrCode";
+import Approval_User from './components/sidebar/Approval_User';
+import { UserContext } from "./components/context/UserContext";
+import RedeemReward from './components/sidebar/inventory/RedeemReward';
+import MechanicPurchaseReport from './components/sidebar/reports/MechanicPurchaseReport';
+import MechanicItenwisePurchase from './components/sidebar/reports/MechanicItenwisePurchase';
+
+
 
 function App() {
-
 
 //  const [access, setAccess] = useState()
 
@@ -96,18 +102,19 @@ function App() {
 // };
 // dataCheck()
 //  },[])
+const { user } = useContext(UserContext);
 
 const [access, setAccess] = useState("");
 
-useEffect(() => {
-  // Mock function to simulate fetching access (could be from localStorage, API, etc.)
-  const fetchAccess = () => {
+// useEffect(() => {
+//   // Mock function to simulate fetching access (could be from localStorage, API, etc.)
+//   const fetchAccess = () => {
    
-    setAccess(localStorage.getItem("role"));
-  };
+//     setAccess(localStorage.getItem("role"));
+//   };
 
-  fetchAccess();
-}, []);
+//   fetchAccess();
+// }, []);
 
   return (
 <>
@@ -116,7 +123,7 @@ useEffect(() => {
       <Route path="/" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/portal" element={<Portal />}>
-      {access === "admin"  ? <>
+      { user ? user.role === "admin"  ? <>
         <Route path="homepage" element={<Home/>} />
         <Route path="dashboard" element={<Dashboard/>} />
         <Route path="customer" element={<Customers/>} />
@@ -174,7 +181,10 @@ useEffect(() => {
         <Route path="invoicedetails/:invoiceId" element={<InvoiceDetails/>} />
         
         <Route path="changePassword" element={<ChangePassword/>} />
-      </> :  access === "representative" ? <> 
+        <Route path="user-approval" element={<Approval_User/>} />
+
+
+      </> :  user.role === "representative" ? <> 
         <Route path="homepage" element={<Home/>} />
         <Route path="dashboard" element={<Dashboard/>} />
         <Route path="customer" element={<Customers/>} />
@@ -212,7 +222,7 @@ useEffect(() => {
         <Route path="invoicedetails/:invoiceId" element={<InvoiceDetails/>} />
         
         <Route path="changePassword" element={<ChangePassword/>} />
-      </> : <>
+      </> : user.role === "retailer" ?  <>
       <Route path="homepage" element={<Home/>} />
         <Route path="dashboard" element={<Dashboard/>} />
         <Route path="customer" element={<Customers/>} />
@@ -224,7 +234,9 @@ useEffect(() => {
 
       <Route path="itemrequest" element={<ItemRequest/>} />
       <Route path="billingtomechanic" element={<BillingToMechanic/>} />
-      <Route path="viewQrCode" element={<ViewQrCode />} />
+      
+      <Route path="viewQrCode" element={<ViewQrCode  />} />
+     
 
    {/* Under Report components */}
 
@@ -240,9 +252,29 @@ useEffect(() => {
         <Route path="invoicedetails/:invoiceId" element={<InvoiceDetails/>} />
         
         <Route path="changePassword" element={<ChangePassword/>} />
-      </> 
+      </> : user.role === "mechanic" ? <>
       
-      }
+       <Route path="homepage" element={<Home/>} />
+       <Route path="dashboard" element={<Dashboard/>} />
+       <Route path="customer" element={<Customers/>} />
+       <Route path="supplier" element={<Suppliers/>} />
+       <Route path="logistic" element={<Logistic/>} />
+
+       <Route path="myprofile" element={<MyProfile/>} />
+       <Route path="workinprogress" element={<WorkProgress/>} />
+       <Route path="redeemRewards" element={<RedeemReward  />} />
+      <Route path="viewQrCode" element={<ViewQrCode  />} />
+      <Route path="mechanicPurchaseReport" element={<MechanicPurchaseReport/>} />
+              <Route path="mechanicttemwisesalesreport" element={<SalesReportMechanicwiseItemwise/>} />           
+                 <Route path="mechanicttemwisepurchasereport" element={<MechanicItenwisePurchase/>} />
+
+              <Route path="changePassword" element={<ChangePassword/>} />
+       </> : <>
+              <Route path="mechanicPurchaseReport" element={<MechanicPurchaseReport/>} />
+              <Route path="mechanicttemwisesalesreport" element={<SalesReportMechanicwiseItemwise/>} />
+              <Route path="changePassword" element={<ChangePassword/>} />
+      </>
+       : null }
         
       </Route>
     </Routes>

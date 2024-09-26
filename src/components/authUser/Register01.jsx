@@ -126,8 +126,7 @@ export default function Register() {
    
     // Validate OTP before proceeding with registration
     if (!handleValidateOtp()) {
-      alert('The OTP entered is Invalid!!!');
-      return;
+      return; // Stop registration if OTP is invalid
     }
 
     console.log("OTP validated");
@@ -149,26 +148,26 @@ const saltRounds = 10;
 const hashedPassword = await bcrypt.hash(password, saltRounds);
 
       const userData = {
-        role: role,
-        mobile: mobile,
-        name: name,
-        address: address,
-        email: email,
-        password: hashedPassword,
-        shopname: role === "representative" ? name : shopname,
-        enablecheck: role === "representative" ? "N" : "Y",
-        qrcode: "",
-        active: "N",
-        updatedby: 0,
-        visitingday: "",
-        shopimgurl: "",
-        shippingaddress: "",
-        segment: "",
-        rewardpoints: 0,
-        representativename: "",
-        representativeid: 0,
-        monthlypotential: "",
-        longitude: "",
+        role: role,//
+        mobile: mobile,///
+        name: name,///
+        address: address,//
+        email: email,//
+        password: hashedPassword,//
+        shopname: role === "representative" ? name : shopname,//
+        enablecheck: role === "representative" ? "N" : "Y",//
+        qrcode: "",//
+        active: "N",//
+        updatedby: 0,//
+        visitingday: "",//
+        shopimgurl: "",//
+        shippingaddress: "",//
+        segment: "",//
+        rewardpoints: 0,//
+        representativename: "",//
+        representativeid: 0,//
+        monthlypotential: "",//
+        longitude: "",//
         latitude: "",//
         creditterm: "",//
         creditdays: "",//
