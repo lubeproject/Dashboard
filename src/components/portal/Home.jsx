@@ -26,8 +26,8 @@ export default function Home() {
         </div>
          {user ? (
         <div>
-          <p>{user.name}!</p>
-          <p>Your role is: {user.role}</p>
+          {/* <p>{user.name}!</p>
+          <p>Your role is: {user.role}</p> */}
         </div>
       ) : (
         <p>Please log in to view the dashboard.</p>
