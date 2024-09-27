@@ -1,14 +1,16 @@
 import "./paymentApproval.css";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Container, Table, Button, Row, Col } from "react-bootstrap";
 import { FaCheck } from "react-icons/fa";
 import { supabase } from "../../../supabaseClient"; 
 import "./paymentApproval.css";
+import { UserContext } from "../../context/UserContext";
 
 export default function PaymentApproval() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const {user} = useContext(UserContext);
 
   useEffect(() => {
     fetchPayments();
@@ -208,6 +210,7 @@ export default function PaymentApproval() {
           paymentmode: distinctPaymentModes,  // Set distinct payment modes
           paymentdate: updatedPaidAmount>= invoice.amount? new Date().toISOString().split('T')[0]:null,
           updatedtime: new Date().toISOString(),
+          updatedby: user?.userid
         })
         .eq('invid', invid);
   
@@ -238,27 +241,41 @@ export default function PaymentApproval() {
         .update({
           paymentstatus: 'Approved',
           updatedtime: new Date().toISOString(),
+          updatedby: user?.userid
         })
         .eq('payid', payid);
   
       if (updatePaymentReferenceError) {
         throw new Error("Error updating payment status in payment_reference.");
       }
+      
+      // 9. Fetch the current amount from represent_visiting1 table first
+      const { data: representVisiting, error: fetchRepresentVisitingError } = await supabase
+        .from('represent_visiting1')
+        .select('amount')
+        .eq('punchingid', punchingId)
+        .single();
 
-      // 9. Update the represent_visiting1 table with the approved amount
-    if (punchingId) {
+      if (fetchRepresentVisitingError || !representVisiting) {
+        throw new Error("Error fetching the current amount from represent_visiting1.");
+      }
+
+      // Calculate the new amount
+      const updatedAmount = (representVisiting.amount || 0) + approvedAmount;
+
+      // Update the represent_visiting1 table with the approved amount
       const { error: updateRepresentVisitingError } = await supabase
         .from('represent_visiting1')
         .update({
-          amount: supabase.raw('amount + ?', [approvedAmount]),
-          lastupdatetime : new Date().toISOString
+          amount: updatedAmount,
+          lastupdatetime: new Date().toISOString(),
+          updatedby: user?.userid
         })
         .eq('punchingid', punchingId);
 
       if (updateRepresentVisitingError) {
         throw new Error(`Error updating represent_visiting1 table: ${updateRepresentVisitingError.message}`);
       }
-    }
 
     // 10. Fetch updated payment records after approval
       fetchPayments(); 
@@ -269,6 +286,10 @@ export default function PaymentApproval() {
       setError(error.message);
     }
   };
+
+  if (error) {
+    return <div>An error occurred: {error}</div>;
+  }
   
     
   const convertDateFormat = (dateStr) => {

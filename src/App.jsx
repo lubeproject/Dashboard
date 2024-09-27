@@ -195,6 +195,7 @@ const [access, setAccess] = useState("");
         <Route path="workinprogress" element={<WorkProgress/>} />
 
         <Route path="dsrKeyRouteOnDay" element={<DsrKeyRouteOnDay />} />
+        <Route path="retailer-summary" element={<RetailerSummary/>} />
         <Route path="itemrequest" element={<ItemRequest/>} />
         <Route path="visiting" element={<Visiting/>} />
         <Route path="paymententry" element={<PaymentEntry/>} />

@@ -22,18 +22,216 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [totals, setTotals] = useState({});
   const [data, setData] = useState({
-    "0-20 Days": 100,
+    "0-20 Days": 0,
     "21-40 Days": 0,
     "41-60 Days": 0,
     "61-75 Days": 0,
-    ">75 Days": 5000,
+    ">75 Days": 0,
   });
 
   const [totalAmount, setTotalAmount] = useState(0);
   const [percentageData, setPercentageData] = useState([]);
-  const [access, setAccess] = useState("");
   const { user } = useContext(UserContext);
+  const [visitData, setVisitData] = useState({ numberOfVisits: 0, numberOfAccounts: 0, totalLitres: 0 });
+  const [paymentData, setPaymentData] = useState({
+    cheque: 0,
+    upi: 0,
+    cash: 0,
+    adjustment:0,
+    totalAmounts: 0,
+});
+
   // Function to get date ranges
+  useEffect(() => {
+    // const fetchOutData = async () => {
+    //   const { data: payments, error } = await supabase
+    //     .from('payment_reference')
+    //     .select('amount, createdtime');
+
+    //   if (error) {
+    //     console.error('Error fetching data:', error);
+    //     return;
+    //   }
+
+    //   const currentDate = new Date();
+    //   const updatedData = {
+    //     "0-20 Days": 0,
+    //     "21-40 Days": 0,
+    //     "41-60 Days": 0,
+    //     "61-75 Days": 0,
+    //     ">75 Days": 0,
+    //   };
+
+    //   payments.forEach(payment => {
+    //     const createdDate = new Date(payment.createdtime);
+    //     const daysDifference = Math.floor((currentDate - createdDate) / (1000 * 60 * 60 * 24)); // Convert to days
+
+    //     if (daysDifference <= 20) {
+    //       updatedData["0-20 Days"] += payment.amount;
+    //     } else if (daysDifference <= 40) {
+    //       updatedData["21-40 Days"] += payment.amount;
+    //     } else if (daysDifference <= 60) {
+    //       updatedData["41-60 Days"] += payment.amount;
+    //     } else if (daysDifference <= 75) {
+    //       updatedData["61-75 Days"] += payment.amount;
+    //     } else {
+    //       updatedData[">75 Days"] += payment.amount;
+    //     }
+    //   });
+
+    //   setData(updatedData);
+    // };
+
+    const fetchOutData = async () => {
+      const currentUserId = user?.userid; // Replace with the actual method of getting current user ID
+      const isAdmin = user?.role === 'admin'; // Adjust this condition based on your role management
+    
+      // Prepare the query to fetch payment data
+      let query = supabase.from('payment_reference').select('amount, createdtime');
+    
+      // If the user is a representative, filter by repid
+      if (!isAdmin) {
+        query = query.eq('repid', currentUserId);
+      }
+    
+      const { data: payments, error } = await query;
+    
+      if (error) {
+        console.error('Error fetching data:', error);
+        return;
+      }
+    
+      const currentDate = new Date();
+      const updatedData = {
+        "0-20 Days": 0,
+        "21-40 Days": 0,
+        "41-60 Days": 0,
+        "61-75 Days": 0,
+        ">75 Days": 0,
+      };
+    
+      payments.forEach(payment => {
+        const createdDate = new Date(payment.createdtime);
+        const daysDifference = Math.floor((currentDate - createdDate) / (1000 * 60 * 60 * 24)); // Convert to days
+    
+        if (daysDifference <= 20) {
+          updatedData["0-20 Days"] += payment.amount;
+        } else if (daysDifference <= 40) {
+          updatedData["21-40 Days"] += payment.amount;
+        } else if (daysDifference <= 60) {
+          updatedData["41-60 Days"] += payment.amount;
+        } else if (daysDifference <= 75) {
+          updatedData["61-75 Days"] += payment.amount;
+        } else {
+          updatedData[">75 Days"] += payment.amount;
+        }
+      });
+    
+      setData(updatedData);
+    };
+
+    fetchOutData();
+  }, []);
+
+  const fetchVisitData = async () => {
+    const today = new Date();
+    const visitingDate = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+
+    try {
+        // Fetch total visits for the current representative on the current date
+        const { data: visitsData, error: visitsError } = await supabase
+            .from('represent_visiting1')
+            .select('*') // Get all data to filter unique shop names later
+            .eq('repid', user.userid) // Filter by current representative ID
+            .eq('visitingdate', visitingDate); // Filter by today's date using visitingdate
+
+        if (visitsError) throw visitsError;
+
+        const numberOfVisits = visitsData.length; // Total number of visits
+
+        // Use a Set to collect unique shop names
+        const uniqueShopNames = new Set(visitsData.map(visit => visit.shopname));
+
+        const numberOfAccounts = uniqueShopNames.size; // Count of unique shop names
+
+        const totalLitres = visitsData.reduce((sum, visit) => {
+          return sum + (visit.orders || 0); // Ensure to handle cases where orders might be undefined
+      }, 0);
+
+      // Update state with fetched data
+      setVisitData({ numberOfVisits, numberOfAccounts, totalLitres });
+
+
+    } catch (error) {
+        console.error('Error fetching visit data:', error);
+    }
+};
+  
+const fetchPaymentData = async () => {
+  const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); // Midnight of today
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59); // Just before midnight of today
+
+    try {
+        const { data: paymentsData, error } = await supabase
+            .from('payment_reference')
+            .select('amount, paymode') // Select the amount and payment mode
+            .eq('repid', user?.userid) // Filter by current representative ID
+            .gte('createdtime', startOfDay.toISOString()) // Start of today's date
+            .lte('createdtime', endOfDay.toISOString()); // End of today's date
+
+        if (error) throw error;
+
+
+      // Initialize amounts
+      let chequeTotal = 0;
+      let upiTotal = 0;
+      let cashTotal = 0;
+      let adjustTotal = 0;
+      let totalAmounts = 0;
+
+      // Iterate over payments to calculate totals
+      paymentsData.forEach(payment => {
+          totalAmounts += payment.amount; // Sum up total amounts for the day
+
+          switch (payment.paymode) {
+              case 'Cheque':
+                  chequeTotal += payment.amount;
+                  break;
+              case 'UPI':
+                  upiTotal += payment.amount;
+                  break;
+              case 'Cash':
+                  cashTotal += payment.amount;
+                  break;
+              case 'Adjustment':
+                  adjustTotal+= payment.amount;
+              default:
+                  break;
+          }
+      });
+
+      // Update state or handle the totals as needed
+      setPaymentData({
+          cheque: chequeTotal,
+          upi: upiTotal,
+          cash: cashTotal,
+          adjustment: adjustTotal,
+          totalAmounts: totalAmounts,
+      });
+
+  } catch (error) {
+      console.error('Error fetching payment data:', error);
+  }
+};
+
+  useEffect(() => {
+    if (user && user?.role === 'representative') { // Check if the user is a representative
+        fetchVisitData();
+        fetchPaymentData();
+    }
+}, [user]);
+
   const getDateRanges = () => {
     const today = new Date();
     const thisMonthName = today.toLocaleString("default", { month: "short" });
@@ -287,7 +485,7 @@ export default function Dashboard() {
   const fetchWeeklyPerformance = async () => {
     // Fetch data from the invoices table
     const { data: invoices, error } = await supabase
-      .from("invoices")
+      .from("invoices1")
       .select("updatedtime, totalliters, paidamount");
 
     if (error) {
@@ -337,12 +535,12 @@ export default function Dashboard() {
         }
       }
     });
-    console.log(weeklyData);
+    // console.log(weeklyData);
     // console.log(weeklyData.reverse());
 
     // Reverse the data to treat current week as Week 1, previous week as Week 2, etc.
     setWeeklyPerformance(weeklyData);
-    console.log(weeklyPerformance);
+    // console.log(weeklyPerformance);
   };
 
   const summaryDetails = async () => {
@@ -361,7 +559,7 @@ export default function Dashboard() {
       const today = new Date().toISOString().slice(0, 10); // Format date as YYYY-MM-DD
 
       const { data: paymentsData, error: paymentsError } = await supabase
-        .from("payment_reference2")
+        .from("payment_reference")
         .select("repid, paymode, amount")
         .eq("updatedtime", today); // Assuming 'updatedtime' is the date field in your table
 
@@ -422,71 +620,152 @@ export default function Dashboard() {
     }
   };
 
+  // const OutstandingAnalysis = async () => {
+  //   const total = Object.values(data).reduce((sum, val) => sum + val, 0);
+  //   setTotalAmount(total);
+  //   // Calculate the percentage for each column and round it to the nearest integer
+  //   const percentages = Object.keys(data).map((key) => {
+  //     return total > 0 ? Math.round((data[key] / total) * 100) : "0"; // Round to the nearest integer
+  //   });
+
+  //   setPercentageData(percentages);
+  // };
+
   const OutstandingAnalysis = async () => {
+    // console.log("Current data:", data); // Check what data looks like
     const total = Object.values(data).reduce((sum, val) => sum + val, 0);
+    // console.log("Total amount:", total); // Check the total calculated
+    
     setTotalAmount(total);
-    // Calculate the percentage for each column and round it to the nearest integer
+
     const percentages = Object.keys(data).map((key) => {
-      return total > 0 ? Math.round((data[key] / total) * 100) : "0"; // Round to the nearest integer
+        // return total > 0 ? Math.round((data[key] / total) * 100) : 0;
+        if (parseInt(total) === 0) {
+          return "0"; // Ensure two decimal places
+      }
+      if (parseInt((data[key] / total)) === 1) {
+        return "100"; // Ensure two decimal places
+    }
+        return ((data[key] / total) * 100).toFixed(2);
     });
 
     setPercentageData(percentages);
-  };
+};
+
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       const { data, error } = await supabase
+  //         .from("user_request_items")
+  //         .select("*");
+
+  //       if (error) {
+  //         throw error;
+  //       }
+
+  //       // Calculate segment-wise quantities
+  //       const { quantities: segmentQuantities, totals: segmentTotals } =
+  //         getSegmentQuantities(data);
+  //       setSegmentData(segmentQuantities);
+  //       setTotalColumns(Object.keys(segmentTotals));
+  //       setTotalSegmentValues(Object.values(segmentTotals));
+
+  //       // Calculate category-wise quantities
+  //       const { quantities: categoryQuantities, totals: categoryTotals } =
+  //         getCategoryQuantities(data);
+  //       setCategoryData(categoryQuantities);
+  //       setTotalColumns(Object.keys(categoryTotals));
+  //       setTotalCategoryValues(Object.values(categoryTotals));
+
+  //       // Calculate segment-wise prices
+  //       const { turnovers: segmentPrices, totals: segmentsTotals } =
+  //         getSegmentTurnover(data);
+  //       setSegmentPriceData(segmentPrices);
+  //       setTotalColumns(Object.keys(segmentsTotals));
+  //       setTotalSegmentPriceValues(Object.values(segmentsTotals));
+
+  //       if (totalSegmentValues.length > 0) {
+  //         const averages = totalSegmentPriceValues.map((totalPrice, i) => {
+  //           const totalCount = totalSegmentValues[i];
+  //           return totalCount === 0 ? 0 : totalPrice / totalCount;
+  //         });        
+  //         const roundedAverages = averages.map((avg) => Math.round(avg));
+  //         setTotalSegmentPriceAvg(roundedAverages);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching data:", error.message);
+  //     }
+  //   };
+
+  //   fetchSegments();
+  //   fetchCategories();
+  //   fetchData();
+  //   fetchWeeklyPerformance();
+  //   fetchPaymentApprovals();
+  //   OutstandingAnalysis();
+  //   summaryDetails();
+  // }, []);
 
   useEffect(() => {
-    const fetchAccess = () => {
-      const storedAccess = localStorage.getItem("role"); // or from an API
-      setAccess(storedAccess);
-    };
-
-    fetchAccess();
-
     const fetchData = async () => {
       try {
         const { data, error } = await supabase
-          .from("invoice_items")
+          .from("user_request_items")
           .select("*");
-
+  
         if (error) {
           throw error;
         }
-
-        // Calculate segment-wise quantities
-        const { quantities: segmentQuantities, totals: segmentTotals } =
-          getSegmentQuantities(data);
+  
+        // console.log("Fetched Data:", data); // Log fetched data
+  
+        // Calculate segment-wise quantities and totals
+        const { quantities: segmentQuantities, totals: segmentTotals } = getSegmentQuantities(data);
+        // console.log("Segment Quantities:", segmentQuantities);
+        // console.log("Segment Totals:", segmentTotals);
+  
+        // Calculate category-wise quantities and totals
+        const { quantities: categoryQuantities, totals: categoryTotals } = getCategoryQuantities(data);
+        // console.log("Category Quantities:", categoryQuantities);
+        // console.log("Category Totals:", categoryTotals);
+  
+        // Calculate segment-wise prices and totals
+        const { turnovers: segmentPrices, totals: segmentsTotals } = getSegmentTurnover(data);
+        // console.log("Segment Prices:", segmentPrices);
+        // console.log("Segment Totals for Prices:", segmentsTotals);
+  
+        // Update state
         setSegmentData(segmentQuantities);
-        setTotalColumns(Object.keys(segmentTotals));
-        setTotalSegmentValues(Object.values(segmentTotals));
-
-        // Calculate category-wise quantities
-        const { quantities: categoryQuantities, totals: categoryTotals } =
-          getCategoryQuantities(data);
         setCategoryData(categoryQuantities);
         setTotalColumns(Object.keys(categoryTotals));
         setTotalCategoryValues(Object.values(categoryTotals));
-
-        // Calculate segment-wise prices
-        const { turnovers: segmentPrices, totals: segmentsTotals } =
-          getSegmentTurnover(data);
+        const columnNames = Object.keys(segmentTotals);
+        setTotalColumns(columnNames);
+        setTotalSegmentValues(Object.values(segmentTotals));
         setSegmentPriceData(segmentPrices);
-        setTotalColumns(Object.keys(segmentsTotals));
         setTotalSegmentPriceValues(Object.values(segmentsTotals));
-
-        if (totalSegmentValues.length > 0) {
-          const averages = totalSegmentPriceValues.map((value, i) =>
-            totalSegmentValues[i] === 0 ? 0 : value / totalSegmentValues[i]
-          );
-          const roundedAverages = averages.map((avg) => Math.round(avg));
-          setTotalSegmentPriceAvg(roundedAverages);
+  
+        // Calculate averages
+        const totalSegmentValues = Object.values(segmentTotals);
+        const totalSegmentPriceValues = Object.values(segmentsTotals);
+  
+        if (totalSegmentValues.length > 0 && totalSegmentPriceValues.length > 0) {
+          const averages = totalSegmentPriceValues.map((totalPrice, i) => {
+            const totalCount = totalSegmentValues[i];
+            return totalCount === 0 ? 0 : Math.round(totalPrice / totalCount);
+          });
+          // console.log("Calculated Averages:", averages); // Log calculated averages
+          setTotalSegmentPriceAvg(averages);
         }
       } catch (error) {
         console.error("Error fetching data:", error.message);
       }
     };
-
+  
+    // Fetch data and perform calculations
+    fetchData();
     fetchSegments();
     fetchCategories();
-    fetchData();
     fetchWeeklyPerformance();
     fetchPaymentApprovals();
     OutstandingAnalysis();
@@ -504,18 +783,19 @@ export default function Dashboard() {
   };
 
   // Dummy data
-  const username = "John Doe";
+  const username = user?.name;
+
   const averageAgeing = "35 Days";
   const summaryOfTheDay = "Good progress with significant collections.";
-  const numberOfVisits = 5;
-  const numberOfAccounts = 12;
-  const totalLitres = 1500;
+  // const numberOfVisits = 5;
+  // const numberOfAccounts = 12;
+  // const totalLitres = 1500;
   const cheque = 5;
   const upi = 8;
   const cash = 7;
   const totalAmounts = 30000;
 
-  const name = "Sai Suraj";
+  const name = user?.name;
   const ironbox = "Special Ironbox Offer";
   const points = "1000 Points Earned";
   const purchaseAnalysisData = [
@@ -687,7 +967,7 @@ export default function Dashboard() {
                   {totalColumns.map((col, i) => (
                     <td key={i}>
                       <center>
-                        {segmentPriceData[segment.segmentname] &&
+                      ₹{segmentPriceData[segment.segmentname] &&
                         segmentPriceData[segment.segmentname][col] !== undefined
                           ? segmentPriceData[segment.segmentname][col]
                           : 0}
@@ -702,7 +982,7 @@ export default function Dashboard() {
                 </td>
                 {totalSegmentPriceValues.map((val, i) => (
                   <td key={i}>
-                    <center>{val}</center>
+                    <center>₹{val}</center>
                   </td>
                 ))}
               </tr>
@@ -710,9 +990,9 @@ export default function Dashboard() {
                 <td>
                   <center>Avg</center>
                 </td>
-                {totalSegmentPriceAvg.map((val, i) => (
+                {totalSegmentPriceAvg.map((avg, i) => (
                   <td key={i}>
-                    <center>{val}</center>
+                    <center>₹{avg}</center>
                   </td>
                 ))}
               </tr>
@@ -942,8 +1222,8 @@ export default function Dashboard() {
 
             {/* Fourth Child */}
             <div className="outstanding-analysis-section">
-              <h4>Outstanding Analysis:</h4>
-              <table className="responsive-table">
+              {/* <h4>Outstanding Analysis:</h4> */}
+              {/* <table className="responsive-table">
                 <thead>
                   <tr>
                     <th>Category</th>
@@ -956,7 +1236,6 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* Example row */}
                   <tr>
                     <td>₹</td>
                     <td>₹100</td>
@@ -965,6 +1244,62 @@ export default function Dashboard() {
                     <td>₹40</td>
                     <td>₹20</td>
                     <td>₹300</td>
+                  </tr>
+                </tbody>
+              </table> */}
+              <h4>Outstanding Analysis:</h4>
+              <table className="category-table">
+                <thead>
+                  <tr>
+                    <th>
+                      <center></center>
+                    </th>
+                    <th>
+                      <center>0-20 Days</center>
+                    </th>
+                    <th>
+                      <center>21-40 Days</center>
+                    </th>
+                    <th>
+                      <center>41-60 Days</center>
+                    </th>
+                    <th>
+                      <center>61-75 Days</center>
+                    </th>
+                    <th>
+                      <center>&gt;75 Days</center>
+                    </th>
+                    <th>
+                      <center>Total</center>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <center>₹</center>
+                    </td>
+                    {Object.values(data).map((value, index) => (
+                      <td key={index}>
+                        <center>₹{value}</center>
+                      </td>
+                    ))}
+                    <td>
+                      <center>₹{totalAmount}</center>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <center>%</center>
+                    </td>
+                    {percentageData.map((percent, index) => (
+                      <td key={index}>
+                        <center>{percent}%</center>
+                      </td>
+                    ))}
+                    <td>
+                      <center>100%</center>
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -978,26 +1313,27 @@ export default function Dashboard() {
               <h6>Summary of the Day: {summaryOfTheDay}</h6>
               <br />
               <div>
-                <h6>Number of visits: {numberOfVisits}</h6>
+                <h6>Number of visits: {visitData.numberOfVisits}</h6>
                 <br />
                 <div>
                   <h5 style={{ color: "darkorange" }}>Number Of Orders:</h5>
                   <ul>
-                    <li>Number of Accounts: {numberOfAccounts}</li>
-                    <li>Total Litres: {totalLitres}</li>
+                    <li>Number of Accounts: {visitData.numberOfAccounts}</li>
+                    <li>Total Litres: {visitData.totalLitres}</li>
                   </ul>
                 </div>
 
                 <div>
                   <h5 style={{ color: "darkorange" }}>Number of Payments:</h5>
                   <ul>
-                    <li>Cheque: ₹ {cheque}</li>
-                    <li>UPI: ₹ {upi}</li>
-                    <li>Cash: ₹ {cash}</li>
+                    <li>Cheque: ₹ {paymentData.cheque}</li>
+                    <li>UPI: ₹ {paymentData.upi}</li>
+                    <li>Cash: ₹ {paymentData.cash}</li>
+                    <li>Adjustment: ₹ {paymentData.adjustment}</li>
                   </ul>
                 </div>
                 <h5 style={{ color: "darkorange" }}>
-                  Total Amount: ₹ {totalAmounts}
+                  Total Amount: ₹ {paymentData.totalAmounts}
                 </h5>
               </div>
             </div>

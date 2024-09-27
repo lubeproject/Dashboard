@@ -98,14 +98,26 @@ export default function DsrKeyRouteOnDay() {
 
   useEffect(() => {
     const fetchDays = async () => {
-      const { data, error } = await supabase
-        .from('visiting_days')
-        .select('visitingdayid, visitingday');
-
-      if (error) console.error('Error fetching Visiting Days:', error);
-      else setDaysOptions(data.map(day => ({ value: day.visitingdayid, label: day.visitingday })));
+      try {
+        const { data, error } = await supabase
+          .from('visiting_days')
+          .select('visitingdayid, visitingday');
+  
+        if (error) {
+          console.error('Error fetching Visiting Days:', error);
+          return;
+        }
+  
+        if (data && data.length > 0) {
+          setDaysOptions(data.map(day => ({ value: day.visitingdayid, label: day.visitingday })));
+        } else {
+          console.warn('No visiting days found');
+        }
+      } catch (err) {
+        console.error('Error fetching Visiting Days:', err);
+      }
     };
-
+  
     fetchDays();
   }, []);
 
@@ -137,7 +149,7 @@ export default function DsrKeyRouteOnDay() {
   };
 
   const handleDetailsClick = (userId) => {
-    navigate(`/portal/retailer-summary/${userId}`);
+    navigate(`/portal/retailer-summary`,{state:{userId}});
   };
 
   return (

@@ -57,7 +57,7 @@ export default function AllDsrDayKeyRoute() {
 
   const handleDetailsClick = (userId) => {
     // Navigate to another page with the invoice details
-    navigate(`/portal/retailer-summary/${userId}`);
+    navigate(`/portal/retailer-summary`,{state:{userId}});
   };
 
   const handleFilter = async () => {

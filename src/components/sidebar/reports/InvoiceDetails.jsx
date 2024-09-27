@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { Container, Row, Col, Button, Card, Table } from 'react-bootstrap';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate ,useLocation} from 'react-router-dom';
 
 export default function InvoiceDetails() {
-  const { invoiceId } = useParams(); // Get invoice ID from URL
+  const location = useLocation();
+  const { invoiceId } = location.state || {};
   const [invoice, setInvoice] = useState(null);
   const [invoiceItems, setInvoiceItems] = useState([]);
   const [userAddress, setUserAddress] = useState(''); // State for user's address

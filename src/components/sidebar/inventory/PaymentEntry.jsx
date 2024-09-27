@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Button, Form, Container, Row, Col, Modal } from 'react-bootstrap';
 import Select from 'react-select';
 import Cookies from 'js-cookie';
 import { supabase } from '../../../supabaseClient';
+import { UserContext } from '../../context/UserContext';
 
 export default function PaymentEntry() {
   const getTodayDate = () => {
@@ -33,6 +34,7 @@ export default function PaymentEntry() {
   const [paymentApprovals, setPaymentApprovals] = useState([]);
   const [isOTPSent, setIsOTPSent] = useState(false);
   const [error, setError] = useState(null);
+  const {user1} = useContext(UserContext);
   
 
   useEffect(() => {
@@ -426,6 +428,8 @@ const handleValidateOtp = () => {
         chequedate: chequeDate || null,
         createdtime: new Date().toISOString(),
         updatedtime: new Date().toISOString(),
+        updatedby: user1?.userid,
+        createdby: user1?.userid,
       };
   
       if (paymentMode.label === 'Adjustment') {
@@ -505,6 +509,7 @@ const handleValidateOtp = () => {
           chequedate: chequeDate || new Date().toISOString().split('T')[0],
           createdtime: new Date().toISOString(),
           updatedtime: new Date().toISOString(),
+          createdby: user1?.userid
         });
   
       if (insertPaymentApproveError) throw new Error(`Error inserting payment approve data: ${insertPaymentApproveError.message}`);

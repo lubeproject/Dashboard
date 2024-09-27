@@ -514,7 +514,6 @@ export default function AddRetailerStock() {
       .from('user_request')
       .select('reqid, createdtime')
       .eq('userid', userId);
-
     if (error) {
       console.error('Error fetching requests:', error);
     } else {
@@ -717,8 +716,25 @@ export default function AddRetailerStock() {
           console.error('Error inserting invoice item:', insertItemError);
           return;
         }
+
       }
 
+      // const punchId = Cookies.get("punchingid");
+      // const liters = insertedInvoice[0].totalliters;
+      // if (punchId) {
+      //   const { error: updateRepresentVisitingError } = await supabase
+      //     .from('represent_visiting1')
+      //     .update({
+      //       order: liters,
+      //       orderref: invid,
+      //       lastupdatetime : new Date().toISOString
+      //     })
+      //     .eq('punchingid', punchId);
+  
+      //   if (updateRepresentVisitingError) {
+      //     throw new Error(`Error updating represent_visiting1 table: ${updateRepresentVisitingError.message}`);
+      //   }
+      // }
       // Reset form and items after successful submission
       setSelectedUser(null);
       setSelectedRequest(null);
@@ -728,7 +744,9 @@ export default function AddRetailerStock() {
       setRequestItems([]);
       setTempRequestItems([]);
 
+
       console.log('Stock added and invoice created successfully!');
+      alert('Invoice Created Successfully!');
     } catch (error) {
       console.error('Error during submission:', error);
     }

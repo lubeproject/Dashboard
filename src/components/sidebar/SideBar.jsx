@@ -309,7 +309,7 @@ export default function SideBar() {
               </Link>
             </li>
 
-            <li>
+            {/* <li>
               <Link
                 to="/portal/billingtomechanic"
                 style={{ textDecoration: "none" }}
@@ -318,7 +318,7 @@ export default function SideBar() {
            <i class="bi bi-receipt" style={{fontSize:"20px"}}></i>
                 <span>Billing to Mechanic</span>
               </Link>
-            </li>
+            </li> */}
 
 
             <li>
@@ -670,12 +670,12 @@ export default function SideBar() {
             </li>
 
 </> : user.role === "retailer" ? <>
-<li>
+{/* <li>
               <Link to="mechaniclist" style={{ textDecoration: "none" }} onClick={handleToggleSideBar}>
               <i class="bi bi-tools" style={{fontSize:"20px"}}></i>
                 <span>Mechanic List</span>
               </Link>
-            </li>
+            </li> */}
 
             <li>
               <Link

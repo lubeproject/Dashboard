@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import "./ItemRequest.css";
 import Select from 'react-select';
+import Cookies from "js-cookie";
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { Button, Modal, Form, Container, Row, Col } from 'react-bootstrap';  
 import { supabase } from '../../../supabaseClient'; // Import your Supabase client
@@ -119,9 +120,9 @@ const handleSubmit = async (e) => {
   }
 
   // Calculate total quantity, total amount, and total liters
-  const totalQty = selectedItems.reduce((acc, item) => acc + (parseInt(item.quantity, 10) * item.noofitemsinbox), 0);
-  const totalAmount = selectedItems.reduce((acc, item) => acc + (parseInt(item.quantity, 10) * item.rrprice), 0);
-  const totalLiters = selectedItems.reduce((acc, item) => acc + (parseInt(item.quantity, 10) * item.itemweight * item.noofitemsinbox), 0);
+  const totalQty = selectedItems.reduce((acc, item) => acc + item.quantity * item.noofitemsinbox, 0);
+  const totalAmount = selectedItems.reduce((acc, item) => acc + item.quantity * item.rrprice, 0);
+  const totalLiters = selectedItems.reduce((acc, item) => acc + item.quantity * item.itemweight * item.noofitemsinbox, 0);
 
   // Prepare request data to insert into User_request table
   const requestData = {
@@ -179,7 +180,7 @@ const handleSubmit = async (e) => {
     }
     
       const requestItemData = {
-        reqid: reqId, // Use the same request ID from requestData
+        reqid: reqId,
         userid: selectedUser.value,
         username: selectedUser.name,
         itemid: selectedItem.id,
@@ -213,6 +214,22 @@ const handleSubmit = async (e) => {
       }
 
       console.log('Request item details saved:', requestItemResponse);
+    }
+
+    const punchId = Cookies.get("punchingid");
+    if (punchId) {
+      const { error: updateRepresentVisitingError } = await supabase
+        .from('represent_visiting1')
+        .update({
+          orders: totalLiters,
+          orderref: reqId,
+          updatedby: user?.userid,
+        })
+        .eq('punchingid', punchId); // Match the visiting record by user
+
+      if (updateRepresentVisitingError) {
+        throw new Error(`Error updating represent_visiting1 table: ${updateRepresentVisitingError.message}`);
+      }
     }
 
     alert('Item Request details saved successfully!');

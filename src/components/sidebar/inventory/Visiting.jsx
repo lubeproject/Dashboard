@@ -422,7 +422,7 @@ const Visiting = () => {
           .from("represent_visiting1")
           .insert([
             {
-              repid: repId||0,
+              repid: repId||1,
               repname: repName||'SV Agency',
               visitorid: userid,
               visitor: name,

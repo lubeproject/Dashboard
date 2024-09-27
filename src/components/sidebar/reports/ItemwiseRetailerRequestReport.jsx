@@ -311,94 +311,70 @@ export default function ItemwiseRetailerRequestReport() {
 
   const handleFilter = async () => {
     try {
-      // Fetch all records for the selected item
-      const { data: allRequests, error: requestError } = await supabase
-        .from('user_request_items')
-        .select('*')
-        .eq('itemid', selectedItem.value);
+      // Step 1: Fetch from user_request table where role is mechanic
+      const { data: userRequests, error: userRequestError } = await supabase
+        .from('user_request')
+        .select('userid, username, usershopname, reqid, role')
+        .eq('role', 'retailer');
 
-      if (requestError) {
-        console.error('Error fetching requests:', requestError);
+      if (userRequestError) {
+        console.error('Error fetching user requests:', userRequestError);
         return;
       }
 
-      console.log("All Requests for Item:", allRequests);
+      // Get reqids from the fetched user requests
+      const reqIds = userRequests.map(request => request.reqid);
 
-      // Extract reqid values
-      const reqIdArray = allRequests.map(request => request.reqid);
-
-      if (reqIdArray.length === 0) {
-        console.warn('No requests found for the selected item.');
+      if (reqIds.length === 0) {
+        console.warn('No requests found for mechanics.');
         setFilteredData([]);
         return;
       }
 
-      // Fetch corresponding user_request data to get user details
-      const { data: allUserRequests, error: userError } = await supabase
-        .from('user_request')
-        .select('userid, username,usershopname, reqid,role')
-        .in('reqid', reqIdArray);
+      // Step 2: Fetch from user_request_items table based on the selected item and reqids
+      const { data: requestItems, error: requestItemsError } = await supabase
+        .from('user_request_items')
+        .select('*')
+        .eq('itemid', selectedItem.value)
+        .in('reqid', reqIds);
 
-      if (userError) {
-        console.error('Error fetching user data:', userError);
+      if (requestItemsError) {
+        console.error('Error fetching request items:', requestItemsError);
         return;
       }
 
-      // Merge user data with items data
-      const mergedData = allRequests.map(item => {
-        const user = allUserRequests.find(user => user.reqid === item.reqid);
+      // Merge requestItems with userRequests
+      const mergedData = requestItems.map(item => {
+        const user = userRequests.find(request => request.reqid === item.reqid);
         return { ...item, username: user ? user.username : 'Unknown', usershopname: user ? user.usershopname : 'Unknown' };
       });
 
-      console.log("Merged Data with User Info:", mergedData);
-
-      // Apply Order Status Filter
       let filteredItems = mergedData;
-
-      if (selectedOrder && selectedOrder.label.trim() !== "All") {
-        filteredItems = filteredItems.filter(item => {
-          const status = item.orderstatus || ""; // Default to empty string if undefined
-          const selectedStatus = selectedOrder.label || ""; // Default to empty string if undefined
-          console.log("Comparing item status:", status, "with", selectedStatus);
-          return status.trim().toLowerCase() === selectedStatus.trim().toLowerCase();
-        });
-        console.log("Filtered Items by Order Status:", filteredItems);
-      } else {
-        console.log("All Item Statuses Included.");
-      }
-
-      // Apply Date Range Filter
       let dateFilteredItems = filteredItems;
 
+      // Filter by start and end date
       if (startDate && endDate) {
         if (new Date(startDate) > new Date(endDate)) {
           alert("Pick From Date cannot be later than Pick To Date.");
           return;
         }
         dateFilteredItems = filteredItems.filter(item => {
-          const itemDate = new Date(item.updatedtime); // Convert the date string to a Date object
+          const itemDate = new Date(item.updatedtime);
           return itemDate >= new Date(startDate) && itemDate <= new Date(endDate);
         });
-        console.log("Date Range Filter Applied:", startDate, "to", endDate);
       } else if (startDate) {
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.updatedtime);
           return itemDate >= new Date(startDate);
         });
-        console.log("Start Date Filter Applied:", startDate);
       } else if (endDate) {
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.updatedtime);
           return itemDate <= new Date(endDate);
         });
-        console.log("End Date Filter Applied:", endDate);
       }
 
-      // Set the filtered items data to state
       setFilteredData(dateFilteredItems || []);
-      setFilterApplied(true);
-      console.log("Final Filtered Items Data:", dateFilteredItems);
-
     } catch (error) {
       console.error('Unexpected error during filtering:', error);
     }

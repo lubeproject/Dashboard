@@ -5,15 +5,19 @@ import { FaTools } from "react-icons/fa";
 import { MdOutlineWaterDrop } from "react-icons/md";
 import { IoDiamondOutline } from "react-icons/io5";
 import { PiCurrencyInrBold } from "react-icons/pi";
+import { useLocation } from 'react-router-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../../supabaseClient';
+import { startOfWeek, subWeeks, isAfter, format } from 'date-fns';
 
 const dummyLoyalMechanics = [
   { id: 1, Mechanic: 'John Doe', Litres: '100', Points: '50' },
 ];
 
 export default function RetailerSummary() {
-  const { userId } = useParams();
+  // const { userId } = useParams();
+  const location = useLocation();
+  const { userId } = location.state || {};
   const [user, setUser] = useState(null);
   const [weeklyData, setWeeklyData] = useState([]);
   const [recoveryData, setRecoveryData] = useState([]);
@@ -218,30 +222,116 @@ export default function RetailerSummary() {
     };
   
 
+    // const fetchWeeklyData = async () => {
+    //   try {
+    //     const { data: visitData, error } = await supabase
+    //       .from('represent_visiting1')
+    //       .select('*') // Fetch relevant fields
+    //       .eq('visitorid', userId)
+    //       .order('created', { ascending: false })
+    //       .limit(5);
+
+    //     if (error) throw error;
+
+    //     // Process data for display
+    //     const formattedData = visitData.map((visit, index) => {
+    //       const week = `Week ${index + 1}`; // Calculate week based on visit order
+    //       const order = visit.orders; // Assuming 'liters' represents order quantity
+    //       const collection = visit.amount; // Assuming there's a collection field
+
+    //       return {
+    //         week,
+    //         order,
+    //         collection,
+    //       };
+    //     });
+
+    //     setWeeklyData(formattedData); // Set weekly data in state
+    //   } catch (error) {
+    //     console.error('Error fetching weekly data:', error);
+    //   }
+    // };
     const fetchWeeklyData = async () => {
       try {
-        const { data: visitData, error } = await supabase
+        const currentDate = new Date();
+        const fiveWeeksAgo = subWeeks(currentDate, 5); // Calculate date for 5 weeks ago
+    
+        // Fetch user requests (orders) from user_request
+        const { data: requestData, error: requestError } = await supabase
+          .from('user_request')
+          .select('createdtime, totalqty') // Fetch total quantity and created time
+          .eq('userid', userId)
+          .order('createdtime', { ascending: false });
+    
+        if (requestError) throw requestError;
+    
+        // Fetch collection data (amount) from represent_visiting1
+        const { data: visitingData, error: visitingError } = await supabase
           .from('represent_visiting1')
-          .select('*') // Fetch relevant fields
+          .select('checkintime, amount,visitingdate') // Fetch check-in time and amount
           .eq('visitorid', userId)
-          .order('created', { ascending: false })
-          .limit(5);
-
-        if (error) throw error;
-
-        // Process data for display
-        const formattedData = visitData.map((visit, index) => {
-          const week = `Week ${index + 1}`; // Calculate week based on visit order
-          const order = visit.orders; // Assuming 'liters' represents order quantity
-          const collection = visit.amount; // Assuming there's a collection field
-
-          return {
-            week,
-            order,
-            collection,
-          };
+          .order('created', { ascending: false });
+    
+        if (visitingError) throw visitingError;
+    
+        // Combine data from both tables by the week starting from Sunday
+        const weekMap = new Map(); // To store data grouped by week
+    
+        // Process request data (orders)
+        requestData.forEach((request) => {
+          const requestDate = new Date(request.createdtime);
+          const weekStart = startOfWeek(requestDate, { weekStartsOn: 0 }); // Week starts on Sunday
+    
+          if (isAfter(weekStart, fiveWeeksAgo)) {
+            const weekKey = format(weekStart, 'yyyy-MM-dd'); // Use week start date as the key
+    
+            if (!weekMap.has(weekKey)) {
+              weekMap.set(weekKey, {
+                weekStart: weekStart,
+                totalOrders: 0,
+                totalCollection: 0,
+              });
+            }
+    
+            // Update total orders for the week
+            const weekData = weekMap.get(weekKey);
+            weekData.totalOrders += request.totalqty;
+          }
         });
-
+    
+        // Process visiting data (collection)
+        visitingData.forEach((visit) => {
+          const visitDate = new Date(visit.visitingdate);
+          const weekStart = startOfWeek(visitDate, { weekStartsOn: 0 });
+    
+          if (isAfter(weekStart, fiveWeeksAgo)) {
+            const weekKey = format(weekStart, 'yyyy-MM-dd');
+    
+            if (!weekMap.has(weekKey)) {
+              weekMap.set(weekKey, {
+                weekStart: weekStart,
+                totalOrders: 0,
+                totalCollection: 0,
+              });
+            }
+    
+            // Update total collection for the week
+            const weekData = weekMap.get(weekKey);
+            weekData.totalCollection += visit.amount;
+          }
+        });
+    
+        // Convert map to an array, sort by the week, and limit to 5 weeks
+        const formattedData = Array.from(weekMap.values())
+          .sort((a, b) => b.weekStart - a.weekStart) // Sort by the most recent week
+          .slice(0, 5) // Limit to 5 weeks
+          .map((weekData, index) => ({
+            week: `Week ${index + 1}`,
+            order: weekData.totalOrders,
+            collection: weekData.totalCollection,
+            weekStart: format(weekData.weekStart, 'MMMM do, yyyy'), // Optional: Format the date
+          }));
+    
         setWeeklyData(formattedData); // Set weekly data in state
       } catch (error) {
         console.error('Error fetching weekly data:', error);
@@ -386,7 +476,7 @@ export default function RetailerSummary() {
               </thead>
               <tbody>
                 {weeklyData.map((data, index) => (
-                  <tr key={data.punchingid}>
+                  <tr key={data.weekStart || index}>
                     <td>{data.week}</td>
                     <td>{data.order}</td>
                     <td>₹{data.collection}</td>

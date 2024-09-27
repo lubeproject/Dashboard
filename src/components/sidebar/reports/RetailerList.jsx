@@ -1,32 +1,64 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState, useContext} from "react";
 import { Container, Table, Button, Row, Col } from "react-bootstrap";
 import { FaCheck, FaTimes, FaEdit } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../../supabaseClient"; // Ensure this path is correct
+import { UserContext } from "../../context/UserContext";
+
 
 export default function RetailerList() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const { user } = useContext(UserContext);
 
   useEffect(() => {
     fetchRetailers();
   }, []);
 
+  // const fetchRetailers = async () => {
+  //   setLoading(true);
+  //   try {
+  //     const { data: retailers, error } = await supabase
+  //       .from('users')
+  //       .select('*')
+  //       .eq('active', 'Y')
+  //       .eq('role', 'retailer');
+
+  //     if (error) {
+  //       throw error;
+  //     }
+
+  //     // Sort retailers by userid
+  //     const sortedRetailers = retailers.sort((a, b) => a.userid - b.userid);
+  //     setData(sortedRetailers);
+  //   } catch (error) {
+  //     setError(error.message);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const fetchRetailers = async () => {
     setLoading(true);
+  
     try {
-      const { data: retailers, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('active', 'Y')
-        .eq('role', 'retailer');
-
+      let query = supabase.from('users').select('*').eq('active', 'Y');
+  
+      // Assuming 'currentUser' contains the logged-in user's info
+      if (user?.role === 'representative') {
+        query = query.eq('representativeid', user?.userid).eq('role', 'retailer');
+      } else if (user?.role === 'admin') {
+        query = query.eq('role', 'retailer');
+      }
+  
+      const { data: retailers, error } = await query;
+  
       if (error) {
         throw error;
       }
-
+  
       // Sort retailers by userid
       const sortedRetailers = retailers.sort((a, b) => a.userid - b.userid);
       setData(sortedRetailers);
@@ -36,6 +68,7 @@ export default function RetailerList() {
       setLoading(false);
     }
   };
+  
 
   const handleEditClick = (retailer) => {
     navigate("/portal/updateRetailerDetails", { state: { retailer } });
@@ -50,7 +83,8 @@ export default function RetailerList() {
         .update({
           active: 'N',
           lastupdatedtime: new Date().toISOString(),
-          updatedtime: new Date().toISOString()
+          updatedtime: new Date().toISOString(),
+          updatedby: user?.userid
         })
         .eq('userid', userid);
 

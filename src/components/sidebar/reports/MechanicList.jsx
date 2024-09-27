@@ -165,17 +165,19 @@
 // }
 
 // export default MechanicList;
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext} from "react";
 import { supabase } from '../../../supabaseClient';
 import { Container, Table, Button, Row, Col } from 'react-bootstrap';
 import { FaCheck, FaTimes, FaEdit } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import './MechanicList.css';
+import { UserContext } from "../../context/UserContext";
 
 export default function MechanicList(){
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { user } = useContext(UserContext);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -185,17 +187,22 @@ export default function MechanicList(){
   const fetchMechanics = async () => {
     setLoading(true);
     try {
-      const { data: mechanics, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('active', 'Y')
-      .eq('role', 'mechanic')
-      .order('userid', { ascending: true });
+      let query = supabase.from('users').select('*').eq('active', 'Y');
+  
+      // Assuming 'currentUser' contains the logged-in user's info
+      if (user?.role === 'representative') {
+        query = query.eq('representativeid', user?.userid).eq('role', 'mechanic');
+      } else if (user?.role === 'admin') {
+        query = query.eq('role', 'mechanic');
+      }
+
+      const { data: mechanics, error } = await query;
 
       if (error) {
         throw error;
       }
-      setData(mechanics);
+      const sortedmechanics = mechanics.sort((a, b) => a.userid - b.userid);
+      setData(sortedmechanics);
     } catch (error) {
       setError(error.message);
     } finally {
@@ -214,7 +221,8 @@ export default function MechanicList(){
       .update({
         active: 'N',
         lastupdatedtime: new Date().toISOString(),
-        updatedtime: new Date().toISOString()
+        updatedtime: new Date().toISOString(),
+        updatedby: user?.userid
       })
       .eq('userid', id);
 
