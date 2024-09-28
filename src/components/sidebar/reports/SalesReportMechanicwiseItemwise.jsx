@@ -180,19 +180,19 @@ export default function SalesReportMechanicwiseItemwise() {
   const [currentUser, setCurrentUser] = useState(null); // Track logged-in user details
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Fetch logged-in user details
-    const fetchUser = async () => {
-      const { data: user, error } = await supabase.auth.getUser(); // Fetch user details from Supabase Auth
-      if (error) {
-        console.error("Error fetching user data:", error);
-      } else {
-        setCurrentUser(user);
-      }
-    };
+  // useEffect(() => {
+  //   // Fetch logged-in user details
+  //   const fetchUser = async () => {
+  //     const { data: user, error } = await supabase.auth.getUser(); // Fetch user details from Supabase Auth
+  //     if (error) {
+  //       console.error("Error fetching user data:", error);
+  //     } else {
+  //       setCurrentUser(user);
+  //     }
+  //   };
 
-    fetchUser();
-  }, []);
+  //   fetchUser();
+  // }, []);
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -303,9 +303,9 @@ export default function SalesReportMechanicwiseItemwise() {
     }),
   };
 
-  if (!currentUser) {
-    return <div>Loading...</div>;
-  }
+  // if (!currentUser) {
+  //   return <div>Loading...</div>;
+  // }
 
   return (
     <main id='main' className='main'>
