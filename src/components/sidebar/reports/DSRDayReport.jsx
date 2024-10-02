@@ -1,96 +1,150 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState, useContext} from "react";
 import { supabase } from '../../../supabaseClient';
 import Select from 'react-select';
 import DatePicker from 'react-datepicker';
 import { Container, Row, Col, Form, Button } from 'react-bootstrap';
 import "./DSRDayReport.css";
-
+import {UserContext} from '../../context/UserContext';
+import { queryByAltText } from "@testing-library/react";
+ 
 export default function DSRDayReport() {
-
   const [dsrOptions, setDsrOptions] = useState([]);
   const [selectedDsr, setSelectedDsr] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
-  const [visitCount, setVisitCount] = useState(0);
-  const [upiAmount, setUpiAmount] = useState(0);
-  const [cashAmount, setCashAmount] = useState(0);
-  const [chequeAmount, setChequeAmount] = useState(0);
-  const [noOfAccounts, setNoOfAccounts] = useState(0);
+  const [paymentData, setPaymentData] = useState({
+    cheque: 0,
+    upi: 0,
+    cash: 0,
+    adjustment:0,
+    totalAmounts: 0,
+});
+const { user } = useContext(UserContext);
+  const [visitData, setVisitData] = useState({ numberOfVisits: 0, numberOfAccounts: 0, totalLitres: 0 });
 
   useEffect(() => {
-    // Fetch mechanics from the users table
     const fetchDsr = async () => {
       const { data, error } = await supabase
         .from('users')
         .select('userid, shopname, name, role')
         .eq('role', 'representative');
 
-      if (error) console.error('Error fetching Retailers:', error);
-      else setDsrOptions(data.map(retailer => ({ value: retailer.userid, label: retailer.shopname, name: retailer.name })));
+      if (error) console.error('Error fetching Representatives:', error);
+      else setDsrOptions(data.map(rep => ({ value: rep.userid, label: rep.shopname, name: rep.name, role: rep.role })));
     };
 
-    fetchDsr();
-  }, []);
+    if (user?.role === 'representative') {
+      setDsrOptions([
+        {
+          value: user.userid,
+          label: user.shopname,
+          name: user.name,
+          role: user.role,
+        },
+      ]);
+    } else {
+      fetchDsr();
+    }
+  }, [user]);
+
+  const fetchVisitData = async () => {
+    const visitingDate = new Date(selectedDate).toISOString().split('T')[0];
+    try {
+        // Fetch total visits for the current representative on the current date
+        const { data: visitsData, error: visitsError } = await supabase
+            .from('represent_visiting1')
+            .select('*') // Get all data to filter unique shop names later
+            .eq('createdby', selectedDsr.value) // Filter by current representative ID
+            .eq('visitingdate', visitingDate); // Filter by today's date using visitingdate
+
+        if (visitsError) throw visitsError;
+
+        const numberOfVisits = visitsData.length; // Total number of visits
+
+        // Use a Set to collect unique shop names
+        const uniqueShopNames = new Set(visitsData.map(visit => visit.shopname));
+
+        const numberOfAccounts = uniqueShopNames.size; // Count of unique shop names
+
+        const totalLitres = visitsData.reduce((sum, visit) => {
+          return sum + (visit.orders || 0); // Ensure to handle cases where orders might be undefined
+      }, 0);
+
+      // Update state with fetched data
+      setVisitData({ numberOfVisits, numberOfAccounts, totalLitres });
+
+
+    } catch (error) {
+        console.error('Error fetching visit data:', error);
+    }
+};
+    const fetchPaymentData = async () => {
+      const today = new Date(selectedDate);
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); // Midnight of today
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59); // Just before midnight of today
+  
+      try {
+          const { data: paymentsData, error } = await supabase
+              .from('payment_reference')
+              .select('amount, paymode') 
+              .eq('createdby', selectedDsr.value)
+              .gte('createdtime', startOfDay.toISOString()) // Start of today's date
+              .lte('createdtime', endOfDay.toISOString())
+              .eq('paymentstatus','Approved'); // End of today's date
+  
+          if (error) throw error;
+  
+  
+        // Initialize amounts
+        let chequeTotal = 0;
+        let upiTotal = 0;
+        let cashTotal = 0;
+        let adjustTotal = 0;
+        let totalAmounts = 0;
+  
+        // Iterate over payments to calculate totals
+        paymentsData.forEach(payment => {
+            totalAmounts += payment.amount; // Sum up total amounts for the day
+  
+            switch (payment.paymode) {
+                case 'Cheque':
+                    chequeTotal += payment.amount;
+                    break;
+                case 'UPI':
+                    upiTotal += payment.amount;
+                    break;
+                case 'Cash':
+                    cashTotal += payment.amount;
+                    break;
+                case 'Adjustment':
+                    adjustTotal+= payment.amount;
+                default:
+                    break;
+            }
+        });
+  
+        // Update state or handle the totals as needed
+        setPaymentData({
+            cheque: chequeTotal,
+            upi: upiTotal,
+            cash: cashTotal,
+            adjustment: adjustTotal,
+            totalAmounts: totalAmounts,
+        });
+  
+    } catch (error) {
+        console.error('Error fetching payment data:', error);
+    }
+  };
 
   const handleFilter = async () => {
-    try {
-      // Convert your date to ISO format
-      const formattedDate = new Date(selectedDate).toISOString().split('T')[0]; // This will give you the date part only in YYYY-MM-DD format
+    if (!selectedDsr || !selectedDate) {
+      console.error('Please select both a representative and a date.');
+      return;
+    }
 
-      // console.log(selectedDate);
-      // console.log(formattedDate);
-      // // Perform the query using the formatted date
-      // const { data: visitCountData, error: visitCountError } = await supabase
-      //   .from('represent_visiting')
-      //   .select('*')
-      //   .eq('representativename', selectedDsr.name)
-      //   .eq('visitingdate', formattedDate); // Use the formatted date
-      //   console.log(visitCountData);
-  
-      // if (visitCountError) {
-      //   console.error('Error fetching visit count:', visitCountError);
-      //   return;
-      // }
-  
-      // // Default visitCount to 0 if undefined
-      // const visitCount = visitCountData?.count || 0;
-  
-      // Fetch payment data for UPI, Cash, and Cheque amounts
-      const { data: paymentData, error: paymentError } = await supabase
-        .from('payment_reference2')
-        .select('retailerid, amount, paymode')
-        .eq('repname', selectedDsr.name)
-        .eq('updatedtime', formattedDate);
-  
-      if (paymentError) {
-        console.error('Error fetching payment data:', paymentError);
-        return;
-      }
-  
-      // Calculate the sums for UPI, Cash, and Cheque
-      let upiAmount = 0;
-      let cashAmount = 0;
-      let chequeAmount = 0;
-  
-      paymentData.forEach((payment) => {
-        if (payment.paymode === 'UPI') {
-          upiAmount += parseFloat(payment.amount);
-        } else if (payment.paymode === 'Cash') {
-          cashAmount += parseFloat(payment.amount);
-        } else if (payment.paymode === 'Cheque') {
-          chequeAmount += parseFloat(payment.amount);
-        }
-      });
-  
-      // Calculate unique retailer count
-      const uniqueRetailerIds = new Set(paymentData.map((item) => item.retailerid));
-      const noOfAccounts = uniqueRetailerIds.size;
-  
-      // Update state for visit count, payment amounts, and unique retailer count
-      setVisitCount(visitCount);
-      setUpiAmount(upiAmount);
-      setCashAmount(cashAmount);
-      setChequeAmount(chequeAmount);
-      setNoOfAccounts(noOfAccounts);
+    try {
+      await fetchVisitData();
+      await fetchPaymentData();
     } catch (error) {
       console.error('Unexpected error during filtering:', error);
     }
@@ -154,18 +208,21 @@ export default function DSRDayReport() {
           <Row>
             <Col>
               <ul className="report-list">
-                <li>No. of Visits: {visitCount}</li>
+                <li>No. of Visits: {visitData.numberOfVisits}</li>
                 <br/>
                 <li className="highlight">No. of Orders</li>
-                <li>No. of Accounts: {noOfAccounts}</li>
-                <li>Total Litres: 0</li>
+                <li>No. of Accounts: {visitData.numberOfAccounts}</li>
+                <li>Total Litres: {visitData.totalLitres}</li>
                 <br/>
                 <li className="highlight">No. of Payments</li>
-                <li>Cheque: ₹ {chequeAmount}</li>
-                <li>UPI: ₹ {upiAmount}</li>
-                <li>Cash: ₹ {cashAmount}</li>
+                {['Cheque', 'UPI', 'Cash', 'Adjustment'].map(method => (
+                        <div key={method} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span>{method}:</span>
+                          <span>₹ {paymentData[method.toLowerCase()]}</span>
+                        </div>
+                      ))}
                 <br/>
-                <li className="highlight">Total Amount: ₹ {upiAmount+chequeAmount+cashAmount}</li>
+                <li className="highlight">Total Amount: ₹ {paymentData.totalAmounts}</li>
               </ul>
             </Col>
           </Row>

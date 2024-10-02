@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { Container, Row, Col, Button, Form, Table } from 'react-bootstrap';
 import Select from 'react-select';
@@ -6,6 +6,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import norecordfound from "../../../images/norecordfound.gif";
 import "./DSRDaywiseCollectionReport.css";
+import { UserContext } from '../../context/UserContext';
 
 export default function DSRDaywiseCollectionReport() {
   const [dsrOptions, setDsrOptions] = useState([]);
@@ -15,8 +16,10 @@ export default function DSRDaywiseCollectionReport() {
   const [overallTotalsCash, setOverallTotalsCash] = useState(null);
   const [overallTotalsCheque, setOverallTotalsCheque] = useState(null);
   const [overallTotalsUPI, setOverallTotalsUPI] = useState(null);
+  const [overallTotalsAdjust, setOverallTotalsAdjust] = useState(null);
   const [filteredData, setFilteredData] = useState([]); 
   const [filterApplied, setFilterApplied] = useState(false);
+  const {user} = useContext(UserContext);
 
   useEffect(() => {
     // Fetch mechanics from the users table
@@ -26,36 +29,53 @@ export default function DSRDaywiseCollectionReport() {
         .select('userid, shopname, name, role')
         .eq('role', 'representative');
 
-      if (error) console.error('Error fetching Retailers:', error);
-      else setDsrOptions(data.map(retailer => ({ value: retailer.userid, label: retailer.shopname, name: retailer.name })));
+      if (error) console.error('Error fetching Representatives:', error);
+      else setDsrOptions(data.map(rep => ({ value: rep.userid, label: rep.shopname, name: rep.name })));
     };
 
-    fetchDsr();
-  }, []);
+    if (user?.role === 'representative') {
+      setDsrOptions([
+        {
+          value: user.userid,
+          label: user.shopname,
+          name: user.name,
+          role: user.role,
+        },
+      ]);
+    } else {
+      fetchDsr();
+    }
+  }, [user]);
 
   const handleFilter = async () => {
     try {
       // Step 1: Filter invoices by date range
       let represent_visitingQuery = supabase
-        .from('payment_reference2')
+        .from('payment_reference')
         .select('*')
-        .eq('repid', selectedDsr.value);
+        .eq('createdby', selectedDsr.value)
+        .eq('paymentstatus','Approved')
+        .order('createdtime',{ascending:true});
   
       if (startDate && endDate) {
         if (new Date(startDate) > new Date(endDate)) {
           alert("Pick From Date cannot be later than Pick To Date.");
           return;
         }
+        const adjustedEndDate = new Date(endDate);
+        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
         represent_visitingQuery = represent_visitingQuery
-          .gte('updatedtime', new Date(startDate).toISOString())
-          .lte('updatedtime', new Date(endDate).toISOString());
-        console.log("Date Range Filter Applied:", startDate, "to", endDate);
+          .gte('createdtime', new Date(startDate).toISOString())
+          .lt('createdtime', adjustedEndDate.toISOString());
+        console.log("Date Range Filter Applied:", startDate, "to", adjustedEndDate);
       } else if (startDate) {
-        represent_visitingQuery = represent_visitingQuery.gte('updatedtime', new Date(startDate).toISOString());
+        represent_visitingQuery = represent_visitingQuery.gte('createdtime', new Date(startDate).toISOString());
         console.log("Start Date Filter Applied:", startDate);
       } else if (endDate) {
-        represent_visitingQuery = represent_visitingQuery.lte('updatedtime', new Date(endDate).toISOString());
-        console.log("End Date Filter Applied:", endDate);
+        const adjustedEndDate = new Date(endDate);
+        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+        represent_visitingQuery = represent_visitingQuery.lt('createdtime', adjustedEndDate.toISOString());
+        console.log("End Date Filter Applied:", adjustedEndDate);
       }
   
       const { data: filteredRepresentVisiting, error: represent_visitingError } = await represent_visitingQuery;
@@ -74,14 +94,14 @@ export default function DSRDaywiseCollectionReport() {
   
       // Step 2: Calculate totals by payment mode and date
       const totalsByDate = {};
-      const overallTotals = { Cash: 0, Cheque: 0, UPI: 0 };
+      const overallTotals = { Cash: 0, Cheque: 0, UPI: 0 ,Adjust:0 };
   
       filteredRepresentVisiting.forEach((record) => {
         const date = new Date(record.updatedtime).toISOString().split('T')[0]; // Get date in 'YYYY-MM-DD' format
         const { paymode, amount } = record;
   
         if (!totalsByDate[date]) {
-          totalsByDate[date] = { Cash: 0, Cheque: 0, UPI: 0 };
+          totalsByDate[date] = { Cash: 0, Cheque: 0, UPI: 0,Adjust:0};
         }
   
         if (paymode === 'Cash') {
@@ -93,6 +113,9 @@ export default function DSRDaywiseCollectionReport() {
         } else if (paymode === 'UPI') {
           totalsByDate[date].UPI += amount;
           overallTotals.UPI += amount;
+        } else if (paymode === 'Adjustment') {
+          totalsByDate[date].Adjust += amount;
+          overallTotals.Adjust += amount;
         }
       });
   
@@ -101,6 +124,7 @@ export default function DSRDaywiseCollectionReport() {
       setOverallTotalsCash(overallTotals.Cash);
       setOverallTotalsCheque(overallTotals.Cheque);
       setOverallTotalsUPI(overallTotals.UPI);
+      setOverallTotalsAdjust(overallTotals.Adjust);
       setFilterApplied(true);
       console.log("Final Filtered Totals by Date:", totalsByDate);
       console.log("Overall Totals:", overallTotals);
@@ -146,7 +170,7 @@ export default function DSRDaywiseCollectionReport() {
           </Col>
         </Row>
         <Row className="mb-4">
-          <Form.Group controlId="formRetailer">
+          <Form.Group controlId="formRepresentative">
             <Select
                 value={selectedDsr}
                 onChange={setSelectedDsr}
@@ -200,17 +224,31 @@ export default function DSRDaywiseCollectionReport() {
                     <th>Cheque</th>
                     <th>Cash</th>
                     <th>UPI</th>
+                    <th>Adjustment</th>
+                    <th>Day Total</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.keys(filteredData).map((date, index) => (
-                    <tr key={index}>
-                      <td>{formatDate(date)}</td>
-                      <td>{filteredData[date].Cheque}</td>
-                      <td>{filteredData[date].Cash}</td>
-                      <td>{filteredData[date].UPI}</td>
-                    </tr>
-                  ))}
+                  {Object.keys(filteredData).map((date, index) => {
+                    const chequeAmount = filteredData[date].Cheque || 0;
+                    const cashAmount = filteredData[date].Cash || 0;
+                    const upiAmount = filteredData[date].UPI || 0;
+                    const adjustAmount = filteredData[date].Adjust || 0;
+
+                    // Calculate the total for the day
+                    const dayTotal = chequeAmount + cashAmount + upiAmount + adjustAmount;
+
+                    return (
+                      <tr key={index}>
+                        <td>{formatDate(date)}</td>
+                        <td>{chequeAmount}</td>
+                        <td>{cashAmount}</td>
+                        <td>{upiAmount}</td>
+                        <td>{adjustAmount}</td>
+                        <td>{dayTotal}</td> {/* Display the total for the day */}
+                      </tr>
+                    );
+                  })}
                 </tbody>
                 <tfoot>
                   <tr>
@@ -218,6 +256,8 @@ export default function DSRDaywiseCollectionReport() {
                     <th>{overallTotalsCheque}</th>
                     <th>{overallTotalsCash}</th>
                     <th>{overallTotalsUPI}</th>
+                    <th>{overallTotalsAdjust}</th>
+                    <th>{overallTotalsAdjust+overallTotalsUPI+overallTotalsCash+overallTotalsCheque}</th>
                   </tr>
                 </tfoot>
               </Table>

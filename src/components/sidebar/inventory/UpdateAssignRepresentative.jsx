@@ -9,12 +9,13 @@
 //   )
 // }
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from "react-router-dom";
 import { Button, Form, Container, Row, Col, Table } from 'react-bootstrap';
 import { supabase } from '../../../supabaseClient'; // Import your Supabase client
 import Select from 'react-select';
 import { FaFilter } from 'react-icons/fa';
+import { UserContext } from '../../context/UserContext';
 
 export default function AssignRepresentative() {
   const [representatives, setRepresentatives] = useState([]);
@@ -26,7 +27,9 @@ export default function AssignRepresentative() {
   const [selectedVisitingDay, setSelectedVisitingDay] = useState(null);
   const [assignments, setAssignments] = useState([]);
   const navigate = useNavigate();
+  const { user } = useContext(UserContext);
 
+  
   useEffect(() => {
     // Fetch representatives from the database
     const fetchRepresentatives = async () => {
@@ -103,6 +106,8 @@ export default function AssignRepresentative() {
       active: 'Y',
       lastupdatetime: new Date().toISOString(),
       created: new Date().toISOString(),
+      createdby: user?.userid,
+      updatedby: user?.userid,
     };
   
     console.log('Assignment Data:', assignmentData); // Log the data being sent to Supabase

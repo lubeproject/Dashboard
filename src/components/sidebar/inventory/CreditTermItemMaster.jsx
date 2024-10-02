@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { supabase } from '../../../supabaseClient';
 import './CreditTermItemMaster.css';
 import { FaEdit, FaTrash } from 'react-icons/fa';
+import { UserContext } from '../../context/UserContext';
 
 function CreditTermItemMaster() {
   const [creditTerms, setCreditTerms] = useState([]);
@@ -10,6 +11,7 @@ function CreditTermItemMaster() {
   const [newCreditTermName, setNewCreditTermName] = useState('');
   const [newCreditTermDays, setNewCreditTermDays] = useState('');
   const [currentCreditTerm, setCurrentCreditTerm] = useState(null);
+  const {user} = useContext(UserContext);
 
   useEffect(() => {
     fetchCreditTerms();
@@ -30,8 +32,8 @@ function CreditTermItemMaster() {
       credittermname: newCreditTermName,
       limitdays: newCreditTermDays,
       activestatus: 'Y',
-      // createdby: 'Admin', // Replace with actual user
-      // updatedby: 'Admin',
+      createdby: user?.userid, // Replace with actual user
+      updatedby: user?.userid,
       created: new Date().toISOString(),
       lastupdatetime: new Date().toISOString(),
     };
@@ -52,7 +54,7 @@ function CreditTermItemMaster() {
     if (currentCreditTerm) {
       const { error } = await supabase
         .from('credititem_master')
-        .update({ credittermname: newCreditTermName, limitdays: newCreditTermDays, lastupdatetime: new Date().toISOString() })
+        .update({ credittermname: newCreditTermName, limitdays: newCreditTermDays, lastupdatetime: new Date().toISOString(), updatedby: user?.userid, })
         .eq('credittermid', currentCreditTerm.credittermid);
 
       if (error) console.error('Error editing credit term:', error.message);
@@ -68,7 +70,7 @@ function CreditTermItemMaster() {
   const handleDeleteCreditTerm = async (credittermid) => {
     const { error } = await supabase
       .from('credititem_master')
-      .update({ activestatus: 'N' })
+      .delete()
       .eq('credittermid', credittermid);
 
     if (error) console.error('Error deleting credit term:', error.message);

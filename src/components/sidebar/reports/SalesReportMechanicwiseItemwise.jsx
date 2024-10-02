@@ -162,7 +162,7 @@
 //     }),
 //   };
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { Container, Row, Col, Button, Form, Table } from 'react-bootstrap';
 import Select from 'react-select';
@@ -170,6 +170,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import norecordfound from "../../../images/norecordfound.gif";
 import "./SalesReportMechanicwiseItemwise.css";
+import { UserContext } from '../../context/UserContext';
 
 export default function SalesReportMechanicwiseItemwise() {
   const [itemsOptions, setItemsOptions] = useState([]);
@@ -177,8 +178,8 @@ export default function SalesReportMechanicwiseItemwise() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [filteredData, setFilteredData] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null); // Track logged-in user details
   const [loading, setLoading] = useState(true);
+  const {user} = useContext(UserContext);
 
   // useEffect(() => {
   //   // Fetch logged-in user details
@@ -218,10 +219,21 @@ export default function SalesReportMechanicwiseItemwise() {
   const handleFilter = async () => {
     try {
       // Step 1: Fetch from user_request table where role is mechanic
-      const { data: userRequests, error: userRequestError } = await supabase
+      let userQuery = supabase
         .from('user_request')
         .select('userid, username, usershopname, reqid, role')
-        .eq('role', 'mechanic');
+        .eq('role', 'mechanic')
+        .order('createdtime',{ascending:false});
+
+        if (user?.role === 'representative'){
+          userQuery = userQuery
+          .eq('createdby',user?.userid);
+        }else if(user?.role === 'mechanic'){
+          userQuery = userQuery
+          .eq('userid',user?.userid);
+        }
+      const { data: userRequests, error: userRequestError } = await userQuery;
+
 
       if (userRequestError) {
         console.error('Error fetching user requests:', userRequestError);

@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { supabase } from '../../../supabaseClient';
 import './CategoryWithPoints.css';
 import { FaEdit, FaTrash } from 'react-icons/fa';
+import { UserContext } from '../../context/UserContext';
 
 function CategoryWithPoints() {
   const [categories, setCategories] = useState([]);
@@ -10,6 +11,7 @@ function CategoryWithPoints() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryPoints, setNewCategoryPoints] = useState('');
   const [currentCategory, setCurrentCategory] = useState(null);
+  const {user} = useContext(UserContext);
 
   useEffect(() => {
     fetchCategories();
@@ -30,8 +32,8 @@ function CategoryWithPoints() {
       categoryname: newCategoryName,
       pointsperltr: newCategoryPoints,
       activestatus: 'Y',
-      // createdby: 'Admin', // Replace with actual user
-      // updatedby: 'Admin',
+      createdby: user?.userid,
+      updatedby: user?.userid,
       created: new Date().toISOString(),
       lastupdatetime: new Date().toISOString(),
     };
@@ -52,7 +54,7 @@ function CategoryWithPoints() {
     if (currentCategory) {
       const { error } = await supabase
         .from('category_master')
-        .update({ categoryname: newCategoryName, pointsperltr: newCategoryPoints, lastupdatetime: new Date().toISOString() })
+        .update({ categoryname: newCategoryName, pointsperltr: newCategoryPoints, lastupdatetime: new Date().toISOString(),updatedby: user?.userid, })
         .eq('categoryid', currentCategory.categoryid);
 
       if (error) console.error('Error editing category:', error.message);
@@ -68,7 +70,7 @@ function CategoryWithPoints() {
   const handleDeleteCategory = async (categoryid) => {
     const { error } = await supabase
       .from('category_master')
-      .update({ activestatus: 'N' })
+      .delete()
       .eq('categoryid', categoryid);
 
     if (error) console.error('Error deleting category:', error.message);

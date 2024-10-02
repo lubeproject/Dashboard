@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Container, Row, Col, Button, Form, Table } from 'react-bootstrap';
 import Select from 'react-select';
 import DatePicker from 'react-datepicker';
@@ -6,6 +6,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import norecordfound from "../../../images/norecordfound.gif";
 import { supabase } from '../../../supabaseClient';
 import "./RetailerRequestReport.css";
+import { UserContext } from '../../context/UserContext';
 
 export default function RetailerRequestReport() {
   const [usersOptions, setUsersOptions] = useState([]);
@@ -17,14 +18,27 @@ export default function RetailerRequestReport() {
   const [endDate, setEndDate] = useState(null);
   const [filteredData, setFilteredData] = useState([]);
   const [filterApplied, setFilterApplied] = useState(false);
+  const {user} = useContext(UserContext);
 
   useEffect(() => {
     // Fetch mechanics from the users table
     const fetchUsers = async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('userid, shopname, name, role')
-        .eq('role', 'retailer');
+      let userQuery = supabase
+      .from('users')
+      .select('userid, shopname, name, role')
+      .eq('role', 'retailer')
+      .order('userid',{ascending:true});
+
+      if(user?.role === 'representative'){
+        userQuery = userQuery
+        .eq('representativeid',user?.userid)
+        .eq('representativename',user?.name);
+      } else if(user?.role === 'retailer'){
+        userQuery = userQuery
+        .eq('userid',user?.userid);
+      }
+
+      const { data, error } = await userQuery;
 
       if (error) console.error('Error fetching Users:', error);
       else setUsersOptions(data.map(user => ({ value: user.userid, label: user.shopname, name: user.name })));
@@ -42,7 +56,7 @@ export default function RetailerRequestReport() {
 
     fetchUsers();
     fetchOrderStatus();
-  }, []);
+  }, [user]);
 
   const handleFilter = async () => {
     try {

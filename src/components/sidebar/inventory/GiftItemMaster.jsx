@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { supabase } from '../../../supabaseClient';
 import './GiftItemMaster.css';
 import { FaEdit, FaTrash } from 'react-icons/fa';
+import { UserContext } from '../../context/UserContext';
 
 function GiftItemMaster() {
   const [items, setItems] = useState([]);
@@ -11,6 +12,7 @@ function GiftItemMaster() {
   const [newQuantity, setNewQuantity] = useState('');
   const [newRedeemPoints, setNewRedeemPoints] = useState('');
   const [currentItem, setCurrentItem] = useState(null);
+  const {user} = useContext(UserContext);
 
   useEffect(() => {
     fetchItems();
@@ -32,8 +34,8 @@ function GiftItemMaster() {
       quantity: newQuantity,
       redeempoints: newRedeemPoints,
       activestatus: 'Y',
-      // createdby: 'Admin', // Replace with actual user
-      // updatedby: 'Admin',
+      createdby: user?.userid,
+      updatedby: user?.userid,
       created: new Date().toISOString(),
       lastupdatetime: new Date().toISOString(),
     };
@@ -55,7 +57,7 @@ function GiftItemMaster() {
     if (currentItem) {
       const { error } = await supabase
         .from('giftitem_master')
-        .update({ itemname: newItemName, quantity: newQuantity, redeempoints: newRedeemPoints, lastupdatetime: new Date().toISOString() })
+        .update({ itemname: newItemName, quantity: newQuantity, redeempoints: newRedeemPoints, lastupdatetime: new Date().toISOString(),updatedby: user?.userid, })
         .eq('itemid', currentItem.itemid);
 
       if (error) console.error('Error editing item:', error.message);
@@ -72,7 +74,7 @@ function GiftItemMaster() {
   const handleDeleteItem = async (itemid) => {
     const { error } = await supabase
       .from('giftitem_master')
-      .update({ activestatus: 'N' })
+      .delete()
       .eq('itemid', itemid);
 
     if (error) console.error('Error deleting item:', error.message);

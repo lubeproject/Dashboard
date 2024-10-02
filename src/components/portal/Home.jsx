@@ -8,6 +8,12 @@ export default function Home() {
 
   const { user } = useContext(UserContext);
 
+    // Function to get the username from the email
+    const getUsername = (email) => {
+      if (!email) return '';
+      return email.split('@')[0]; // Get everything before '@'
+    };
+
 // if (localStorage.getItem("access") === null) {
 //   return <Navigate to="/" replace />; 
 // }
@@ -26,8 +32,9 @@ export default function Home() {
         </div>
          {user ? (
         <div>
-          {/* <p>{user.name}!</p>
-          <p>Your role is: {user.role}</p> */}
+          <br/>
+             <h4 style={{color:"darkorange"}}>{user.name || getUsername(user.email)} !</h4>
+          {/* <p>Your role is: {user.role}</p> */}
         </div>
       ) : (
         <p>Please log in to view the dashboard.</p>

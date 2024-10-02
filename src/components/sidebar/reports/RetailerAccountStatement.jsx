@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { Container, Row, Col, Button, Form, Table } from 'react-bootstrap';
 import Select from 'react-select';
@@ -6,31 +6,45 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import norecordfound from "../../../images/norecordfound.gif";
 import "./RetailerAccountStatement";
+import { UserContext } from '../../context/UserContext';
 
 export default function RetailerAccountStatement() {
-  const [retailersOptions, setRetailersOptions] = useState([]);
-  const [selectedRetailer, setSelectedRetailer] = useState(null);
+  const [usersOptions, setUsersOptions] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [filteredData, setFilteredData] = useState([]);
   const [filteredData1, setFilteredData1] = useState([]);
   const [filterApplied, setFilterApplied] = useState(false);
   const [filterApplied1, setFilterApplied1] = useState(false);
+  const {user} = useContext(UserContext);
 
   useEffect(() => {
     // Fetch mechanics from the users table
-    const fetchRetailers = async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('userid, shopname, name, role')
-        .eq('role', 'retailer');
+    const fetchUsers = async () => {
+      let userQuery = supabase
+      .from('users')
+      .select('userid, shopname, name, role')
+      .in('role', ['retailer','mechanic'])
+      .order('userid',{ascending:true});
 
-      if (error) console.error('Error fetching Retailers:', error);
-      else setRetailersOptions(data.map(retailer => ({ value: retailer.userid, label: retailer.shopname, name: retailer.name })));
+      if (user?.role === 'representative'){
+        userQuery = userQuery
+        .eq('representativeid',user?.userid)
+        .eq('representativename',user?.name);
+      }else if(user?.role === 'retailer'){
+        userQuery = userQuery
+        .eq('userid',user?.userid);
+      }
+
+      const { data, error } = await userQuery;
+
+      if (error) console.error('Error fetching Users:', error);
+      else setUsersOptions(data.map(user => ({ value: user.userid, label: user.shopname, name: user.name, role: user.role })));
     };
 
-    fetchRetailers();
-  }, []);
+    fetchUsers();
+  }, [user]);
 
   const handleFilter = async () => {
     try {
@@ -42,13 +56,13 @@ export default function RetailerAccountStatement() {
   
       // Helper function to fetch data with filters
       const fetchData = async (tableName) => {
-        let query = supabase.from(tableName).select('*').eq('retailerid', selectedRetailer.value);
+        let query = supabase.from(tableName).select('*').eq('userid', selectedUser.value);
   
         if (startDate) {
-          query = query.gte('updatedtime', new Date(startDate).toISOString());
+          query = query.gte('createdtime', new Date(startDate).toISOString());
         }
         if (endDate) {
-          query = query.lte('updatedtime', new Date(endDate).toISOString());
+          query = query.lte('createdtime', new Date(endDate).toISOString());
         }
   
         const { data, error } = await query;
@@ -60,17 +74,17 @@ export default function RetailerAccountStatement() {
       };
   
       // Fetch data for both tables
-      const allRetailerRequests = await fetchData('invoices1');
-      const allRetailerRequests1 = await fetchData('payment_reference');
+      const allUserRequests = await fetchData('invoices1');
+      const allUserRequests1 = await fetchData('payment_reference');
   
       // Update states
-      setFilteredData(allRetailerRequests || []);
-      setFilteredData1(allRetailerRequests1 || []);
+      setFilteredData(allUserRequests || []);
+      setFilteredData1(allUserRequests1 || []);
       setFilterApplied(true);
       setFilterApplied1(true);
   
-      console.log("Filtered Requests for Retailer (invoices):", allRetailerRequests);
-      console.log("Filtered Requests for Retailer (payment_reference):", allRetailerRequests1);
+      console.log("Filtered Requests for User (invoices):", allUserRequests);
+      console.log("Filtered Requests for User (payment_reference):", allUserRequests1);
   
     } catch (error) {
       console.error('Unexpected error during filtering:', error);
@@ -96,9 +110,9 @@ export default function RetailerAccountStatement() {
   const customSelectStyles = {
     control: (provided, state) => ({
       ...provided,
-      borderColor: !selectedRetailer ? 'red' : provided.borderColor,
+      borderColor: !selectedUser ? 'red' : provided.borderColor,
       '&:hover': {
-        borderColor: !selectedRetailer ? 'red' : provided.borderColor,
+        borderColor: !selectedUser ? 'red' : provided.borderColor,
       },
     }),
   };
@@ -121,12 +135,12 @@ export default function RetailerAccountStatement() {
           </Col>
         </Row>
         <Row className="mb-2">
-          <Form.Group controlId="formRetailer">
+          <Form.Group controlId="formUser">
             <Select
-                value={selectedRetailer}
-                onChange={setSelectedRetailer}
-                options={retailersOptions}
-                placeholder="Select Retailer"
+                value={selectedUser}
+                onChange={setSelectedUser}
+                options={usersOptions}
+                placeholder="Select User"
                 styles={customSelectStyles}
             />
           </Form.Group>
@@ -189,7 +203,7 @@ export default function RetailerAccountStatement() {
                   {filteredData1.map((data, index) => (
                     <tr key={`payment-${index}`}>
                       <td>{formatDate(data.updatedtime)}</td>
-                      <td>{data.paymode}, ReferNo. {data.payref}</td>
+                      <td>{data.paymode}{data.payref ? ', Refno: ' + data.payref : ''}</td>
                       <td>{/* Additional data or leave blank */}</td>
                       <td>₹ {data.amount}</td>
                     </tr>

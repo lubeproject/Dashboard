@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { Container, Row, Col, Button, Form, Table } from 'react-bootstrap';
 import Select from 'react-select';
@@ -6,6 +6,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import norecordfound from "../../../images/norecordfound.gif";
 import "./DSRDaywiseSalesReport.css";
+import { UserContext } from '../../context/UserContext';
 
 export default function DSRDaywiseSalesReport() {
   const [dsrOptions, setDsrOptions] = useState([]);
@@ -14,110 +15,86 @@ export default function DSRDaywiseSalesReport() {
   const [endDate, setEndDate] = useState(null);
   const [filteredData, setFilteredData] = useState([]);
   const [filterApplied, setFilterApplied] = useState(false);
+  const {user} = useContext(UserContext);
 
   useEffect(() => {
-    // Fetch mechanics from the users table
     const fetchDsr = async () => {
       const { data, error } = await supabase
         .from('users')
         .select('userid, shopname, name, role')
         .eq('role', 'representative');
 
-      if (error) console.error('Error fetching Users:', error);
-      else setDsrOptions(data.map(user => ({ value: user.userid, label: user.shopname, name: user.name })));
+      if (error) console.error('Error fetching Repreentatives:', error);
+      else setDsrOptions(data.map(user => ({ value: user.userid, label: user.shopname, name: user.name, role:user.role })));
     };
 
-    fetchDsr();
-  }, []);
+    if (user?.role === 'representative') {
+      setDsrOptions([
+        {
+          value: user.userid,
+          label: user.shopname,
+          name: user.name,
+          role: user.role,
+        },
+      ]);
+    } else {
+      fetchDsr();
+    }
+  }, [user]);
 
   const handleFilter = async () => {
+    if (!selectedDsr || !startDate || !endDate) {
+      alert("Please select a representative and date range.");
+      return;
+    }
+
     try {
-      // Step 1: Query for the visitors assigned to the representative
-      let represent_visitingQuery = supabase
-        .from('representassigned_master')
-        .select('visitorid, visitor, shopname, role')
-        .eq('representativeid', selectedDsr.value);
-  
-      // Fetch the result of represent_visitingQuery
-      const { data: representVisitingData, error: representVisitingError } = await represent_visitingQuery;
-  
-      if (representVisitingError) {
-        console.error('Error fetching represent visiting data:', representVisitingError.message);
+      // Format startDate and endDate to 'YYYY-MM-DD' format strings
+      const formattedStartDate = startDate.toISOString().split('T')[0];
+      const formattedEndDate = new Date(endDate);
+      formattedEndDate.setDate(formattedEndDate.getDate() + 1); // Adjust endDate to include the end date
+      const formattedEndDateString = formattedEndDate.toISOString().split('T')[0];
+
+      // Query for the visits assigned to the representative, filtering by visitingdate (which is a date field)
+      let visitsQuery = supabase
+        .from('represent_visiting1')
+        .select('*')
+        .eq('repid', selectedDsr.value)
+        .gte('visitingdate', formattedStartDate) // Use formatted date
+        .lt('visitingdate', formattedEndDateString) // Use formatted end date
+        .order('visitingdate');
+
+      const { data: visitsData, error: visitsError } = await visitsQuery;
+
+      if (visitsError) {
+        console.error('Error fetching visits:', visitsError.message);
         return;
       }
-  
-      if (!representVisitingData || representVisitingData.length === 0) {
-        console.warn('No represent visiting data found.');
-        setFilteredData([]);
-        return;
-      }
-  
-      const userIdArray = representVisitingData.map(invoice => invoice.visitorid);
-  
-      // Step 2: Filter invoices by date range
-      let invoiceQuery = supabase.from('invoices1').select('*').in('userid', userIdArray);
-  
-      if (startDate && endDate) {
-        if (new Date(startDate).toISOString() > new Date(endDate).toISOString()) {
-          alert("Pick From Date cannot be later than Pick To Date.");
-          return;
-        }
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
-  
-        // Convert dates to UTC format using toISOString()
-        invoiceQuery = invoiceQuery
-          .gte('updatedtime', new Date(startDate).toISOString())
-          .lte('updatedtime', adjustedEndDate.toISOString());
-        
-        console.log("Date Range Filter Applied:", startDate, "to", adjustedEndDate);
-      } else if (startDate) {
-        invoiceQuery = invoiceQuery.gte('updatedtime', new Date(startDate).toISOString());
-        console.log("Start Date Filter Applied:", startDate);
-      } else if (endDate) {
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
-        
-        // Convert endDate to UTC format
-        invoiceQuery = invoiceQuery.lte('updatedtime', adjustedEndDate.toISOString());
-        console.log("End Date Filter Applied:", adjustedEndDate);
-      }
-  
-      const { data: filteredInvoices, error: invoiceError } = await invoiceQuery;
-  
-      if (invoiceError) {
-        console.error('Error fetching filtered invoices:', invoiceError.message);
-        return;
-      }
-  
-      if (!filteredInvoices || filteredInvoices.length === 0) {
-        console.warn('No invoices found for the selected date range.');
-        setFilteredData([]);
-        return;
-      }
-  
-      // Step 3: Calculate total liters by date
+
+      // Step 2: Calculate total liters by date
       const totalsByDate = {};
-  
-      filteredInvoices.forEach((record) => {
-        const date = new Date(record.updatedtime).toISOString().split('T')[0]; // Get date in 'YYYY-MM-DD' format
-        const { totalliters } = record;
-  
-        // Initialize date entry if not present
-        if (!totalsByDate[date]) {
-          totalsByDate[date] = 0;  // Initialize totalliters to 0 for this date
-        }
-  
-        // Add totalliters to the total for the date
-        totalsByDate[date] += totalliters;
-      });
-  
+      
+
+      if (visitsData?.length > 0) {
+        visitsData.forEach((record) => {
+          const date = record.visitingdate;
+          const { orders } = record;
+
+          // Initialize date entry if not present
+          if (!totalsByDate[date]) {
+            totalsByDate[date] = 0; // Initialize total orders to 0 for this date
+          }
+
+          // Add orders (in liters) to the total for the date
+          totalsByDate[date] += orders;
+        });
+      }
+
       // Update state with calculated totals
       setFilteredData(totalsByDate);
       setFilterApplied(true);
-  
+
       console.log("Final Filtered Totals by Date:", totalsByDate);
-  
     } catch (error) {
       console.error('Unexpected error during filtering:', error);
     }
@@ -138,7 +115,7 @@ export default function DSRDaywiseSalesReport() {
     setFilteredData([]);
     setFilterApplied(false);
   };
-
+  const totalOrders = Object.keys(filteredData).reduce((sum, date) => sum + filteredData[date], 0);
   const customSelectStyles = {
     control: (provided, state) => ({
       ...provided,
@@ -226,6 +203,12 @@ export default function DSRDaywiseSalesReport() {
                     </tr>
                   ))}
                 </tbody>
+                <tfoot>
+                  <tr>
+                    <th>Total</th>
+                    <th>{totalOrders}</th> {/* Display the total sum of all orders */}
+                  </tr>
+                </tfoot>
               </Table>
             )}
           </Col>

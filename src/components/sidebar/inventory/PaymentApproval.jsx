@@ -228,6 +228,7 @@ export default function PaymentApproval() {
             amount: invoice.amount,
             paidamount: updatedPaidAmount,
             createdtime: new Date().toISOString(),
+            createdby: user?.userid,
           }]);
   
         if (insertPaidInvoiceError) {

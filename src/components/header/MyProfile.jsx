@@ -7,6 +7,8 @@ import { UserContext } from "../context/UserContext";
 
 export default function MyProfile() {
   const { user } = useContext(UserContext);
+
+  
   
   return (
     <main id='main' className='main'>

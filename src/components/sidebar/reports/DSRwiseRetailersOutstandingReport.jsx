@@ -127,17 +127,19 @@
 //     </main>
 //   );
 // }
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Container, Row, Col, Form, Table } from 'react-bootstrap';
 import Select from 'react-select';
 import { supabase } from '../../../supabaseClient';
 import norecordfound from "../../../images/norecordfound.gif";
 import "./DSRwiseRetailersOutstandingReport.css";
+import { UserContext } from '../../context/UserContext';
 
 export default function DSRwiseRetailersOutstandingReport() {
   const [dsrOptions, setDsrOptions] = useState([]);
   const [selectedDsr, setSelectedDsr] = useState(null);
   const [filteredData, setFilteredData] = useState([]);
+  const {user} = useContext(UserContext);
 
   useEffect(() => {
     const fetchDsr = async () => {
@@ -158,8 +160,19 @@ export default function DSRwiseRetailersOutstandingReport() {
       }
     };
 
-    fetchDsr();
-  }, []);
+    if (user?.role === 'representative') {
+      setDsrOptions([
+        {
+          value: user.userid,
+          label: user.shopname,
+          name: user.name,
+          role: user.role,
+        },
+      ]);
+    } else {
+      fetchDsr();
+    }
+  }, [user]);
 
   useEffect(() => {
     const fetchInvoicesAndUsers = async () => {
@@ -185,7 +198,7 @@ export default function DSRwiseRetailersOutstandingReport() {
         const { data: invoices, error: invoiceError } = await supabase
           .from('invoices1')
           .select('*')
-          .eq('repid', selectedDsr.value);
+          .eq('createdby', selectedDsr.value);
 
         if (invoiceError) {
           console.error('Error fetching invoices:', invoiceError);

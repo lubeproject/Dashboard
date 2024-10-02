@@ -58,7 +58,38 @@ export default function Login() {
       if (adminData?.user) {
         // Admin login successful
         alert("Admin login successful!");
-        saveUser({ ...adminData.user, role: "admin" }); // Save user data
+        const { data: userData, error: userTableError } = await supabase
+        .from("users")
+        .select("*") // Select required columns
+        .or(`email.eq.${emailOrMobile},mobile.eq.${emailOrMobile}`)
+        .eq('active','Y');
+
+        if (userTableError) {
+          console.error("Error querying users table:", userTableError.message);
+          setError("Error querying users table after admin login.");
+          return;
+        }
+        // console.log(userData);
+  
+        // Step 3: If user data is found, merge it with admin data
+        if (userData && userData.length > 0) {
+          const user = userData[0];
+  
+          // Save user data with additional fields from the users table
+          saveUser({
+            ...adminData.user,
+            role: "admin",
+            name: user.name,
+            shopname: user.shopname,
+            mobile: user.mobile,
+            email: user.email,
+            userid: user.userid,
+            cginno: user.cginno,
+          });
+        } else {
+          // No matching record in users table, just save admin data
+          saveUser({ ...adminData.user, role: "admin" });
+        }
 
         navigate("/portal/homepage");
         
@@ -73,7 +104,8 @@ export default function Login() {
         const { data: userData, error: userTableError } = await supabase
           .from("users")
           .select("*")
-          .or(`email.eq.${emailOrMobile},mobile.eq.${emailOrMobile}`); 
+          .or(`email.eq.${emailOrMobile},mobile.eq.${emailOrMobile}`)
+          .eq('active','Y'); 
   
         if (userTableError) {
           console.error("Error querying users table:", userTableError.message);

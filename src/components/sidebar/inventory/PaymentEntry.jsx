@@ -13,7 +13,7 @@ export default function PaymentEntry() {
     const day = String(today.getDate()).padStart(2, '0');        // Add leading zero
     return `${year}-${month}-${day}`;
   };
-  const [user, setUser] = useState(null);
+  const [User, setUser] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [selectedInvoices, setSelectedInvoices] = useState([]);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -34,26 +34,25 @@ export default function PaymentEntry() {
   const [paymentApprovals, setPaymentApprovals] = useState([]);
   const [isOTPSent, setIsOTPSent] = useState(false);
   const [error, setError] = useState(null);
-  const {user1} = useContext(UserContext);
+  const {user} = useContext(UserContext);
   
 
   useEffect(() => {
-    const fetchPaymentModes = async () => {
-      const { data, error } = await supabase.from('payment_mode').select('paymodeid, paymentname');
-      if (!error) {
-        setPaymentModes(data.map(item => ({ label: item.paymentname, value: item.paymodeid })));
-      } else {
-        console.error('Error fetching payment modes:', error);
-      }
-    };
-
     const fetchUserOptions = async () => {
       try {
-        const { data, error } = await supabase
+        let userQuery = supabase
           .from('users')
-          .select('userid, shopname, name, representativename, representativeid')
-          .in('role', ['retailer','mechanic'])
+          .select('*')
+          .in('role', ['retailer', 'mechanic'])
           .order('userid', { ascending: true });
+
+        // if(user?.role === 'representative'){
+        //   userQuery = userQuery
+        //   .eq('representativeid',user?.userid)
+        //   .eq('representativename',user?.name);
+        // }
+
+        const { data, error } = await userQuery;
     
         if (error) {
           console.error('Error fetching Users:', error);
@@ -72,6 +71,20 @@ export default function PaymentEntry() {
       }
     };
 
+    fetchUserOptions();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchPaymentModes = async () => {
+      const { data, error } = await supabase.from('payment_mode').select('paymodeid, paymentname');
+      if (!error) {
+        setPaymentModes(data.map(item => ({ label: item.paymentname, value: item.paymodeid })));
+      } else {
+        console.error('Error fetching payment modes:', error);
+      }
+    };
+
+    
     const fetchPaymentApprovals = async () => {
       const { data, error } = await supabase
         .from('payment_approval')
@@ -87,14 +100,13 @@ export default function PaymentEntry() {
     };
 
     fetchPaymentModes();
-    fetchUserOptions();
     fetchPaymentApprovals(); 
   }, []);
 
   useEffect(() => {
-    if (user) {
+    if (User) {
       const fetchInvoices = async () => {
-        const { data, error } = await supabase.from('invoices1').select('invid, username, tallyrefinvno, invdate, amount, paidamount, createdtime').eq('username', user.name)
+        const { data, error } = await supabase.from('invoices1').select('invid, username, tallyrefinvno, invdate, amount, paidamount, createdtime').eq('username', User.name)
         .eq('paymentstatus','Pending');
         if (!error) {
           setInvoices(data);
@@ -104,7 +116,7 @@ export default function PaymentEntry() {
       };
 
       const fetchUserMobile = async () => {
-        const { data, error } = await supabase.from('users').select('mobile').eq('shopname', user.label).single();
+        const { data, error } = await supabase.from('users').select('mobile').eq('shopname', User.label).single();
         if (!error) {
           setUserMobile(data.mobile);
         } else {
@@ -115,7 +127,7 @@ export default function PaymentEntry() {
       fetchInvoices();
       fetchUserMobile();
     }
-  }, [user]);
+  }, [User]);
 
   
 
@@ -386,7 +398,7 @@ const handleValidateOtp = () => {
     console.log('Submitting payment entry...');
     
     // Validate input
-    if (!user || !selectedInvoices.length || !amount || 
+    if (!User || !selectedInvoices.length || !amount || 
       (!paymentReference && !otp) || !remarks ||  (paymentMode.label === 'Adjustment' && !adjustMode)) {
     setIsValid(false);
     console.log('Validation failed.');
@@ -414,11 +426,11 @@ const handleValidateOtp = () => {
   
       // Prepare payment data for insertion
       const paymentData = {
-        userid: user.value,
-        repid: user.repid,
-        repname: user.repname,
-        username: user.name,
-        usershopname: user.label,
+        userid: User.value,
+        repid: User.repid,
+        repname: User.repname,
+        username: User.name,
+        usershopname: User.label,
         invoices: selectedInvoices.join(', '),
         paymode: paymentMode.label,
         amount: parseFloat(amount),
@@ -428,8 +440,8 @@ const handleValidateOtp = () => {
         chequedate: chequeDate || null,
         createdtime: new Date().toISOString(),
         updatedtime: new Date().toISOString(),
-        updatedby: user1?.userid,
-        createdby: user1?.userid,
+        updatedby: user?.userid,
+        createdby: user?.userid,
       };
   
       if (paymentMode.label === 'Adjustment') {
@@ -495,11 +507,11 @@ const handleValidateOtp = () => {
         .insert({
           payid: pay.payid,
           punchingid: punchingId,
-          repid: user.repid,
+          repid: User.repid,
           invid: invoiceId,
-          userid: user.value,
-          username: user.name,
-          usershopname: user.label,
+          userid: User.value,
+          username: User.name,
+          usershopname: User.label,
           paymode: paymentMode.label,
           paymentstatus: 'To be cleared',
           payref: paymentReference || paymentData.adjustmode || null,
@@ -509,7 +521,7 @@ const handleValidateOtp = () => {
           chequedate: chequeDate || new Date().toISOString().split('T')[0],
           createdtime: new Date().toISOString(),
           updatedtime: new Date().toISOString(),
-          createdby: user1?.userid
+          createdby: user?.userid
         });
   
       if (insertPaymentApproveError) throw new Error(`Error inserting payment approve data: ${insertPaymentApproveError.message}`);
@@ -537,7 +549,7 @@ return (
           <Col xs lg="6">
             <Form.Group controlId="formUser">
               <Form.Label>User</Form.Label>
-              <Select options={userOptions} value={user} onChange={setUser} />
+              <Select options={userOptions} value={User} onChange={setUser} placeholder="Select User" />
             </Form.Group>
           </Col>
           <Col xs lg="6">

@@ -454,7 +454,7 @@
 //   );
 // }
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { Container, Row, Col, Button, Form, Table, Card } from 'react-bootstrap';
 import Select from 'react-select';
@@ -462,6 +462,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useNavigate } from 'react-router-dom';
 import './InvoiceHistory.css';
+import { UserContext } from '../../context/UserContext';
 
 export default function InvoiceHistory() {
   const [usersOptions, setUsersOptions] = useState([]);
@@ -471,15 +472,23 @@ export default function InvoiceHistory() {
   const [invoices, setInvoices] = useState([]);
   const [paymentApprovals, setPaymentApprovals] = useState([]);
   const navigate = useNavigate();
+  const {user} = useContext(UserContext);
 
   useEffect(() => {
     // Fetch users from the users table
     const fetchUsers = async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .in('role', ['retailer', 'mechanic'])
-        .order('userid', { ascending: true });
+
+      let userQuery = supabase
+          .from('users')
+          .select('*')
+          .in('role', ['retailer', 'mechanic'])
+          .order('userid', { ascending: true });
+        if(user?.role === 'representative'){
+          userQuery = userQuery
+          .eq('representativeid',user?.userid)
+          .eq('representativename',user?.name);
+        }
+      const { data, error } = await userQuery
 
       if (error) console.error('Error fetching Users:', error);
       else
@@ -492,9 +501,20 @@ export default function InvoiceHistory() {
           }))
         );
     };
-
-    fetchUsers();
-  }, []);
+    if (user?.role === 'retailer'|| user?.role === 'mechanic'){
+      setUsersOptions([
+         {
+          value: user?.userid,
+          label: user?.shopname,
+          name: user?.name,
+          role: user?.role,
+        }
+      ]);
+    }else{
+      fetchUsers();
+    }
+    
+  }, [user]);
 
   useEffect(() => {
     if (selectedUser) {
@@ -585,12 +605,13 @@ export default function InvoiceHistory() {
   return (
     <main id="main" className="main">
       <Container className="mt-3">
-        <Row className="mb-4">
+        <Row className="mb-4 ">
           <Col>
             <h4 className="text-center">Invoice History</h4>
           </Col>
         </Row>
-        <Row className="mb-2 select-row">
+        <br/>
+        <Row className="mb-2 select-row justify-content-md-center">
           <Col md={6} xs={12} className="mb-2">
             <Form.Group controlId="formUser">
               <Select
@@ -602,7 +623,8 @@ export default function InvoiceHistory() {
             </Form.Group>
           </Col>
         </Row>
-        <Row className="mb-2 filter-row">
+        <br/>
+        <Row className="mb-2 filter-row justify-content-md-center">
           <Col md={3} xs={6} className="mb-2">
             <DatePicker
               selected={startDate}
@@ -621,6 +643,9 @@ export default function InvoiceHistory() {
               placeholderText="Pick To Date"
             />
           </Col>
+          </Row>
+          <br/>
+          <Row className='justify-content-md-center'>
           <Col md={3} xs={6} className="mb-2">
             <Button variant="primary" onClick={handleFilter} block>
               Apply Filter
@@ -632,6 +657,7 @@ export default function InvoiceHistory() {
             </Button>
           </Col>
         </Row>
+        <br/>
         <Row className="mt-2">
           <Col>
             {invoices.length === 0 ? (

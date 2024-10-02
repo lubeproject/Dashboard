@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { supabase } from '../../../supabaseClient';
 import './SegmentMaster.css';
 import { FaEdit, FaTrash } from 'react-icons/fa';
+import { UserContext } from '../../context/UserContext';
 
 function SegmentMaster() {
   const [segments, setSegments] = useState([]);
@@ -9,6 +10,7 @@ function SegmentMaster() {
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [newSegmentName, setNewSegmentName] = useState('');
   const [currentSegment, setCurrentSegment] = useState(null);
+  const {user} = useContext(UserContext);
 
   useEffect(() => {
     fetchSegments();
@@ -28,8 +30,8 @@ function SegmentMaster() {
     const newSegment = {
       segmentname: newSegmentName,
       activestatus: 'Y',
-      // createdby: 'Admin', // Replace with actual user
-      // updatedby: 'Admin',
+      createdby: user?.userid,
+      updatedby: user?.userid,
       created: new Date().toISOString(),
       lastupdatetime: new Date().toISOString(),
     };
@@ -51,7 +53,7 @@ function SegmentMaster() {
     if (currentSegment) {
       const { error } = await supabase
         .from('segment_master')
-        .update({ segmentname: newSegmentName, lastupdatetime: new Date().toISOString() })
+        .update({ segmentname: newSegmentName, lastupdatetime: new Date().toISOString(), updatedby: user?.userid, })
         .eq('segmentid', currentSegment.segmentid);
 
       if (error) console.error('Error editing segment:', error.message);
@@ -66,7 +68,7 @@ function SegmentMaster() {
   const handleDeleteSegment = async (segmentid) => {
     const { error } = await supabase
       .from('segment_master')
-      .update({ activestatus: 'N' })
+      .delete()
       .eq('segmentid', segmentid);
 
     if (error) console.error('Error deleting segment:', error.message);

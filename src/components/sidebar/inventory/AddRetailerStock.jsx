@@ -458,11 +458,12 @@
 //   );
 // }
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import "./addRetailerStock.css";
 import { Form, Button, Container, Row, Col, Table } from 'react-bootstrap';
 import Select from 'react-select';
 import { supabase } from '../../../supabaseClient';
+import { UserContext } from '../../context/UserContext';
 
 export default function AddRetailerStock() {
   const getTodayDate = () => {
@@ -483,6 +484,7 @@ export default function AddRetailerStock() {
   const [invoiceDate, setInvoiceDate] = useState(getTodayDate());
   const [errors, setErrors] = useState({});
   const [tempRequestItems, setTempRequestItems] = useState([]);
+  const {user} = useContext(UserContext);
 
   useEffect(() => {
     fetchUsers();
@@ -608,7 +610,7 @@ export default function AddRetailerStock() {
       newErrors.selectedUser = 'Representative ID is missing for the selected user.';
     }
 
-    const updatedItems = requestItems.map((item, index) => {
+      const updatedItems = requestItems.map((item, index) => {
       const tempDeliveredQty = tempRequestItems[index]?.tempDeliveredQty || 0;
       const calculatedTotalLitres = tempRequestItems[index]?.calculatedTotalLitres || 0;
       const calculatednoofboxes = tempRequestItems[index]?.calculatednoofboxes || 0;
@@ -655,6 +657,7 @@ export default function AddRetailerStock() {
           deliveredqty: totalDeliveredQty,
           orderstatus: totalDeliveredQty >= totalQty ? 'Completed' : 'Pending',
           updatedtime: new Date(),
+          updatedby: user?.userid,
         })
         .eq('reqid', selectedRequest.value);
 
@@ -682,6 +685,8 @@ export default function AddRetailerStock() {
           totalliters: updatedItems.reduce((sum, item) => sum + (item.calculatedTotalLitres || 0), 0),
           createdtime: new Date(),
           updatedtime: new Date(),
+          createdby: user?.userid,
+          updatedby: user?.userid,
         }]).select();
 
       if (insertError) {

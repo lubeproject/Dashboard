@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { Form, Button, Container, Row, Col, InputGroup, FormControl } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash, faQrcode } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '../../../supabaseClient';
 import "./addUser.css";
 import bcrypt from 'bcryptjs';
+import { UserContext } from '../../context/UserContext';
 
 export default function AddUser() {
 
@@ -30,6 +31,7 @@ export default function AddUser() {
   const [error, setError] = useState({});
   const [resendDisabled, setResendDisabled] = useState(false);
   const [mobile, setMobile] = useState("");
+  const {user} = useContext(UserContext);
 
   const validateField = (name, value) => {
     let error = '';
@@ -167,7 +169,7 @@ const hashedPassword = await bcrypt.hash(formData.password, saltRounds);
               enablecheck: formData.rewardPointsApplicable ? 'Y' : 'N',
               qrcode: formData.qrCode,
               cginno: formData.qrCode,
-              updatedby: 0,  // Insert Updated userid
+              updatedby: user?.userid,
               lastupdatedtime: new Date().toISOString(),
               createdtime: new Date().toISOString(),
               updatedtime: new Date().toISOString(),

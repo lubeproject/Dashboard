@@ -265,7 +265,7 @@
 //     </main>
 //   );
 // }
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import supabase from "../../authUser/supabaseClient";
 import { Container, Row, Col, Button, Form, Table } from 'react-bootstrap';
 import Select from 'react-select';
@@ -273,6 +273,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import norecordfound from "../../../images/norecordfound.gif";
 import "./ItemwiseRetailerRequestReport.css";
+import { UserContext } from '../../context/UserContext';
 
 export default function ItemwiseRetailerRequestReport() {
   const [itemsOptions, setItemsOptions] = useState([]);
@@ -283,6 +284,7 @@ export default function ItemwiseRetailerRequestReport() {
   const [endDate, setEndDate] = useState(null);
   const [filteredData, setFilteredData] = useState([]);
   const [filterApplied, setFilterApplied] = useState(false);
+  const {user} = useContext(UserContext);
 
   useEffect(() => {
     // Fetch items from the item_master table
@@ -312,10 +314,21 @@ export default function ItemwiseRetailerRequestReport() {
   const handleFilter = async () => {
     try {
       // Step 1: Fetch from user_request table where role is mechanic
-      const { data: userRequests, error: userRequestError } = await supabase
-        .from('user_request')
-        .select('userid, username, usershopname, reqid, role')
-        .eq('role', 'retailer');
+      let userQuery = supabase
+      .from('user_request')
+      .select('userid, username, usershopname, reqid, role')
+      .eq('role', 'retailer')
+      .order('createdtime',{ascending:false});
+
+      if (user?.role === 'representative'){
+        userQuery = userQuery
+        .eq('createdby',user?.userid);
+      }else if(user?.role === 'retailer'){
+        userQuery = userQuery
+        .eq('userid',user?.userid);
+      }
+
+      const { data: userRequests, error: userRequestError } = await userQuery;
 
       if (userRequestError) {
         console.error('Error fetching user requests:', userRequestError);

@@ -15,10 +15,10 @@ export default function ReceiptReport() {
 
   const handleFilter = async () => {
     try {
-        // Fetch all records for the selected retailer
         const { data: filteredItems, error: receiptError } = await supabase
-        .from('receipts_reports')
-        .select('*');
+        .from('payment_reference')
+        .select('*')
+        .order('createdtime',{ascending:false});
   
       if (receiptError) {
         console.error('Error fetching receipt report:', receiptError.message);
@@ -35,19 +35,19 @@ export default function ReceiptReport() {
           return;
         }
         dateFilteredItems = filteredItems.filter(item => {
-          const itemDate = new Date(item.receiptdate); // Convert the date string to a Date object
+          const itemDate = new Date(item.createdtime); // Convert the date string to a Date object
           return itemDate >= new Date(startDate) && itemDate <= new Date(endDate);
         });
         console.log("Date Range Filter Applied:", startDate, "to", endDate);
       } else if (startDate) {
         dateFilteredItems = filteredItems.filter(item => {
-          const itemDate = new Date(item.receiptdate);
+          const itemDate = new Date(item.createdtime);
           return itemDate >= new Date(startDate);
         });
         console.log("Start Date Filter Applied:", startDate);
       } else if (endDate) {
         dateFilteredItems = filteredItems.filter(item => {
-          const itemDate = new Date(item.receiptdate);
+          const itemDate = new Date(item.createdtime);
           return itemDate <= new Date(endDate);
         });
         console.log("End Date Filter Applied:", endDate);
@@ -127,7 +127,7 @@ export default function ReceiptReport() {
                 <thead>
                   <tr>
                       <th>Date</th>
-                      <th>Retailer</th>
+                      <th>User</th>
                       <th>Pay Type</th>
                       <th>Amount</th>
                       <th>DSR</th>
@@ -136,11 +136,14 @@ export default function ReceiptReport() {
                 <tbody>
                   {filteredData.map((data, index) => (
                     <tr key={index}>
-                      <td>{formatDate(data.receiptdate)}</td>
-                      <td>{data.retailername.trim()}</td>
-                      <td>{data.paytype.trim()}</td>
-                      <td>{data.receiptamount}</td>
-                      <td>{data.representativename}</td>
+                      <td>{formatDate(data.createdtime)}</td>
+                      <td>
+                        <span>{data.usershopname.trim()}</span><br/>
+                        <span>{data.username.trim()}</span>
+                        </td>
+                      <td>{data.paymode.trim()}</td>
+                      <td>{data.amount}</td>
+                      <td>{data.repname.trim()}</td>
                     </tr>
                   ))}
                 </tbody>

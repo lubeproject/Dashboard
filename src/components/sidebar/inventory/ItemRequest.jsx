@@ -10,6 +10,7 @@ import { UserContext } from "../../context/UserContext";
 export default function ItemRequest() {
   const [usersOptions, setUsersOptions] = useState([]);
   const [items, setItems] = useState([]);
+  const [availableItems, setAvailableItems] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedItems, setSelectedItems] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -17,31 +18,57 @@ export default function ItemRequest() {
   const [show, setShow] = useState(false);
   const [isValid, setIsValid] = useState(true);
   const [isValidModel, setIsValidModel] = useState(true);
-  const { user} = useContext(UserContext);
+  const { user } = useContext(UserContext);
 
   useEffect(() => {
     const fetchUsers = async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .in('role', ['retailer','mechanic'])
-        .order('userid', { ascending: true });
+      let userQuery = supabase
+      .from('users')
+      .select('*')
+      .in('role', ['retailer', 'mechanic'])
+      .order('userid', { ascending: true });
+
+      // if(user?.role === 'representative'){
+      //   userQuery = userQuery
+      //   .eq('representativeid',user?.userid)
+      //   .eq('representativename',user?.name);
+      // }
+
+      const { data, error } = await userQuery;
 
       if (error) console.error('Error fetching Users:', error);
-      else setUsersOptions(data.map(user => ({ value: user.userid, label: user.shopname, name: user.name,role: user.role})));
+      else
+        setUsersOptions(
+          data.map((user) => ({
+            value: user.userid,
+            label: user.shopname,
+            name: user.name,
+            role: user.role,
+          }))
+        );
     };
 
-    // Fetch items from the item_master table
     const fetchItems = async () => {
       const { data, error } = await supabase
         .from('item_master')
-        .select('itemid, itemname, noofitemsinbox, itemweight, rrprice,categoryid,categoryname,segmentname,segmentid')
+        .select('itemid, itemname, noofitemsinbox, itemweight, rrprice, categoryid, categoryname, segmentname, segmentid')
         .eq('activestatus', 'Y');
 
       if (error) console.error('Error fetching items:', error);
-      else setItems(data.map(item => ({ value: item.itemid, label: item.itemname, noofitemsinbox: item.noofitemsinbox,
-         itemweight: item.itemweight, rrprice: item.rrprice,segmentid:item.segmentid,
-        categoryid:item.categoryid,categoryname: item.categoryname,segmentname:item.segmentname })));
+      else
+        setItems(
+          data.map((item) => ({
+            value: item.itemid,
+            label: item.itemname,
+            noofitemsinbox: item.noofitemsinbox,
+            itemweight: item.itemweight,
+            rrprice: item.rrprice,
+            categoryid: item.categoryid,
+            categoryname: item.categoryname,
+            segmentid: item.segmentid,
+            segmentname: item.segmentname,
+          }))
+        );
     };
 
     if (user?.role === 'retailer' || user?.role === 'mechanic') {
@@ -50,17 +77,21 @@ export default function ItemRequest() {
           value: user.userid,
           label: user.shopname,
           name: user.name,
-          role: user.role
-        }
+          role: user.role,
+        },
       ]);
     } else {
       fetchUsers();
     }
     fetchItems();
-  }, []);
+  }, [user]);
 
   const handleShow = () => setShow(true);
-  const handleClose = () => setShow(false);
+  const handleClose = () => {
+    setSelectedItem(null);
+    setQuantity('');
+    setShow(false);
+  };
 
   const handleChange = (selectedOption) => {
     setSelectedUser(selectedOption);
@@ -73,6 +104,12 @@ export default function ItemRequest() {
     if (!selectedItem || !quantity) {
         setIsValidModel(false);
         return;
+    }
+    const duplicateItem = selectedItems.find(item => item.id === selectedItem.value);
+
+    if (duplicateItem) {
+      alert('This item has already been added. Please edit the quantity or select a different item.');
+      return;
     }
 
     // Add the item to the list of selected items
@@ -89,26 +126,35 @@ export default function ItemRequest() {
         segmentname: selectedItem.segmentname
     };
     setSelectedItems([...selectedItems, newItem]);
-    setSelectedItem('');
-    setQuantity('');
+    const updatedAvailableItems = availableItems.filter((item) => item.value !== selectedItem.value);
+    setAvailableItems(updatedAvailableItems);
     handleClose();
 };
 
 const handleEditItem = (index) => {
   const item = selectedItems[index];
-  setSelectedItem({ value: item.itemid, label: item.itemname, noofitemsinbox: item.noofitemsinbox,
-    itemweight: item.itemweight, rrprice: item.rrprice,segmentid:item.segmentid,
-   categoryid:item.categoryid,categoryname: item.categoryname,segmentname:item.segmentname });
-  setQuantity(item.quantity);
-  handleShow();
-  // Remove the item from the list temporarily until updated
-  const updatedItems = selectedItems.filter((_, i) => i !== index);
-  setSelectedItems(updatedItems);
+    setSelectedItem({
+      value: item.id,
+      label: item.name,
+      noofitemsinbox: item.noofitemsinbox,
+      itemweight: item.itemweight,
+      rrprice: item.rrprice,
+      segmentid: item.segmentid,
+      categoryid: item.categoryid,
+      categoryname: item.categoryname,
+      segmentname: item.segmentname,
+    });
+    setQuantity(item.quantity);
+    handleShow();
+    setSelectedItems(selectedItems.filter((_, i) => i !== index));
+    setAvailableItems([...availableItems, item]);
+
 };
 
 const handleDeleteItem = (index) => {
-  const updatedItems = selectedItems.filter((_, i) => i !== index);
-  setSelectedItems(updatedItems);
+  const deletedItem = selectedItems[index];
+    setSelectedItems(selectedItems.filter((_, i) => i !== index));
+    setAvailableItems([...availableItems, deletedItem]);
 };
 
 const handleSubmit = async (e) => {
@@ -137,8 +183,8 @@ const handleSubmit = async (e) => {
     totalamount: totalAmount,
     orderstatus: 'pending',
     orderref: '', // Add a reference if available
-    createdby: user?.userid||1,
-    updatedby: user?.userid||1,
+    createdby: user?.userid,
+    updatedby: user?.userid,
     createdtime: new Date().toISOString(), // Format datetime to YYYY-MM-DDTHH:mm:ss.sssZ
     updatedtime: new Date().toISOString() // Format datetime to YYYY-MM-DDTHH:mm:ss.sssZ
   };
@@ -166,7 +212,7 @@ const handleSubmit = async (e) => {
     // Store each selected item in user_request_items table
     for (let i = 0; i < selectedItems.length; i++) {
       const selectedItem = selectedItems[i];
-      const quantity = parseInt(selectedItem.quantity, 10); // Ensure quantity is an integer
+      const quantity = selectedItem.quantity; // Ensure quantity is an integer
       const totalQty = quantity * selectedItem.noofitemsinbox;
       const totalPrice = quantity * selectedItem.rrprice;
       const totalLiters = quantity * selectedItem.itemweight * selectedItem.noofitemsinbox;
@@ -247,143 +293,294 @@ const handleSubmit = async (e) => {
 
     
 
-  return (
-    <main id='main' className='main'>
-      <Container className="mt-4">
+//   return (
+//     <main id='main' className='main'>
+//       <Container className="mt-4">
+//         <Row>
+//           <Col>
+//             <h5 style={{ textAlign: "center" }}>Item Request</h5>
+//           </Col>
+//         </Row>
+
+//         <Form onSubmit={handleSubmit}>
+//           <Form.Group controlId="userSelect">
+//             <Form.Label>Select User</Form.Label>
+//             <Select
+//               value={selectedUser}
+//               onChange={handleChange}
+//               options={usersOptions}
+//               placeholder="Select User"
+//               className={!isValid ? 'is-invalid' : ''}
+//               styles={{
+//                 control: (base, state) => ({
+//                   ...base,
+//                   borderColor: !isValid ? 'red' : base.borderColor,
+//                   '&:hover': {
+//                     borderColor: !isValid ? 'red' : base.borderColor
+//                   }
+//                 })
+//               }}
+//             />
+//             {!isValid && <div className="invalid-feedback d-block">Please select a User.</div>}
+//           </Form.Group>
+//           <br />
+//           <div className="item-request-table">
+//         <table>
+//           <thead>
+//             <tr>
+//             <th><center>slno</center></th>
+//               <th><center>Itemid</center></th>
+//               <th><center>Item Name</center></th>
+//               <th><center>Box(es)</center></th>
+//               <th><center>Quantity</center></th>
+//               <th><center>Litres</center></th>
+//               <th><center>Actions</center></th>
+//             </tr>
+//           </thead>
+//           <tbody>
+//           {selectedItems.map((item, index) => (
+//                 <tr key={index}>
+//                 <td><center>{index + 1}</center></td>
+//                 <td><center>{item.id}</center></td>
+//                 <td><center>{item.name}</center></td>
+//                 <td><center>{item.quantity}</center></td>
+//                 <td><center>{item.quantity*item.noofitemsinbox}</center></td>
+//                 <td><center>{item.quantity*item.noofitemsinbox*item.itemweight}</center></td>
+//                 <td className="actions">
+//                   <button 
+//                     onClick={() => handleEditItem(index)} 
+//                     className="action-button edit-button"
+//                   >
+//                     <FaEdit className="icon" />
+//                   </button>
+//                   <button 
+//                     onClick={() => handleDeleteItem(index)} 
+//                     className="action-button delete-button"
+//                   >
+//                     <FaTrash className="icon" />
+//                   </button>
+//                 </td>
+//               </tr>
+//             ))}
+//           </tbody>
+//         </table>
+//       </div>
+//           <br />
+//           <Row >
+//             <Col className="d-flex justify-content-end mb-2">
+//               <Button 
+//                 variant="success" 
+//                 onClick={handleShow} 
+//                 style={{ width: '100px' }} 
+//                 className="add-button"
+//               >
+//                 <i className="bi bi-plus-lg"></i> ADD
+//               </Button>
+//             </Col>
+//           </Row>
+//           <div style={{ display: "flex", justifyContent: "center", margin: "0px auto" }}>
+//             <Button type="submit" variant="primary" className="mt-3" style={{ width: "500px" }}>Submit</Button>
+//           </div>
+//         </Form>
+
+//         <Modal show={show} onHide={handleClose}>
+//           <Modal.Header closeButton>
+//             <Modal.Title>Add Item</Modal.Title>
+//           </Modal.Header>
+//           <Modal.Body>
+//             <Form onSubmit={handleModelSubmit}>
+//               <Form.Group controlId="formSelectOption">
+//                 <Form.Label>Select Item</Form.Label>
+//                 <Select
+//                   value={selectedItem}
+//                   onChange={setSelectedItem}
+//                   options={items}
+//                   placeholder="Select an Item"
+//                   className={!isValidModel && !selectedItem ? 'is-invalid' : ''}
+//                   styles={{
+//                     control: (base, state) => ({
+//                       ...base,
+//                       borderColor: !isValidModel && !selectedItem ? 'red' : base.borderColor,
+//                       '&:hover': {
+//                         borderColor: !isValidModel && !selectedItem ? 'red' : base.borderColor
+//                       }
+//                     })
+//                   }}
+//                 />
+//                 {!isValidModel && !selectedItem && <div className="invalid-feedback d-block">Please select an Item.</div>}
+//               </Form.Group>
+
+//               <Form.Group controlId="formQuantity">
+//                 <Form.Label>No of Box(es)</Form.Label>
+//                 <Form.Control
+//                   type="number"
+//                   placeholder="Enter No of Box(es)"
+//                   value={quantity}
+//                   onChange={(e) => setQuantity(e.target.value)}
+//                   className={!isValidModel && !quantity ? 'is-invalid' : ''}
+//                 />
+//                 {!isValidModel && !quantity && <div className="invalid-feedback d-block">Please enter a quantity.</div>}
+//               </Form.Group>
+
+//               <Button variant="primary" type="submit" className="mt-3">
+//                 Add Item
+//               </Button>
+//             </Form>
+//           </Modal.Body>
+//         </Modal>
+//       </Container>
+//     </main>
+//   );
+// }
+
+return (
+  <main id='main' className='main'>
+    <Container className="mt-4">
+      <Row>
+        <Col>
+          <h5 style={{ textAlign: "center" }}>Item Request</h5>
+        </Col>
+      </Row>
+
+      <Form onSubmit={handleSubmit}>
+        {/* User Selection */}
+        <Form.Group controlId="userSelect">
+          <Form.Label>Select User</Form.Label>
+          <Select
+            value={selectedUser}
+            onChange={handleChange}
+            options={usersOptions}
+            placeholder="Select User"
+            className={!isValid ? 'is-invalid' : ''}
+            styles={{
+              control: (base) => ({
+                ...base,
+                borderColor: !isValid ? 'red' : base.borderColor,
+                '&:hover': {
+                  borderColor: !isValid ? 'red' : base.borderColor,
+                },
+              }),
+            }}
+          />
+          {!isValid && <div className="invalid-feedback d-block">Please select a User.</div>}
+        </Form.Group>
+
+        <br />
+
+        {/* Item Request Table */}
+        <div className="item-request-table">
+          <table>
+            <thead>
+              <tr>
+                <th><center>Sl No</center></th>
+                <th><center>Item ID</center></th>
+                <th><center>Item Name</center></th>
+                <th><center>Box(es)</center></th>
+                <th><center>Quantity</center></th>
+                <th><center>Litres</center></th>
+                <th><center>Actions</center></th>
+              </tr>
+            </thead>
+            <tbody>
+              {selectedItems.map((item, index) => (
+                <tr key={index}>
+                  <td><center>{index + 1}</center></td>
+                  <td><center>{item.id}</center></td>
+                  <td><center>{item.name}</center></td>
+                  <td><center>{item.quantity}</center></td>
+                  <td><center>{item.quantity * item.noofitemsinbox}</center></td>
+                  <td><center>{item.quantity * item.noofitemsinbox * item.itemweight}</center></td>
+                  <td className="actions">
+                    <button 
+                      onClick={() => handleEditItem(index)} 
+                      className="action-button edit-button"
+                    >
+                      <FaEdit className="icon" />
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteItem(index)} 
+                      className="action-button delete-button"
+                    >
+                      <FaTrash className="icon" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <br />
+
+        {/* Add Button */}
         <Row>
-          <Col>
-            <h5 style={{ textAlign: "center" }}>Item Request</h5>
+          <Col className="d-flex justify-content-end mb-2">
+            <Button 
+              variant="success" 
+              onClick={handleShow} 
+              style={{ width: '100px' }} 
+              className="add-button"
+            >
+              <i className="bi bi-plus-lg"></i> ADD
+            </Button>
           </Col>
         </Row>
 
-        <Form onSubmit={handleSubmit}>
-          <Form.Group controlId="userSelect">
-            <Form.Label>Select User</Form.Label>
-            <Select
-              value={selectedUser}
-              onChange={handleChange}
-              options={usersOptions}
-              placeholder="Select User"
-              className={!isValid ? 'is-invalid' : ''}
-              styles={{
-                control: (base, state) => ({
-                  ...base,
-                  borderColor: !isValid ? 'red' : base.borderColor,
-                  '&:hover': {
-                    borderColor: !isValid ? 'red' : base.borderColor
-                  }
-                })
-              }}
-            />
-            {!isValid && <div className="invalid-feedback d-block">Please select a User.</div>}
-          </Form.Group>
-          <br />
-          <div className="item-request-table">
-        <table>
-          <thead>
-            <tr>
-            <th><center>slno</center></th>
-              <th><center>Itemid</center></th>
-              <th><center>Item Name</center></th>
-              <th><center>Box(es)</center></th>
-              <th><center>Quantity</center></th>
-              <th><center>Litres</center></th>
-              <th><center>Actions</center></th>
-            </tr>
-          </thead>
-          <tbody>
-          {selectedItems.map((item, index) => (
-                <tr key={index}>
-                <td><center>{index + 1}</center></td>
-                <td><center>{item.id}</center></td>
-                <td><center>{item.name}</center></td>
-                <td><center>{item.quantity}</center></td>
-                <td><center>{item.quantity*item.noofitemsinbox}</center></td>
-                <td><center>{item.quantity*item.noofitemsinbox*item.itemweight}</center></td>
-                <td className="actions">
-                  <button 
-                    onClick={() => handleEditItem(index)} 
-                    className="action-button edit-button"
-                  >
-                    <FaEdit className="icon" />
-                  </button>
-                  <button 
-                    onClick={() => handleDeleteItem(index)} 
-                    className="action-button delete-button"
-                  >
-                    <FaTrash className="icon" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-          <br />
-          <Row >
-            <Col className="d-flex justify-content-end mb-2">
-              <Button 
-                variant="success" 
-                onClick={handleShow} 
-                style={{ width: '100px' }} 
-                className="add-button"
-              >
-                <i className="bi bi-plus-lg"></i> ADD
-              </Button>
-            </Col>
-          </Row>
-          <div style={{ display: "flex", justifyContent: "center", margin: "0px auto" }}>
-            <Button type="submit" variant="primary" className="mt-3" style={{ width: "500px" }}>Submit</Button>
-          </div>
-        </Form>
+        {/* Submit Button */}
+        <div style={{ display: "flex", justifyContent: "center", margin: "0px auto" }}>
+          <Button type="submit" variant="primary" className="mt-3" style={{ width: "500px" }}>
+            Submit
+          </Button>
+        </div>
+      </Form>
 
-        <Modal show={show} onHide={handleClose}>
-          <Modal.Header closeButton>
-            <Modal.Title>Add Item</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <Form onSubmit={handleModelSubmit}>
-              <Form.Group controlId="formSelectOption">
-                <Form.Label>Select Item</Form.Label>
-                <Select
-                  value={selectedItem}
-                  onChange={setSelectedItem}
-                  options={items}
-                  placeholder="Select an Item"
-                  className={!isValidModel && !selectedItem ? 'is-invalid' : ''}
-                  styles={{
-                    control: (base, state) => ({
-                      ...base,
+      {/* Modal for Adding Items */}
+      <Modal show={show} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>Add Item</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleModelSubmit}>
+            <Form.Group controlId="formSelectOption">
+              <Form.Label>Select Item</Form.Label>
+              <Select
+                value={selectedItem}
+                onChange={setSelectedItem}
+                options={items}
+                placeholder="Select an Item"
+                className={!isValidModel && !selectedItem ? 'is-invalid' : ''}
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    borderColor: !isValidModel && !selectedItem ? 'red' : base.borderColor,
+                    '&:hover': {
                       borderColor: !isValidModel && !selectedItem ? 'red' : base.borderColor,
-                      '&:hover': {
-                        borderColor: !isValidModel && !selectedItem ? 'red' : base.borderColor
-                      }
-                    })
-                  }}
-                />
-                {!isValidModel && !selectedItem && <div className="invalid-feedback d-block">Please select an Item.</div>}
-              </Form.Group>
+                    },
+                  }),
+                }}
+              />
+              {!isValidModel && !selectedItem && <div className="invalid-feedback d-block">Please select an Item.</div>}
+            </Form.Group>
 
-              <Form.Group controlId="formQuantity">
-                <Form.Label>No of Box(es)</Form.Label>
-                <Form.Control
-                  type="number"
-                  placeholder="Enter No of Box(es)"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  className={!isValidModel && !quantity ? 'is-invalid' : ''}
-                />
-                {!isValidModel && !quantity && <div className="invalid-feedback d-block">Please enter a quantity.</div>}
-              </Form.Group>
+            <Form.Group controlId="formQuantity">
+              <Form.Label>No of Box(es)</Form.Label>
+              <Form.Control
+                type="number"
+                placeholder="Enter No of Box(es)"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                className={!isValidModel && !quantity ? 'is-invalid' : ''}
+              />
+              {!isValidModel && !quantity && <div className="invalid-feedback d-block">Please enter a quantity.</div>}
+            </Form.Group>
 
-              <Button variant="primary" type="submit" className="mt-3">
-                Add Item
-              </Button>
-            </Form>
-          </Modal.Body>
-        </Modal>
-      </Container>
-    </main>
-  );
+            <Button variant="primary" type="submit" className="mt-3">
+              Add Item
+            </Button>
+          </Form>
+        </Modal.Body>
+      </Modal>
+    </Container>
+  </main>
+);
 }
-

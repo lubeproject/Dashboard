@@ -2,6 +2,8 @@ import React, { useEffect, useState, useContext} from "react";
 import { supabase } from "../../supabaseClient";
 import "./Dashboard.css";
 import { UserContext } from "../context/UserContext";
+import { startOfWeek, subWeeks, isAfter, format } from 'date-fns';
+import { Card } from 'react-bootstrap';
 
 export default function Dashboard() {
   const [categoryData, setCategoryData] = useState({});
@@ -40,6 +42,11 @@ export default function Dashboard() {
     adjustment:0,
     totalAmounts: 0,
 });
+const [weeklyData, setWeeklyData] = useState([]);
+const [isDataFetched, setIsDataFetched] = useState(false);
+const [performanceData, setPerformanceData] = useState([]);
+const [totalLitresCount, setTotalLitresCount] = useState(0);
+const [recoveryData, setRecoveryData] = useState([]);
 
   // Function to get date ranges
   useEffect(() => {
@@ -87,7 +94,7 @@ export default function Dashboard() {
       const isAdmin = user?.role === 'admin'; // Adjust this condition based on your role management
     
       // Prepare the query to fetch payment data
-      let query = supabase.from('payment_reference').select('amount, createdtime');
+      let query = supabase.from('payment_reference').select('amount, createdtime').eq('paymentstatus','Approved');
     
       // If the user is a representative, filter by repid
       if (!isAdmin) {
@@ -128,10 +135,52 @@ export default function Dashboard() {
       });
     
       setData(updatedData);
+      setIsDataFetched(true);
     };
+
+  //   const OutstandingAnalysis = async () => {
+  //     // console.log("Current data:", data); // Check what data looks like
+  //     const total = Object.values(data).reduce((sum, val) => sum + val, 0);
+  //     // console.log("Total amount:", total); // Check the total calculated
+      
+  //     setTotalAmount(total);
+  
+  //     const percentages = Object.keys(data).map((key) => {
+  //         // return total > 0 ? Math.round((data[key] / total) * 100) : 0;
+  //         if (parseInt(total) === 0) {
+  //           return "0"; // Ensure two decimal places
+  //       }
+  //       if (parseInt((data[key] / total)) === 1) {
+  //         return "100"; // Ensure two decimal places
+  //     }
+  //         return ((data[key] / total) * 100).toFixed(2);
+  //     });
+  
+  //     setPercentageData(percentages);
+  // };
 
     fetchOutData();
   }, []);
+
+  useEffect(() => {
+    if (isDataFetched) {
+      const OutstandingAnalysis = async () => {
+        const total = Object.values(data).reduce((sum, val) => sum + val, 0);
+        setTotalAmount(total);
+
+        const percentages = Object.keys(data).map((key) => {
+          if (parseInt(total) === 0 || data[key]===0) {
+            return "0"; // Ensure two decimal places
+          }
+          return ((data[key] / total) * 100).toFixed(2);
+        });
+
+        setPercentageData(percentages);
+      };
+
+      OutstandingAnalysis();
+    }
+  }, [isDataFetched, data]);
 
   const fetchVisitData = async () => {
     const today = new Date();
@@ -224,11 +273,91 @@ const fetchPaymentData = async () => {
       console.error('Error fetching payment data:', error);
   }
 };
+const fetchYearWisePerformanceData = async () => {
+  try {
+    // Fetch turnover data from payment_reference
+    const userId = user?.userid;
+    const { data: turnoverData, error: turnoverError } = await supabase
+      .from('payment_reference')
+      .select('amount, createdtime')
+      .eq('userid', userId);
+
+    if (turnoverError) throw turnoverError;
+
+    // Extract year from createdtime and group turnover by year
+    const turnoverByYear = turnoverData.reduce((acc, record) => {
+      const year = new Date(record.createdtime).getFullYear();
+      acc[year] = (acc[year] || 0) + record.amount;
+      return acc;
+    }, {});
+
+    // Fetch "To be Cleared" data from payment_approval
+    const { data: approvalData, error: approvalError } = await supabase
+      .from('payment_approval')
+      .select('amount, createdtime, paymentstatus')
+      .eq('userid', userId)
+      .eq('paymentstatus', 'Pending'); // Assuming 'Pending' means "To be Cleared"
+
+    if (approvalError) throw approvalError;
+
+    // Extract year from createdtime and group "To be Cleared" by year
+    const toBeClearedByYear = approvalData.reduce((acc, record) => {
+      const year = new Date(record.createdtime).getFullYear();
+      acc[year] = (acc[year] || 0) + record.amount;
+      return acc;
+    }, {});
+
+    // Generate the final data array for display
+    const allYears = new Set([...Object.keys(turnoverByYear), ...Object.keys(toBeClearedByYear)]);
+    const finalData = Array.from(allYears).map(year => ({
+      year,
+      turnover: turnoverByYear[year] || 0,
+      toBeCleared: toBeClearedByYear[year] || 0,
+      creditDaysAvailed: 30, // Placeholder, replace with actual logic if needed
+    }));
+
+    // Update the state with the final data
+    setPerformanceData(finalData);
+  } catch (error) {
+    console.error('Error fetching year-wise performance data:', error);
+  }
+};
+
+const fetchTotalLitres = async () => {
+  setLoading(true);
+  const { data, error } = await supabase
+    .from('user_request')
+    .select('totalliters', { count: 'exact' })
+    .eq('userid', user.userid) // filter by current user's ID
+    .eq('role', 'mechanic');
+
+  if (error) {
+    console.error('Error fetching total litres:', error.message);
+  } else if (data) {
+    // Summing all 'totalliters'
+    const sumLitres = data.reduce((sum, item) => sum + item.totalliters, 0);
+    setTotalLitresCount(sumLitres);
+  }
+  setLoading(false);
+};
 
   useEffect(() => {
     if (user && user?.role === 'representative') { // Check if the user is a representative
         fetchVisitData();
         fetchPaymentData();
+    }
+    if(user && user?.role === 'admin'){
+      fetchWeeklyPerformance();
+    }
+    else{
+      fetchWeeklyData();
+    }
+
+    if(user && user?.role === 'retailer'){
+      fetchYearWisePerformanceData();
+    }
+    if(user && user?.role === 'mechanic'){
+      fetchTotalLitres();
     }
 }, [user]);
 
@@ -435,7 +564,7 @@ const fetchPaymentData = async () => {
 
     data.forEach((item) => {
       const category = item.categoryname;
-      const qty = item.qty;
+      const qty = item.totalliters;
       const itemDate = new Date(item.updatedtime);
 
       if (!quantities[category]) {
@@ -543,6 +672,127 @@ const fetchPaymentData = async () => {
     // console.log(weeklyPerformance);
   };
 
+  const fetchWeeklyData = async () => {
+    try {
+      const userId = user?.userid;
+      if (!userId) throw new Error('User ID is missing');
+  
+      const currentDate = new Date();
+      const fiveWeeksAgo = subWeeks(currentDate, 5);
+  
+      const isRepresentative = user?.role === 'representative';
+  
+      let orderData = [];
+      let collectionData = [];
+  
+      if (isRepresentative) {
+        // Fetch orders for representatives
+        const { data: repData, error } = await supabase
+          .from('represent_visiting1')
+          .select('visitingdate, orders, amount')
+          .eq('repid', userId)
+          .order('visitingdate', { ascending: false });
+  
+        if (error) throw error;
+        orderData = repData;
+        collectionData = repData; // For representatives, orders and amount are fetched in one go
+      } else {
+        // Fetch orders for non-representatives
+        const { data: userData, error: userError } = await supabase
+          .from('user_request')
+          .select('createdtime, totalliters')
+          .eq('userid', userId)
+          .order('createdtime', { ascending: false });
+  
+        if (userError) throw userError;
+        orderData = userData;
+  
+        // Fetch collection for non-representatives
+        const { data: visitingData, error: visitingError } = await supabase
+          .from('represent_visiting1')
+          .select('visitingdate, amount')
+          .eq('visitorid', userId)
+          .order('visitingdate', { ascending: false });
+  
+        if (visitingError) throw visitingError;
+        collectionData = visitingData;
+      }
+  
+      const weekOrderMap = new Map();
+      const weekCollectionMap = new Map();
+  
+      // Process order data
+      orderData.forEach((entry) => {
+        const entryDate = new Date(isRepresentative ? entry.visitingdate : entry.createdtime);
+        const weekStart = startOfWeek(entryDate, { weekStartsOn: 0 });
+  
+        if (isAfter(weekStart, fiveWeeksAgo)) {
+          const weekKey = format(weekStart, 'yyyy-MM-dd');
+  
+          if (!weekOrderMap.has(weekKey)) {
+            weekOrderMap.set(weekKey, {
+              weekStart: weekStart,
+              totalOrders: 0,
+            });
+          }
+  
+          const weekData = weekOrderMap.get(weekKey);
+          if ('orders' in entry) weekData.totalOrders += entry.orders;
+          if ('totalliters' in entry) weekData.totalOrders += entry.totalliters;
+        }
+      });
+  
+      // Process collection data
+      collectionData.forEach((entry) => {
+        const entryDate = new Date(entry.visitingdate);
+        const weekStart = startOfWeek(entryDate, { weekStartsOn: 0 });
+  
+        if (isAfter(weekStart, fiveWeeksAgo)) {
+          const weekKey = format(weekStart, 'yyyy-MM-dd');
+  
+          if (!weekCollectionMap.has(weekKey)) {
+            weekCollectionMap.set(weekKey, {
+              weekStart: weekStart,
+              totalCollection: 0,
+            });
+          }
+  
+          const weekData = weekCollectionMap.get(weekKey);
+          if ('amount' in entry) weekData.totalCollection += entry.amount;
+        }
+      });
+  
+      // Combine order and collection data
+      const combinedData = new Map();
+      [weekOrderMap, weekCollectionMap].forEach(map => {
+        map.forEach((value, key) => {
+          if (!combinedData.has(key)) {
+            combinedData.set(key, { ...value, totalOrders: value.totalOrders || 0, totalCollection: value.totalCollection || 0 });
+          } else {
+            const combinedValue = combinedData.get(key);
+            combinedValue.totalOrders += value.totalOrders || 0;
+            combinedValue.totalCollection += value.totalCollection || 0;
+          }
+        });
+      });
+  
+      // Convert map to an array, format, and sort
+      const formattedData = Array.from(combinedData.values())
+        .sort((a, b) => b.weekStart - a.weekStart)
+        .slice(0, 5)
+        .map((weekData, index) => ({
+          week: `Week ${index + 1}`,
+          order: weekData.totalOrders,
+          collection: weekData.totalCollection,
+          weekStart: format(weekData.weekStart, 'MMMM do, yyyy'),
+        }));
+  
+      setWeeklyData(formattedData);
+    } catch (error) {
+      console.error('Error fetching weekly data:', error);
+    }
+  };
+
   const summaryDetails = async () => {
     try {
       // Fetch representatives from the users table
@@ -556,12 +806,19 @@ const fetchPaymentData = async () => {
       setRepresentatives(reps);
 
       // Fetch payments for today's date from the payment_reference2 table
-      const today = new Date().toISOString().slice(0, 10); // Format date as YYYY-MM-DD
+      // const today = new Date().toISOString().slice(0, 10); // Format date as YYYY-MM-DD
+      const todayStart = new Date(new Date().setDate(new Date().getDate() - 1));
+      todayStart.setHours(0, 0, 0, 0); // Set to 00:00:00
+    const todayEnd = new Date(todayStart);
+    todayEnd.setHours(23, 59, 59, 999); 
+
 
       const { data: paymentsData, error: paymentsError } = await supabase
         .from("payment_reference")
         .select("repid, paymode, amount")
-        .eq("updatedtime", today); // Assuming 'updatedtime' is the date field in your table
+        .eq("paymentstatus",'Approved')
+        .gte("updatedtime", todayStart.toISOString())
+        .lte("updatedtime", todayEnd.toISOString());
 
       if (paymentsError) throw paymentsError;
 
@@ -591,12 +848,13 @@ const fetchPaymentData = async () => {
           dataByPaymode[paymode][repid] !== undefined
         ) {
           dataByPaymode[paymode][repid] += amount;
-          totalByRep[repid] += amount; // Increment the total for this representative
+          totalByRep[repid] += amount;
         }
       });
 
       // Update the state with the computed data
       setMappedData(dataByPaymode);
+      // console.log(dataByPaymode);
       setTotals(totalByRep); // Update the state with total amounts for each representative
     } catch (error) {
       console.error("Error fetching data from Supabase:", error.message);
@@ -630,27 +888,6 @@ const fetchPaymentData = async () => {
 
   //   setPercentageData(percentages);
   // };
-
-  const OutstandingAnalysis = async () => {
-    // console.log("Current data:", data); // Check what data looks like
-    const total = Object.values(data).reduce((sum, val) => sum + val, 0);
-    // console.log("Total amount:", total); // Check the total calculated
-    
-    setTotalAmount(total);
-
-    const percentages = Object.keys(data).map((key) => {
-        // return total > 0 ? Math.round((data[key] / total) * 100) : 0;
-        if (parseInt(total) === 0) {
-          return "0"; // Ensure two decimal places
-      }
-      if (parseInt((data[key] / total)) === 1) {
-        return "100"; // Ensure two decimal places
-    }
-        return ((data[key] / total) * 100).toFixed(2);
-    });
-
-    setPercentageData(percentages);
-};
 
   // useEffect(() => {
   //   const fetchData = async () => {
@@ -709,9 +946,34 @@ const fetchPaymentData = async () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data, error } = await supabase
+        // const { data, error } = await supabase
+        //   .from("user_request_items")
+        //   .select("*");
+        let query = supabase
           .from("user_request_items")
           .select("*");
+
+        if (user?.role === "representative") {
+          const { data: requestData, error: requestError } = await supabase
+              .from("user_request")
+              .select("reqid")
+              .eq("createdby", user?.userid); // Assuming repid is the representative ID in user_request
+
+            if (requestError) {
+              console.error("Error fetching requests for representative:", requestError);
+              return;
+            }
+
+          const reqIds = requestData.map((request) => request.reqid);
+          query = query
+            .in("reqid", reqIds);
+          
+        } else if (user?.role === "retailer" || user?.role === "mechanic") {
+          query = query
+            .eq("userid", user?.userid); // Use `eq` on the `userid` column
+        }
+
+        const { data, error } = await query;
   
         if (error) {
           throw error;
@@ -766,9 +1028,8 @@ const fetchPaymentData = async () => {
     fetchData();
     fetchSegments();
     fetchCategories();
-    fetchWeeklyPerformance();
     fetchPaymentApprovals();
-    OutstandingAnalysis();
+    // OutstandingAnalysis();
     summaryDetails();
   }, []);
 
@@ -790,29 +1051,29 @@ const fetchPaymentData = async () => {
   // const numberOfVisits = 5;
   // const numberOfAccounts = 12;
   // const totalLitres = 1500;
-  const cheque = 5;
-  const upi = 8;
-  const cash = 7;
-  const totalAmounts = 30000;
+  // const cheque = 5;
+  // const upi = 8;
+  // const cash = 7;
+  // const totalAmounts = 30000;
 
   const name = user?.name;
   const ironbox = "Special Ironbox Offer";
   const points = "1000 Points Earned";
-  const purchaseAnalysisData = [
-    { sl: 1, mineral: 50, synth: 100, psy: 70, total: 220 },
-    { sl: 2, mineral: 40, synth: 80, psy: 60, total: 180 },
-    // Add more rows as necessary
-  ];
+  // const purchaseAnalysisData = [
+  //   { sl: 1, mineral: 50, synth: 100, psy: 70, total: 220 },
+  //   { sl: 2, mineral: 40, synth: 80, psy: 60, total: 180 },
+  //   // Add more rows as necessary
+  // ];
 
-  const performanceData = [
-    { sl: 1, year: 2021, turnover: 50000, toBeCleared: 10000, creditDays: 30 },
-    { sl: 2, year: 2022, turnover: 60000, toBeCleared: 12000, creditDays: 40 },
-    // Add more rows as necessary
-  ];
+  // performanceData = [
+  //   { sl: 1, year: 2021, turnover: 50000, toBeCleared: 10000, creditDays: 30 },
+  //   { sl: 2, year: 2022, turnover: 60000, toBeCleared: 12000, creditDays: 40 },
+  //   // Add more rows as necessary
+  // ];
 
     // Dummy data
-    const companyName = "My Awesome Company";
-    const totalLitresCount = 1200;
+    const companyName = user?.name;
+    // const totalLitresCount = 1200;
     const totalRewards = 350;
     const pointsCount = 250;
 
@@ -821,7 +1082,7 @@ const fetchPaymentData = async () => {
       {user.role === "admin" ? (
         <>
           <h2>
-            <center>Purchase Analysis (Litres)</center>{" "}
+            <center>Sales Quantity Analysis (Litres)</center>{" "}
           </h2>
           <h4>Categorywise :</h4>
           <table className="category-table">
@@ -1050,7 +1311,7 @@ const fetchPaymentData = async () => {
                   </td>
                 ))}
                 <td>
-                  <center>100%</center>
+                  <center>{percentageData.reduce((acc, curr) => acc + parseFloat(curr), 0)}%</center>
                 </td>
               </tr>
             </tbody>
@@ -1170,36 +1431,56 @@ const fetchPaymentData = async () => {
             <br />
             {/* Second Child */}
             <div className="analysis-section">
-              <h4>Purchase Analysis (Litres):</h4>
+              <h4>Sales Quantity Analysis (Litres):</h4>
               <table className="responsive-table">
-                <thead>
-                  <tr>
-                    <th>Sl</th>
-                    <th>Mineral</th>
-                    <th>Synth</th>
-                    <th>PSY</th>
-                    <th>Total</th>
-                    <th>NA</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* Example row */}
-                  <tr>
-                    <td>1</td>
-                    <td>200</td>
-                    <td>150</td>
-                    <td>100</td>
-                    <td>450</td>
-                    <td>50</td>
-                  </tr>
-                </tbody>
-              </table>
+                  <thead>
+                    <tr>
+                      <th>
+                        <center>Category</center>
+                      </th>
+                      {totalColumns.map((col, index) => (
+                        <th key={index}>
+                          <center>{col}</center>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {categories.map((category, index) => (
+                      <tr key={index}>
+                        <td>
+                          <center>{category.categoryname}</center>
+                        </td>
+                        {totalColumns.map((col, i) => (
+                          <td key={i}>
+                            <center>
+                              {categoryData[category.categoryname] &&
+                              categoryData[category.categoryname][col] !== undefined
+                                ? categoryData[category.categoryname][col]
+                                : 0}
+                            </center>
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                    <tr>
+                      <td>
+                        <center>Total</center>
+                      </td>
+                      {totalCategoryValues.map((val, i) => (
+                        <td key={i}>
+                          <center>{val}</center>
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
             </div>
 
             {/* Third Child */}
             <div className="performance-section">
               <h4>Weekly Performance:</h4>
-              <table className="responsive-table">
+              {/* <table className="responsive-table">
                 <thead>
                   <tr>
                     <th>Sl</th>
@@ -1209,7 +1490,6 @@ const fetchPaymentData = async () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* Example row */}
                   <tr>
                     <td>1</td>
                     <td>Week 1</td>
@@ -1217,7 +1497,25 @@ const fetchPaymentData = async () => {
                     <td>₹200</td>
                   </tr>
                 </tbody>
-              </table>
+              </table> */}
+              <table className="responsive-table">
+              <thead>
+                <tr>
+                  <th>Week</th>
+                  <th>Order (Litres)</th>
+                  <th>Collection</th>
+                </tr>
+              </thead>
+              <tbody>
+                {weeklyData.map((data, index) => (
+                  <tr key={data.weekStart || index}>
+                    <td>{data.week}</td>
+                    <td>{data.order}</td>
+                    <td>₹{data.collection}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
             </div>
 
             {/* Fourth Child */}
@@ -1298,20 +1596,22 @@ const fetchPaymentData = async () => {
                       </td>
                     ))}
                     <td>
-                      <center>100%</center>
+                      <center>{percentageData.reduce((acc, curr) => acc + parseFloat(curr), 0)}%</center>
                     </td>
                   </tr>
                 </tbody>
               </table>
-            </div>
-
-            {/* Fifth Child */}
-            <div className="summary-section center-text p-5">
+              <br/>
               <h5 style={{ color: "darkorange" }}>
                 Average Ageing: {averageAgeing}
               </h5>
-              <h6>Summary of the Day: {summaryOfTheDay}</h6>
-              <br />
+              {/* <br/>
+              <h5>Summary of the Day: {summaryOfTheDay}</h5>
+              <br /> */}
+            </div>
+
+            {/* Fifth Child */}
+            {/* <div className="summary-section center-text p-5">
               <div>
                 <h6>Number of visits: {visitData.numberOfVisits}</h6>
                 <br />
@@ -1336,7 +1636,61 @@ const fetchPaymentData = async () => {
                   Total Amount: ₹ {paymentData.totalAmounts}
                 </h5>
               </div>
-            </div>
+            </div> */}
+            <Card className="summary-section center-text" style={{ padding: '1rem' }}>
+              <Card.Body style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderRadius: '15px' }}>
+                <Card.Title className="text-center" style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
+                  Summary of the Day
+                </Card.Title>
+
+                {/* Visits Section */}
+                <Card.Text style={{ margin: 0 }}>
+                  <h6 style={{ margin: '0.25rem 0', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>No. of visits:</span>
+                    <span>{visitData.numberOfVisits}</span>
+                  </h6>
+                  
+                  {/* Orders Section */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.5rem' }}>
+                    <div>
+                      <h5 style={{ color: 'red', fontSize: '1rem', margin: '0.25rem 0', display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Number Of Orders:</span>
+                        <span></span>
+                      </h5>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>No. of Accounts:</span>
+                        <span>{visitData.numberOfAccounts}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Total Litres:</span>
+                        <span>{visitData.totalLitres}</span>
+                      </div>
+                    </div>
+
+                    {/* Payments Section */}
+                    <div>
+                      <h5 style={{ color: 'red', fontSize: '1rem', margin: '0.25rem 0', display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Number of Payments:</span>
+                        <span></span>
+                      </h5>
+                      {['Cheque', 'UPI', 'Cash', 'Adjustment'].map(method => (
+                        <div key={method} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span>{method}:</span>
+                          <span>₹ {paymentData[method.toLowerCase()]}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Total Amount Section */}
+                  <h5 style={{ color: 'red', fontSize: '1rem', margin: '0.5rem 0 0.25rem 0', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Total Amount:</span>
+                    <span>₹ {paymentData.totalAmounts}</span>
+                  </h5>
+                </Card.Text>
+              </Card.Body>
+            </Card>
+
           </div>
         </>
       ) : user.role  === "retailer" ? (
@@ -1357,7 +1711,7 @@ const fetchPaymentData = async () => {
             {/* Fourth child: Purchase Analysis */}
             <div className="analysis-section">
               <h4>Purchase Analysis (Litres):</h4>
-              <table className="responsive-table">
+              {/* <table className="responsive-table">
                 <thead>
                   <tr>
                     <th>Sl</th>
@@ -1378,7 +1732,50 @@ const fetchPaymentData = async () => {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table> */}
+                <table className="responsive-table">
+                  <thead>
+                    <tr>
+                      <th>
+                        <center>Category</center>
+                      </th>
+                      {totalColumns.map((col, index) => (
+                        <th key={index}>
+                          <center>{col}</center>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {categories.map((category, index) => (
+                      <tr key={index}>
+                        <td>
+                          <center>{category.categoryname}</center>
+                        </td>
+                        {totalColumns.map((col, i) => (
+                          <td key={i}>
+                            <center>
+                              {categoryData[category.categoryname] &&
+                              categoryData[category.categoryname][col] !== undefined
+                                ? categoryData[category.categoryname][col]
+                                : 0}
+                            </center>
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                    <tr>
+                      <td>
+                        <center>Total</center>
+                      </td>
+                      {totalCategoryValues.map((val, i) => (
+                        <td key={i}>
+                          <center>{val}</center>
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
             </div>
 
             {/* Fifth child: Performance Data */}
@@ -1395,18 +1792,48 @@ const fetchPaymentData = async () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {performanceData.map((data, index) => (
-                    <tr key={index}>
-                      <td>{data.sl}</td>
-                      <td>{data.year}</td>
-                      <td>{data.turnover}</td>
-                      <td>{data.toBeCleared}</td>
-                      <td>{data.creditDays}</td>
-                    </tr>
-                  ))}
+                {performanceData.map((data, index) => (
+                  <tr key={index+1}>
+                    <td>{index+1}</td>
+                    <td>{data.year}</td>
+                    <td>₹{data.turnover}</td>
+                    <td>₹{data.toBeCleared}</td>
+                    <td>{data.creditDaysAvailed}</td>
+                  </tr>
+                ))}
                 </tbody>
               </table>
             </div>
+
+            {/* <div className="recovery-section">
+              {recoveryData.length > 0 && (
+                <>
+                  <h5>Recovery Data:</h5>
+                  <table className="responsive-table">
+                    <thead>
+                      <tr>
+                        <th>Inv.No.</th>
+                        <th>Date</th>
+                        <th>Value</th>
+                        <th>Balance</th>
+                        <th>Due Days</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recoveryData.map((data, index) => (
+                        <tr key={data.invid}>
+                          <td>{data.tallyrefinvno}</td>
+                          <td>{new Date(data.invdate).toLocaleDateString()}</td>
+                          <td>₹{data.amount}</td>
+                          <td>₹{data.balance}</td>
+                          <td>{data.ODDays}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              )}
+            </div> */}
           </div>
         </>
       ) : user.role  === "mechanic" ? (

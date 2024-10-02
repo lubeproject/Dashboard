@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { supabase } from '../../../supabaseClient';
 import './ItemMaster.css';
 import { FaEdit, FaTrash } from 'react-icons/fa';
+import { UserContext } from '../../context/UserContext';
 
 function ItemMaster() {
   const [itemMasters, setItemMasters] = useState([]);
@@ -16,6 +17,7 @@ function ItemMaster() {
   const [newSegmentId, setNewSegmentId] = useState('');
   const [newCategoryId, setNewCategoryId] = useState('');
   const [currentItemMaster, setCurrentItemMaster] = useState(null);
+  const {user} = useContext(UserContext);
 
   useEffect(() => {
     fetchItemMasters();
@@ -86,6 +88,8 @@ function ItemMaster() {
       segmentname: selectedSegment.segmentname ? selectedSegment.segmentname.trim() : '',
       categoryid: categoryIdNumber,
       categoryname: selectedCategory.categoryname ? selectedCategory.categoryname.trim() : '',
+      createdby: user?.userid,
+      updatedby: user?.userid,
       created: new Date().toISOString(),
       lastupdatetime: new Date().toISOString(),
     };
@@ -130,6 +134,7 @@ function ItemMaster() {
         categoryid: categoryIdNumber,
         categoryname: selectedCategory.categoryname ? selectedCategory.categoryname.trim() : '',
         lastupdatetime: new Date().toISOString(),
+        updatedby: user?.userid,
       })
       .eq('itemid', currentItemMaster.itemid);
 
@@ -146,7 +151,7 @@ function ItemMaster() {
   const handleDeleteItemMaster = async (itemid) => {
     const { error } = await supabase
       .from('item_master')
-      .update({ activestatus: 'N', lastupdatetime: new Date().toISOString() })
+      .delete()
       .eq('itemid', itemid);
 
     if (error) console.error('Error deleting item:', error.message);

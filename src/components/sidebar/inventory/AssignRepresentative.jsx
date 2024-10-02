@@ -743,8 +743,8 @@ export default function AssignRepresentative() {
       visitorid: visitorId,
       active: 'Y',
       lastupdatetime: new Date().toISOString(),
-      updatedby:user?.userid ,
-      createdby:user?.userid ,
+      updatedby:user?.userid,
+      createdby:user?.userid,
       // 'created' field is excluded here intentionally
     };
   

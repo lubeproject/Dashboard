@@ -200,7 +200,7 @@
 //     </main>
 //   );
 // }
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { Container, Row, Col, Button, Form, Table } from 'react-bootstrap';
 import Select from 'react-select';
@@ -208,6 +208,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import norecordfound from "../../../images/norecordfound.gif";
 import "./PaymentHistory.css";
+import { UserContext } from '../../context/UserContext';
 
 export default function PaymentHistory() {
   const [usersOptions, setUsersOptions] = useState([]);
@@ -217,19 +218,32 @@ export default function PaymentHistory() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [filteredData, setFilteredData] = useState([]);
+  const {user} = useContext(UserContext);
 
   useEffect(() => {
     // Fetch users and payment statuses
     const fetchInitialData = async () => {
-    const { data: usersData, error: usersError } = await supabase
+      let userQuery = supabase
       .from('users')
       .select('userid, shopname,name')
       .in('role', ['retailer','mechanic'])
       .order('userid', { ascending: true });
 
+      if(user?.role === 'representative'){
+        userQuery = userQuery
+        .eq('representativeid',user?.userid)
+        .eq('representativename',user?.name);
+      }else if(user?.role === 'retailer' || user?.role === 'mechanic'){
+        userQuery = userQuery
+        .eq('userid',user?.userid);
+      }
+    const { data: usersData, error: usersError } = await userQuery;
+
 
       if (usersError) console.error('Error fetching Users:', usersError);
-      else setUsersOptions(usersData.map(user => ({ value: user.userid, label: user.shopname })));
+      else {
+          setUsersOptions(usersData.map(user => ({ value: user.userid, label: user.shopname, name: user.name, role:user.role })));
+      }
     const { data: paymentStatusData, error: paymentStatusError } = await supabase
     .from('payment_status')
     .select('paystatusid, paymentstatus');
@@ -238,8 +252,9 @@ export default function PaymentHistory() {
       else setPaymentStatusOptions(paymentStatusData.map(status => ({ value: status.paystatusid, label: status.paymentstatus })));
     };  
 
+
     fetchInitialData();
-  }, []);
+  }, [user]);
 
     const formatDate = (dateString) => {
     const date = new Date(dateString);

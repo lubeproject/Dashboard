@@ -16,23 +16,27 @@ export default function SalesReport() {
   const handleFilter = async () => {
     try {
       // Step 1: Filter invoices by date range
-      let invoiceQuery = supabase.from('invoices').select('*');
+      let invoiceQuery = supabase.from('invoices1').select('*').order('createdtime',{ascending:false});
   
       if (startDate && endDate) {
         if (new Date(startDate) > new Date(endDate)) {
           alert("Pick From Date cannot be later than Pick To Date.");
           return;
         }
+        const adjustedEndDate = new Date(endDate);
+        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
         invoiceQuery = invoiceQuery
-          .gte('updatedtime', new Date(startDate).toISOString())
-          .lte('updatedtime', new Date(endDate).toISOString());
-        console.log("Date Range Filter Applied:", startDate, "to", endDate);
+          .gte('createdtime', new Date(startDate).toISOString())
+          .lt('createdtime', adjustedEndDate.toISOString());
+        console.log("Date Range Filter Applied:", startDate, "to", adjustedEndDate);
       } else if (startDate) {
-        invoiceQuery = invoiceQuery.gte('updatedtime', new Date(startDate).toISOString());
+        invoiceQuery = invoiceQuery.gte('createdtime', new Date(startDate).toISOString());
         console.log("Start Date Filter Applied:", startDate);
       } else if (endDate) {
-        invoiceQuery = invoiceQuery.lte('updatedtime', new Date(endDate).toISOString());
-        console.log("End Date Filter Applied:", endDate);
+        const adjustedEndDate = new Date(endDate);
+        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+        invoiceQuery = invoiceQuery.lt('createdtime', adjustedEndDate.toISOString());
+        console.log("End Date Filter Applied:", adjustedEndDate);
       }
   
       const { data: filteredInvoices, error: invoiceError } = await invoiceQuery;
@@ -51,7 +55,7 @@ export default function SalesReport() {
       // Step 2: Fetch corresponding items from invoice_items using invid
       const invIdArray = filteredInvoices.map(invoice => invoice.invid);
       const { data: invoiceItems, error: itemsError } = await supabase
-        .from('invoice_items')
+        .from('invoice_items1')
         .select('*')
         .in('invid', invIdArray);
   
@@ -60,30 +64,30 @@ export default function SalesReport() {
         return;
       }
   
-      // Step 3: Fetch retailer details from users table
-      const retailerIdArray = [...new Set(filteredInvoices.map(invoice => invoice.retailerid))]; // Get unique retailer IDs
-      const { data: retailers, error: retailerError } = await supabase
+      // Step 3: Fetch user details from users table
+      const userIdArray = [...new Set(filteredInvoices.map(invoice => invoice.userid))]; // Get unique user IDs
+      const { data: users, error: userError } = await supabase
         .from('users')
         .select('userid, name, representativename, cginno')
-        .in('userid', retailerIdArray)
-        .eq('role', 'retailer');
+        .in('userid', userIdArray)
+        .in('role', ['retailer','mechanic']);
   
-      if (retailerError) {
-        console.error('Error fetching retailer details:', retailerError.message);
+      if (userError) {
+        console.error('Error fetching user details:', userError.message);
         return;
       }
   
       // Step 4: Combine data and set to state
       const finalData = invoiceItems.map(item => {
         const invoice = filteredInvoices.find(inv => inv.invid === item.invid);
-        const retailer = retailers.find(ret => ret.userid === invoice.retailerid);
+        const user = users.find(ret => ret.userid === invoice.userid);
   
         return {
           ...item,
           tallyrefinvno: invoice.tallyrefinvno,
-          retailername: retailer ? retailer.name : 'N/A',
-          representativename: retailer ? retailer.representativename : 'N/A',
-          cginno: retailer ? retailer.cginno : 'N/A',
+          username: user ? user.name : 'N/A',
+          representativename: user ? user.representativename : 'N/A',
+          cginno: user ? user.cginno : 'N/A',
         };
       });
   
@@ -161,9 +165,9 @@ export default function SalesReport() {
                 <thead>
                   <tr>
                       <th>Inv.No / Date</th>
-                      <th>Retailer / GCIN / DSR </th>
+                      <th>Account / GCIN / DSR </th>
                       <th>Product / Segment / Category</th>
-                      <th>Size</th>
+                      {/* <th>Size</th> */}
                       <th>Sales (Litres)</th>
                   </tr>
                 </thead>
@@ -174,16 +178,16 @@ export default function SalesReport() {
                       <tr key={index}>
                         <td>Inv.no.{data.tallyrefinvno} <br /> {formatDate(data.updatedtime)}</td>
                         <td>
-                          {data.retailername.trim()} <br /> {/* Retailer Name */}
-                          {data.cginno} /  
+                          {data.username.trim()} <br /> {/* Retailer Name */}
+                          {data.cginno} <br/>  
                           <span style={{ color: 'red' }}> {data.representativename.trim()}</span> {/* GCIN/DSR on a new line */}
                         </td>
                         <td>
                           {data.itemname.trim()} <br /> {/* Product Name */}
-                          <span style={{ color: 'red' }}> {data.segmentname.trim()} </span> {/* Segment Name on a new line */}
+                          <span style={{ color: 'red' }}> {data.segmentname.trim()} </span> {/* Segment Name on a new line */}<br/>
                           <span style={{ color: 'blue' }}> {data.categoryname.trim()} </span> {/* Category Name on a new line */}
                         </td>
-                        <td>{data.itemweight}</td>
+                        {/* <td>{data.itemweight}</td> */}
                         <td>{data.liters}</td>
                       </tr>
                     ))}

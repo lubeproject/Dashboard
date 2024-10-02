@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { Container, Row, Col, Button, Form, Table } from 'react-bootstrap';
 import Select from 'react-select';
@@ -6,6 +6,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import norecordfound from "../../../images/norecordfound.gif";
 import "./SalesReportMechanicwise.css";
+import { UserContext } from '../../context/UserContext';
 
 export default function SalesReportMechanicwise() {
   const [mechanicsOptions, setMechanicsOptions] = useState([]);
@@ -14,21 +15,41 @@ export default function SalesReportMechanicwise() {
   const [endDate, setEndDate] = useState(null);
   const [filteredData, setFilteredData] = useState([]);
   const [filterApplied, setFilterApplied] = useState(false);
+  const {user} = useContext(UserContext);
 
   useEffect(() => {
     // Fetch mechanics from the users table
     const fetchMechanics = async () => {
-      const { data, error } = await supabase
-        .from('users')
+      let userQuery = supabase
+      .from('users')
         .select('userid, shopname, name, role')
-        .eq('role', 'mechanic');
+        .eq('role', 'mechanic')
+        .order('userid', { ascending: true });
+
+        if(user?.role === 'representative'){
+          userQuery = userQuery
+          .eq('representativeid',user?.userid)
+          .eq('representativename',user?.name);
+        }
+      const { data, error } = await userQuery;
+        
 
       if (error) console.error('Error fetching mechanics:', error);
-      else setMechanicsOptions(data.map(mechanic => ({ value: mechanic.userid, label: mechanic.shopname, name: mechanic.name })));
+      else setMechanicsOptions(data.map(mechanic => ({ value: mechanic.userid, label: mechanic.shopname, name: mechanic.name, role: mechanic.role })));
     };
-    
+    if (user?.role === 'mechanic') {
+      setMechanicsOptions([
+        {
+          value: user.userid,
+          label: user.shopname,
+          name: user.name,
+          role: user.role,
+        },
+      ]);
+    } else {
     fetchMechanics();
-  }, []);
+    }
+  }, [user]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -157,9 +178,9 @@ export default function SalesReportMechanicwise() {
                   {filteredData.map((data, index) => (
                     <tr key={index}>
                       <td>{index + 1}</td>
-                      <td>{formatDate(data.createddate)}</td>
-                      <td>{data.mechname}</td>
-                      <td>{data.mechshopname}</td>
+                      <td>{formatDate(data.createdtime)}</td>
+                      <td>{data.username}</td>
+                      <td>{data.usershopname}</td>
                       <td>{data.totalqty}</td>
                       <td>{data.totalliters}</td>
                       <td>{data.totalamount}</td>

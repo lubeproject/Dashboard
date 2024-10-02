@@ -438,6 +438,8 @@ const Visiting = () => {
               created: now,
               lastupdatetime: now,
               visitingday: visitingday,
+              createdby: user?.userid,
+              updatedby: user?.userid,
             },
           ])
           .select("punchingid"); // Selecting the primary key
@@ -574,6 +576,7 @@ const Visiting = () => {
           .update({
             checkouttime: getCurrentTime(),
             lastupdatetime: new Date(),
+            updatedby: user?.userid,
           })
           .eq("punchingid", visitId);
      
