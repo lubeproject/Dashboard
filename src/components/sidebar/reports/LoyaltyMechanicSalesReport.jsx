@@ -171,7 +171,7 @@
 //   );
 // }
 import React, { useState } from 'react';
-import supabase from "../../authUser/supabaseClient";
+import {supabase} from "../../../supabaseClient";
 import { Container, Row, Col, Button, Table } from 'react-bootstrap';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
