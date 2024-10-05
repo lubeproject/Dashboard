@@ -81,6 +81,15 @@ export default function SideBar() {
           </Link>
         </li>
 
+        {user.role === "admin" ? <><li className="nav-item">
+          <Link className="nav-link" to="/portal/user-approval"  onClick={handleToggleSideBar}>
+          <i class="bi bi-check2-all"></i>
+            <span>Approval-user</span>
+          </Link>
+        </li>
+      </> : null
+        }
+        
         <li className="nav-item">
           <a
             className="nav-link collapsed"
@@ -766,18 +775,11 @@ export default function SideBar() {
           </ul>
         </li>
        
-{user.role === "admin" ? <><li className="nav-item">
-          <Link className="nav-link" to="/portal/user-approval"  onClick={handleToggleSideBar}>
-          <i class="bi bi-check2-all"></i>
-            <span>Approval-user</span>
-          </Link>
-        </li>
-        <li className="nav-heading">PAGES</li></> : null
-        }
+
         
-        {navList.map((nav) => (
+        {/* {navList.map((nav) => (
           <NavItem key={nav._id} nav={nav} />
-        ))}
+        ))} */}
         
       </ul>
     </aside>

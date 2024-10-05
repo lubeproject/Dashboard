@@ -109,6 +109,7 @@ export default function Register() {
       setIsOtpValidated(true);
     
       alert("OTP validated successfully!");
+      // setIsOtpValidated(true);
       return true; // Return true when OTP is valid
     } else {
       setIsOtpValidated(false);
@@ -138,7 +139,7 @@ export default function Register() {
 
     try {
       setIsRegistering(true);
-      if (!isOtpValidated) {
+      if (isOtpValidated) {
         alert("Please validate OTP first.");
         setIsRegistering(false);
         return;

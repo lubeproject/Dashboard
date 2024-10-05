@@ -1,11 +1,17 @@
-import React from "react";
+import React, { useContext } from "react";
 import userImg from "../../images/user.png";
 import { Link, useNavigate } from "react-router-dom";
-
+import { UserContext } from "../context/UserContext";
 
 export default function NavAvatar() {
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+  const {user} = useContext(UserContext)
+
+  const getUsername = (email) => {
+    if (!email) return '';
+    return email.split('@')[0]; // Get everything before '@'
+  };
 
   const clear = () =>{
     localStorage.removeItem("user")
@@ -19,15 +25,16 @@ export default function NavAvatar() {
         href="/portal/dashboard"
         data-bs-toggle="dropdown"
       >
+        {/* <span className="d-none d-md-block dropdown-toggle ps-2">{user.name || getUsername(user.email)}</span> */}
+
         <img src={userImg} alt="Profile" className="rounded-circle" />
 
-        <span className="d-none d-md-block dropdown-toggle ps-2">SVL</span>
       </a>
 
       <ul className="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile">
         <li className="dropdown-header">
-          <h6>SVL</h6>
-          <span>Website</span>
+          <h6>{user.name || getUsername(user.email)} !</h6>
+          {/* <span>Website</span> */}
         </li>
         <li>
           <hr className="dropdown-divider" />
