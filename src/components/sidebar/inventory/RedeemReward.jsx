@@ -45,30 +45,119 @@ import { UserContext } from "../../context/UserContext";
 export default function RedeemReward() {
   const [giftItems, setGiftItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [userPoints, setUserPoints] = useState(50);
+  const [userPoints, setUserPoints] = useState(0);
   const {user} = useContext(UserContext);
 
   useEffect(() => {
+    const fetchUserPoints = async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('active', 'Y')
+        .eq('enablecheck','Y')
+        .eq('userid',user?.userid);
+    
+        if (error) {
+          console.error('Error fetching gift items:', error.message);
+        } else {
+          // console.log(data[0]);
+          
+          setUserPoints(data[0].rewardpoints);
+        }
+        
+    }
     const fetchGiftItems = async () => {
-      setLoading(true);
       const { data, error } = await supabase
         .from('giftitem_master')
         .select('*')
-        .eq('activestatus', 'Y'); // Fetch only active gift items
+        .eq('activestatus', 'Y');
 
       if (error) {
         console.error('Error fetching gift items:', error.message);
       } else {
         setGiftItems(data); // Set the fetched gift items to state
       }
-      setLoading(false);
     };
 
+    setLoading(true);
     fetchGiftItems();
-  }, []);
+    fetchUserPoints();
+    setLoading(false);
+  }, [user]);
 
-    const handleRedeem = () => {
-        console.log("Reward redeemed!");
+    // const handleRedeem = () => {
+    //     console.log("Reward redeemed!");
+    // };
+
+    const redeemGift = async (item) => {
+      try {
+        // Insert into the giftitem_redeem table
+        const { error: insertError } = await supabase
+          .from('giftitem_redeem')
+          .insert([
+            {
+              userid: user.userid,
+              name: user?.name,
+              shopname: user?.shopname,
+              itemid: item.itemid,
+              redeempoints: item.redeempoints,
+              itemname: item.itemname,
+              redeemapproval: 'N',
+              created: new Date().toISOString(),
+              lastupdatetime: new Date().toISOString(),
+              quantity: 1,
+              createdby: user?.userid,
+              updatedby: user?.userid
+            },
+          ]);
+  
+        if (insertError) {
+          console.error('Error inserting into giftitem_redeem:', insertError.message);
+          alert('Failed to redeem gift. Please try again.');
+          return;
+        }
+  
+        // Update the user's points
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({
+            rewardpoints: userPoints - item.redeempoints,
+          })
+          .eq('userid', user.userid);
+  
+        if (updateError) {
+          console.error('Error updating user points:', updateError.message);
+          alert('Failed to update user points. Please try again.');
+          return;
+        }
+  
+        console.log('Gift redeemed successfully!');
+        alert('Gift redeemed successfully!');
+        setUserPoints(userPoints - item.redeempoints);
+      } catch (error) {
+        console.error('Transaction failed:', error.message);
+        alert('Transaction failed. Please try again.');
+      }
+    };
+  
+    const handleRedeem = (giftname) => {
+      console.log("Attempting to redeem gift:", giftname);
+      
+      // Find the gift item that the user is trying to redeem
+      const item = giftItems.find(item => item.itemname === giftname);
+    
+      if (item) {
+        // Check if the user has enough points
+        if (userPoints >= item.redeempoints) {
+          redeemGift(item);
+        } else {
+          console.log("Not enough points to redeem this gift.");
+          alert("Not enough points to redeem this gift.");
+        }
+      } else {
+        console.log(`Gift item not found: ${giftname}. Available items:`, giftItems);
+        alert(`Gift item "${giftname}" not found. Please refresh the page and try again.`);
+      }
     };
 
   return (
@@ -85,7 +174,6 @@ export default function RedeemReward() {
         ) : (
          
           giftItems.map((item) => (
-           
             <div key={item.id} className="reward-box">
               <div className="reward-info">
                 <h5>{item.itemname}</h5> {/* Assuming `giftname` column in the table */}
@@ -94,16 +182,14 @@ export default function RedeemReward() {
               <div className="redeem-button-parent">
                 <button
                   className="redeem-button"
-                  onClick={() => handleRedeem(item.giftname)}
-                  disabled={userPoints < item.redeempoints} // Disable if user points are insufficient
+                  onClick={() => handleRedeem(item.itemname)}
+                  disabled={userPoints < item.redeempoints}
                 >
                   {userPoints >= item.redeempoints ? 'Redeem' : 'Not Enough Points'}
                 </button>
               </div>
             </div>
-           
           ))
-         
         )}
         </div>
       </div>

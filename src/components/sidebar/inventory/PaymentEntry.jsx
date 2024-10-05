@@ -35,6 +35,7 @@ export default function PaymentEntry() {
   const [isOTPSent, setIsOTPSent] = useState(false);
   const [error, setError] = useState(null);
   const {user} = useContext(UserContext);
+  const [isLoading, setIsLoading] = useState(true);
   
 
   useEffect(() => {
@@ -71,7 +72,41 @@ export default function PaymentEntry() {
       }
     };
 
+    const fetchVisiting = async () => {
+      console.log("Punching ID:", Cookies.get('punchingid'));
+
+      const { data, error } = await supabase
+        .from('represent_visiting1')
+        .select('*')
+        .eq('punchingid', Cookies.get('punchingid'));
+
+      // console.log(data);
+
+      if (error) console.error('Error fetching visiting user:', error);
+      else if (data && data.length > 0) {
+        setUserOptions(
+          data.map((visit) => ({
+            value: visit.visitorid,
+            label: visit.shopname,
+            name: visit.visitor,
+            role: visit.role,
+          }))
+        );
+      }
+    };
+
+    const punchingid = Cookies.get('punchingid');
+    if (user?.role === 'representative') {
+      if (!punchingid) {
+        alert('Please Scan The QR code of User');
+        setIsLoading(true); // Keep loading state if punchingid is not present
+        return;
+      }
+      setIsLoading(false);
+      fetchVisiting();
+    } else {
     fetchUserOptions();
+    }
   }, [user]);
 
   useEffect(() => {
@@ -94,7 +129,7 @@ export default function PaymentEntry() {
       if (error) {
         console.error('Error fetching payment approvals:', error);
       } else {
-        console.log('Fetched payment approvals:', data); // Log data for debugging
+        // console.log('Fetched payment approvals:', data); // Log data for debugging
         setPaymentApprovals(data);
       }
     };
@@ -201,7 +236,7 @@ export default function PaymentEntry() {
   // }
   // };
   const url = `https://api.msg4.cloud.robeeta.com/sms.aspx?apikey=${apiKey}&tmpid=${tmpid}&sid=${sid}&to=${to}&msg=${encodeURIComponent(msg)}`;
-  console.log(url);  
+  // console.log(url);  
   const response = await fetch(url);
 
     if (response.ok) {

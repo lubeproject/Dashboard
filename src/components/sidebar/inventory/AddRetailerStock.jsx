@@ -485,6 +485,7 @@ export default function AddRetailerStock() {
   const [errors, setErrors] = useState({});
   const [tempRequestItems, setTempRequestItems] = useState([]);
   const {user} = useContext(UserContext);
+  const [isSubmitted,setIsSubmitted] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -591,7 +592,28 @@ export default function AddRetailerStock() {
     setTempRequestItems(newItems);
   };
 
+  const fetchCategoryMasterData = async (items) => {
+    const categoryIds = items.map(item => item.categoryid);
+    const uniqueCategoryIds = Array.from(new Set(categoryIds));
+
+    const { data, error } = await supabase
+      .from('category_master')
+      .select('categoryid, pointsperltr')
+      .in('categoryid', uniqueCategoryIds);
+
+    if (error) {
+      console.error('Error fetching category master data:', error);
+      return {};
+    }
+
+    return data.reduce((acc, item) => {
+      acc[item.categoryid] = item;
+      return acc;
+    }, {});
+  };
+
   const handleSubmit = async (e) => {
+
     e.preventDefault();
 
     const newErrors = {};
@@ -609,6 +631,8 @@ export default function AddRetailerStock() {
     if (!selectedUser.repid) {
       newErrors.selectedUser = 'Representative ID is missing for the selected user.';
     }
+
+    setIsSubmitted(true);
 
       const updatedItems = requestItems.map((item, index) => {
       const tempDeliveredQty = tempRequestItems[index]?.tempDeliveredQty || 0;
@@ -687,6 +711,7 @@ export default function AddRetailerStock() {
           updatedtime: new Date(),
           createdby: user?.userid,
           updatedby: user?.userid,
+          rewardpoints: 0,
         }]).select();
 
       if (insertError) {
@@ -695,34 +720,84 @@ export default function AddRetailerStock() {
       }
 
       const invid = insertedInvoice[0].invid;
+      const categoryMasterData = await fetchCategoryMasterData(updatedItems);
+      const invoiceItemsWithRewardPoints = updatedItems.map((item, index) => {
+        const pointsperliter = categoryMasterData[item.categoryid]?.pointsperltr || 0;
+        const rewardpoints = (item.calculatedTotalLitres || 0) * pointsperliter;
+
+        return {
+          invid: invid,
+          reqid: selectedRequest.value,
+          repid: selectedUser.repid,
+          itemid: item.itemid,
+          userid: selectedUser.value,
+          itemname: item.itemname,
+          categoryid: item.categoryid,
+          categoryname: item.categoryname,
+          segmentid: item.segmentid,
+          segmentname: item.segmentname,
+          noofboxes: item.calculatednoofboxes,
+          qty: item.tempDeliveredQty,
+          liters: item.calculatedTotalLitres,
+          rewardpoints:parseFloat(rewardpoints.toFixed(2)),
+          createdtime: new Date(),
+          updatedtime: new Date(),
+        };
+      });
       // Insert invoice items
-      for (const item of updatedItems) {
+      for (const item of invoiceItemsWithRewardPoints) {
         const { error: insertItemError } = await supabase
           .from('invoice_items1')
-          .insert([{
-            invid: invid,
-            reqid: selectedRequest.value,
-            repid: selectedUser.repid,
-            itemid: item.itemid,
-            userid: selectedUser.value,
-            itemname: item.itemname,
-            categoryid: item.categoryid,
-            categoryname: item.categoryname,
-            segmentid: item.segmentid,
-            segmentname: item.segmentname,
-            noofboxes: item.calculatednoofboxes,
-            qty: item.tempDeliveredQty,
-            liters: item.calculatedTotalLitres,
-            createdtime: new Date(),
-            updatedtime: new Date(),
-          }]);
+          .insert([item]);
 
         if (insertItemError) {
           console.error('Error inserting invoice item:', insertItemError);
           return;
         }
-
       }
+
+      // Sum the rewardpoints of all items
+      const totalRewardPoints = parseFloat(invoiceItemsWithRewardPoints.reduce((sum, item) => sum + item.rewardpoints, 0).toFixed(2));
+      // Update the total rewardpoints in invoices1
+      const { error: updateInvoiceError } = await supabase
+        .from('invoices1')
+        .update({ rewardpoints: totalRewardPoints })
+        .eq('invid', invid);
+
+      if (updateInvoiceError) {
+        console.error('Error updating invoice with total rewardpoints:', updateInvoiceError);
+        return;
+      }
+
+      const { data: userPointsData, error: userPointsError } = await supabase
+        .from('users')
+        .select('rewardpoints')
+        .eq('userid', selectedUser.value)
+        .single(); // Assuming userid is unique and you only expect one result
+
+      if (userPointsError) {
+        console.error('Error fetching user reward points:', userPointsError);
+        return;
+      }
+
+      // Calculate the new reward points
+      const currentRewardPoints = userPointsData?.rewardpoints || 0; // Ensure it's a number
+      const newRewardPoints = parseFloat((currentRewardPoints + totalRewardPoints).toFixed(2));
+
+      // Update the user's reward points
+      const { error } = await supabase
+        .from('users')
+        .update({
+          rewardpoints: newRewardPoints,
+          updatedby: user?.userid,
+          updatedtime: new Date().toISOString(),
+          lastupdatedtime: new Date().toISOString(),
+        })
+        .eq('userid', selectedUser.value);
+
+      if (error) {
+        console.error('Error updating reward points:', error);
+      } 
 
       // const punchId = Cookies.get("punchingid");
       // const liters = insertedInvoice[0].totalliters;
@@ -752,6 +827,7 @@ export default function AddRetailerStock() {
 
       console.log('Stock added and invoice created successfully!');
       alert('Invoice Created Successfully!');
+      setIsSubmitted(false);
     } catch (error) {
       console.error('Error during submission:', error);
     }
@@ -880,8 +956,8 @@ export default function AddRetailerStock() {
                 </>
               )}
 
-              <Button variant="primary" type="submit">
-                Submit
+              <Button variant="primary" type="submit" disabled={isSubmitted} >
+                {isSubmitted? 'Submitting': 'Submit'}
               </Button>
             </Form>
           </Col>

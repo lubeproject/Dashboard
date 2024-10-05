@@ -8,8 +8,8 @@ import norecordfound from "../../../images/norecordfound.gif";
 import "./LinesperDealerReport.css";
 
 export default function LinesperDealerReport() {
-  const [retailersOptions, setRetailersOptions] = useState([]);
-  const [selectedRetailer, setSelectedRetailer] = useState(null);
+  const [usersOptions, setUsersOptions] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [filteredData, setFilteredData] = useState([]);
@@ -17,46 +17,46 @@ export default function LinesperDealerReport() {
 
   useEffect(() => {
     // Fetch mechanics from the users table
-    const fetchRetailers = async () => {
+    const fetchUsers = async () => {
       const { data, error } = await supabase
         .from('users')
         .select('userid, shopname, name, role')
         .eq('role', 'retailer');
 
-      if (error) console.error('Error fetching Retailers:', error);
-      else setRetailersOptions(data.map(retailer => ({ value: retailer.userid, label: retailer.shopname, name: retailer.name })));
+      if (error) console.error('Error fetching Users:', error);
+      else setUsersOptions(data.map(user => ({ value: user.userid, label: user.shopname, name: user.name })));
     };
 
-    fetchRetailers();
+    fetchUsers();
   }, []);
 
   const handleFilter = async () => {
     try {
-      // Fetch all records for the selected retailer
-      const { data: allRetailerRequests, error: retailerError } = await supabase
-        .from('invoices')
+      // Fetch all records for the selected user
+      const { data: allUserRequests, error: userError } = await supabase
+        .from('invoices1')
         .select('*')
-        .eq('retailerid', selectedRetailer.value);
+        .eq('userid', selectedUser.value);
   
-      if (retailerError) {
-        console.error('Error fetching retailer requests:', retailerError);
+      if (userError) {
+        console.error('Error fetching user requests:', userError);
         return;
       }
   
-      console.log("All Requests for Retailer:", allRetailerRequests);
+      console.log("All Requests for User:", allUserRequests);
   
       // Extract reqid values
-      const invIdArray = allRetailerRequests.map(invoice => invoice.invid);
+      const invIdArray = allUserRequests.map(invoice => invoice.invid);
   
       if (invIdArray.length === 0) {
-        console.warn('No requests found for the selected retailer.');
+        console.warn('No requests found for the selected user.');
         setFilteredData([]);
         return;
       }
   
       // Fetch all items from invoice_items
       const { data: allItemsData, error: itemsError } = await supabase
-        .from('invoice_items')
+        .from('invoice_items1')
         .select('*')
         .in('invid', invIdArray);
   
@@ -106,7 +106,7 @@ export default function LinesperDealerReport() {
   };
 
   const handleReset = () => {
-    setSelectedRetailer(null);
+    setSelectedUser(null);
     setStartDate(null);
     setEndDate(null);
     setFilteredData([]);
@@ -116,9 +116,9 @@ export default function LinesperDealerReport() {
   const customSelectStyles = {
     control: (provided, state) => ({
       ...provided,
-      borderColor: !selectedRetailer ? 'red' : provided.borderColor,
+      borderColor: !selectedUser ? 'red' : provided.borderColor,
       '&:hover': {
-        borderColor: !selectedRetailer ? 'red' : provided.borderColor,
+        borderColor: !selectedUser ? 'red' : provided.borderColor,
       },
     }),
   };
@@ -133,12 +133,12 @@ export default function LinesperDealerReport() {
         </Row>
         <Row className="mb-2 select-row">
           <Col md={12} xs={12} className="mb-2">
-            <Form.Group controlId="formRetailer">
+            <Form.Group controlId="formUser">
               <Select
-                value={selectedRetailer}
-                onChange={setSelectedRetailer}
-                options={retailersOptions}
-                placeholder="Select Retailer"
+                value={selectedUser}
+                onChange={setSelectedUser}
+                options={usersOptions}
+                placeholder="Select User"
                 styles={customSelectStyles}
               />
             </Form.Group>

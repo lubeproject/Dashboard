@@ -18,20 +18,21 @@ export default function ItemRequest() {
   const [show, setShow] = useState(false);
   const [isValid, setIsValid] = useState(true);
   const [isValidModel, setIsValidModel] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const { user } = useContext(UserContext);
 
   useEffect(() => {
     const fetchUsers = async () => {
       let userQuery = supabase
-      .from('users')
-      .select('*')
-      .in('role', ['retailer', 'mechanic'])
-      .order('userid', { ascending: true });
+        .from('users')
+        .select('*')
+        .in('role', ['retailer', 'mechanic'])
+        .order('userid', { ascending: true });
 
-      // if(user?.role === 'representative'){
+      // if (user?.role === 'representative') {
       //   userQuery = userQuery
-      //   .eq('representativeid',user?.userid)
-      //   .eq('representativename',user?.name);
+      //     .eq('representativeid', user?.userid)
+      //     .eq('representativename', user?.name);
       // }
 
       const { data, error } = await userQuery;
@@ -46,6 +47,29 @@ export default function ItemRequest() {
             role: user.role,
           }))
         );
+    };
+
+    const fetchVisiting = async () => {
+      console.log("Punching ID:", Cookies.get('punchingid'));
+
+      const { data, error } = await supabase
+        .from('represent_visiting1')
+        .select('*')
+        .eq('punchingid', Cookies.get('punchingid'));
+
+      // console.log(data);
+
+      if (error) console.error('Error fetching visiting user:', error);
+      else if (data && data.length > 0) {
+        setUsersOptions(
+          data.map((visit) => ({
+            value: visit.visitorid,
+            label: visit.shopname,
+            name: visit.visitor,
+            role: visit.role,
+          }))
+        );
+      }
     };
 
     const fetchItems = async () => {
@@ -71,20 +95,30 @@ export default function ItemRequest() {
         );
     };
 
-    if (user?.role === 'retailer' || user?.role === 'mechanic') {
-      setUsersOptions([
-        {
-          value: user.userid,
-          label: user.shopname,
-          name: user.name,
-          role: user.role,
-        },
-      ]);
-    } else {
-      fetchUsers();
+    const punchingid = Cookies.get('punchingid');
+  if (user?.role === 'retailer' || user?.role === 'mechanic') {
+    setUsersOptions([
+      {
+        value: user.userid,
+        label: user.shopname,
+        name: user.name,
+        role: user.role,
+      },
+    ]);
+  } else if (user?.role === 'representative') {
+    if (!punchingid) {
+      alert('Please Scan The QR code of User');
+      setIsLoading(true); // Keep loading state if punchingid is not present
+      return;
     }
-    fetchItems();
-  }, [user]);
+    setIsLoading(false);
+    fetchVisiting();
+  } else {
+    fetchUsers();
+  }
+  fetchItems();
+}, [user]);
+
 
   const handleShow = () => setShow(true);
   const handleClose = () => {

@@ -46,6 +46,8 @@ const [weeklyData, setWeeklyData] = useState([]);
 const [isDataFetched, setIsDataFetched] = useState(false);
 const [performanceData, setPerformanceData] = useState([]);
 const [totalLitresCount, setTotalLitresCount] = useState(0);
+const [totalRewards, setTotalRewards] = useState(0);
+const [giftItems, setGiftItems] = useState([]);
 const [recoveryData, setRecoveryData] = useState([]);
 
   // Function to get date ranges
@@ -338,7 +340,31 @@ const fetchTotalLitres = async () => {
     const sumLitres = data.reduce((sum, item) => sum + item.totalliters, 0);
     setTotalLitresCount(sumLitres);
   }
+  const { data: rewardData, error: rewardError } = await supabase
+    .from('users')
+    .select('rewardpoints')
+    .eq('userid', user.userid); // filter by current user's ID
+
+  if (rewardError) {
+    console.error('Error fetching reward points:', rewardError.message);
+  } else if (rewardData?.length > 0) {
+    setTotalRewards(rewardData[0].rewardpoints);
+  }
+
   setLoading(false);
+};
+
+const fetchGiftItems = async () => {
+  const { data, error } = await supabase
+    .from('giftitem_master')
+    .select('*')
+    .eq('activestatus', 'Y');
+
+  if (error) {
+    console.error('Error fetching gift items:', error.message);
+  } else {
+    setGiftItems(data);
+  }
 };
 
   useEffect(() => {
@@ -355,9 +381,11 @@ const fetchTotalLitres = async () => {
 
     if(user && user?.role === 'retailer'){
       fetchYearWisePerformanceData();
+      fetchGiftItems();
     }
     if(user && user?.role === 'mechanic'){
       fetchTotalLitres();
+      fetchGiftItems();
     }
 }, [user]);
 
@@ -1074,7 +1102,7 @@ const fetchTotalLitres = async () => {
     // Dummy data
     const companyName = user?.name;
     // const totalLitresCount = 1200;
-    const totalRewards = 350;
+    // const totalRewards = 350;
     const pointsCount = 250;
 
   return (
@@ -1703,9 +1731,15 @@ const fetchTotalLitres = async () => {
             <h5>Offers:</h5>
 
             {/* Third child: Ironbox and Points */}
-            <div className="offers-section">
-              <h6>{ironbox}</h6>
-              <h6>{points}</h6>
+            <div className="mechanic-dashboard-offers">
+            {giftItems.map((item) => (
+                <div key={item.id} className="reward-box">
+                  <div className="reward-info">
+                    <h5 className="item-name">{item.itemname}</h5> {/* Display item name */}
+                    <h6 className="redeem-points">Redeem Points: {item.redeempoints}</h6> {/* Display required redeem points */}
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Fourth child: Purchase Analysis */}
@@ -1866,12 +1900,14 @@ const fetchTotalLitres = async () => {
 
             {/* Fourth Child - Iron Box and Points */}
             <div className="mechanic-dashboard-offers">
-              <div className="mechanic-offer-item">
-                <h5>Iron box</h5>
-              </div>
-              <div className="mechanic-offer-item">
-                <h5>Points: {pointsCount}</h5>
-              </div>
+              {giftItems.map((item) => (
+                <div key={item.id} className="reward-box">
+                  <div className="reward-info">
+                    <h5 className="item-name">{item.itemname}</h5> {/* Display item name */}
+                    <h6 className="redeem-points">Redeem Points: {item.redeempoints}</h6> {/* Display required redeem points */}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </>
