@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import supabase from "../../authUser/supabaseClient";
+import {supabase} from "../../../supabaseClient";
 import { Container, Row, Col, Button, Form, Table } from 'react-bootstrap';
 import Select from 'react-select';
 import DatePicker from 'react-datepicker';
