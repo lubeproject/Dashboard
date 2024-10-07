@@ -126,12 +126,16 @@ export default function DsrKeyRouteOnDay() {
     setSelectedDay(selectedOption);
 
     // Fetch data for the current representative based on the selected day
-    const { data, error } = await supabase
+    let query = supabase
       .from('representassigned_master')
       .select('*')
-      .eq('representativeid', user?.userid) // Filter by current representative
-      .eq('visitingdayid', dayId);
+      .eq('representativeid', user?.userid);
 
+      if (selectedDay) {
+        query = query.eq('visitingdayid', dayId);
+      }
+
+      const { data, error } = await query;
     if (error) {
       console.error('Error fetching data for the representative:', error);
       setTableData([]); // Clear table data on error
