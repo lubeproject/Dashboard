@@ -2,13 +2,14 @@
 import React, { useState} from 'react';
 import { Form, Button, Container, Row, Col } from 'react-bootstrap';
 import { FaMapMarkerAlt } from 'react-icons/fa';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './updateMechanicDetails.css';
 import {supabase} from '../../../supabaseClient';
 
 const UpdateMechanicDetails = () => {
   const location = useLocation();
   const { mechanic } = location.state || {};
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     shopName: mechanic?.shopname?.trim() || '',
@@ -26,7 +27,7 @@ const UpdateMechanicDetails = () => {
     geoLocation: mechanic?.latitude && mechanic?.longitude
     ? `${mechanic.latitude}, ${mechanic.longitude}`
     : '',
-    shopImage: mechanic?.shopimgurl?.trim() || '',
+    shopImage1: mechanic?.shopimgurl?.trim() || '',
     shopImage2: mechanic?.shopimgurl2?.trim() || '',
     shopImageFile: null,
     shopImage2File: null,
@@ -123,7 +124,7 @@ const UpdateMechanicDetails = () => {
     if (!formData.monthlyPotential) newErrors.monthlyPotential = 'Monthly Potential is required';
     if (!formData.geoLocation) newErrors.geoLocation = 'Geo Location is required';
     if (!formData.shopImage1) newErrors.shopImage1 = 'Shop Image is required';
-
+    
     return newErrors;
   };
 
@@ -177,7 +178,7 @@ const UpdateMechanicDetails = () => {
     const formErrors = validateForm();
     if (Object.keys(formErrors).length === 0) {
       try {
-        let shopImageUrl = formData.shopImage;
+        let shopImageUrl = formData.shopImage1;
         let shopImage2Url = formData.shopImage2;
 
         if (formData.shopImageFile) {
@@ -234,6 +235,10 @@ const UpdateMechanicDetails = () => {
       setErrors(formErrors);
     }
   };
+
+  const handleCancel= () => {
+    navigate('/portal/mechaniclist');
+  }
 
   return (
     <main id='main' className='main'>
@@ -513,6 +518,9 @@ const UpdateMechanicDetails = () => {
   
           <Button type="submit" style={{ minWidth: '100%', alignItems: 'center' }}>
             Submit
+          </Button>
+          <Button variant="secondary" className="w-48" onClick={handleCancel} style={{ minWidth: '100%', alignItems: 'center',backgroundColor:'red' }}>
+            Cancel
           </Button>
         </Form>
       </Container>
