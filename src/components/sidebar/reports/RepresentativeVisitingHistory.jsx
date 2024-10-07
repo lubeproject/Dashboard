@@ -42,13 +42,17 @@ export default function RepresentativeVisitingHistory() {
           alert("Pick From Date cannot be later than Pick To Date.");
           return;
         }
+        const adjustedEndDate = new Date(endDate);
+        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
         visitingQuery = visitingQuery
           .gte('created', new Date(startDate).toISOString())  // Ensure only date is used
-          .lte('created', new Date(endDate).toISOString());
+          .lte('created', adjustedEndDate.toISOString());
       } else if (startDate) {
-        visitingQuery = visitingQuery.gte('created', new Date(startDate).toISOString().slice(0, 10));
+        visitingQuery = visitingQuery.gte('created', new Date(startDate).toISOString());
       } else if (endDate) {
-        visitingQuery = visitingQuery.lte('created', new Date(endDate).toISOString().slice(0, 10));
+        const adjustedEndDate = new Date(endDate);
+        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+        visitingQuery = visitingQuery.lte('created', adjustedEndDate.toISOString());
       }
 
       const { data: filteredVisitingData, error: visitingError } = await visitingQuery;
