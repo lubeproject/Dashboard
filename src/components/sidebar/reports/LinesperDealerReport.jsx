@@ -21,7 +21,8 @@ export default function LinesperDealerReport() {
       const { data, error } = await supabase
         .from('users')
         .select('userid, shopname, name, role')
-        .eq('role', 'retailer');
+        .eq('role', 'retailer')
+        .order('userid',{ascending:true});
 
       if (error) console.error('Error fetching Users:', error);
       else setUsersOptions(data.map(user => ({ value: user.userid, label: user.shopname, name: user.name })));
