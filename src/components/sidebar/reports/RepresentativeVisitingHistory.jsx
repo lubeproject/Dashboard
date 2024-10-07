@@ -35,7 +35,8 @@ export default function RepresentativeVisitingHistory() {
       let visitingQuery = supabase
         .from('represent_visiting1')
         .select('*')
-        .eq('repid', selectedDsr.value);
+        .eq('repid', selectedDsr.value)
+        .order('punchingid',{ascending:true});
 
       if (startDate && endDate) {
         if (new Date(startDate) > new Date(endDate)) {
