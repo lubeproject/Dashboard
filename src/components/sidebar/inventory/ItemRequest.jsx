@@ -17,6 +17,7 @@ export default function ItemRequest() {
   const [quantity, setQuantity] = useState('');
   const [show, setShow] = useState(false);
   const [isValid, setIsValid] = useState(true);
+  const [userValidationError, setUserValidationError] = useState('');
   const [isValidModel, setIsValidModel] = useState(true);
   const { user } = useContext(UserContext);
 
@@ -105,6 +106,12 @@ export default function ItemRequest() {
         setIsValidModel(false);
         return;
     }
+
+    if (selectedItems.length === 0) {
+      alert('Please add items to the request.');
+      return;
+    }
+    
     const duplicateItem = selectedItems.find(item => item.id === selectedItem.value);
 
     if (duplicateItem) {
@@ -160,10 +167,18 @@ const handleDeleteItem = (index) => {
 const handleSubmit = async (e) => {
   e.preventDefault();
 
-  if (!selectedUser || selectedItems.length === 0) {
-    setIsValid(false);
+  if (!selectedUser) {
+    setUserValidationError('Please select a User');
     return;
   }
+
+  if (selectedItems.length === 0) {
+    alert('Please add items to the request.');
+    return;
+  }
+
+
+  setUserValidationError('');
 
   // Calculate total quantity, total amount, and total liters
   const totalQty = selectedItems.reduce((acc, item) => acc + item.quantity * item.noofitemsinbox, 0);
@@ -433,6 +448,157 @@ const handleSubmit = async (e) => {
 //   );
 // }
 
+// return (
+//   <main id='main' className='main'>
+//     <Container className="mt-4">
+//       <Row>
+//         <Col>
+//           <h5 style={{ textAlign: "center" }}>Item Request</h5>
+//         </Col>
+//       </Row>
+
+//       <Form onSubmit={handleSubmit}>
+//         {/* User Selection */}
+//         <Form.Group controlId="userSelect">
+//           <Form.Label>Select User</Form.Label>
+//           <Select
+//             value={selectedUser}
+//             onChange={handleChange}
+//             options={usersOptions}
+//             placeholder="Select User"
+//             className={!isValid ? 'is-invalid' : ''}
+//             styles={{
+//               control: (base) => ({
+//                 ...base,
+//                 borderColor: !isValid ? 'red' : base.borderColor,
+//                 '&:hover': {
+//                   borderColor: !isValid ? 'red' : base.borderColor,
+//                 },
+//               }),
+//             }}
+//           />
+//           {!isValid && <div className="invalid-feedback d-block">Please select a User.</div>}
+//         </Form.Group>
+
+//         <br />
+
+//         {/* Item Request Table */}
+//         <div className="item-request-table">
+//           <table>
+//             <thead>
+//               <tr>
+//                 <th><center>Sl No</center></th>
+//                 <th><center>Item ID</center></th>
+//                 <th><center>Item Name</center></th>
+//                 <th><center>Box(es)</center></th>
+//                 <th><center>Quantity</center></th>
+//                 <th><center>Litres</center></th>
+//                 <th><center>Actions</center></th>
+//               </tr>
+//             </thead>
+//             <tbody>
+//               {selectedItems.map((item, index) => (
+//                 <tr key={index}>
+//                   <td><center>{index + 1}</center></td>
+//                   <td><center>{item.id}</center></td>
+//                   <td><center>{item.name}</center></td>
+//                   <td><center>{item.quantity}</center></td>
+//                   <td><center>{item.quantity * item.noofitemsinbox}</center></td>
+//                   <td><center>{item.quantity * item.noofitemsinbox * item.itemweight}</center></td>
+//                   <td className="actions">
+//                     <button 
+//                       onClick={() => handleEditItem(index)} 
+//                       className="action-button edit-button"
+//                     >
+//                       <FaEdit className="icon" />
+//                     </button>
+//                     <button 
+//                       onClick={() => handleDeleteItem(index)} 
+//                       className="action-button delete-button"
+//                     >
+//                       <FaTrash className="icon" />
+//                     </button>
+//                   </td>
+//                 </tr>
+//               ))}
+//             </tbody>
+//           </table>
+//         </div>
+
+//         <br />
+
+//         {/* Add Button */}
+//         <Row>
+//           <Col className="d-flex justify-content-end mb-2">
+//             <Button 
+//               variant="success" 
+//               onClick={handleShow} 
+//               style={{ width: '100px' }} 
+//               className="add-button"
+//             >
+//               <i className="bi bi-plus-lg"></i> ADD
+//             </Button>
+//           </Col>
+//         </Row>
+
+//         {/* Submit Button */}
+//         <div style={{ display: "flex", justifyContent: "center", margin: "0px auto" }}>
+//           <Button type="submit" variant="primary" className="mt-3" style={{ width: "500px" }}>
+//             Submit
+//           </Button>
+//         </div>
+//       </Form>
+
+//       {/* Modal for Adding Items */}
+//       <Modal show={show} onHide={handleClose}>
+//         <Modal.Header closeButton>
+//           <Modal.Title>Add Item</Modal.Title>
+//         </Modal.Header>
+//         <Modal.Body>
+//           <Form onSubmit={handleModelSubmit}>
+//             <Form.Group controlId="formSelectOption">
+//               <Form.Label>Select Item</Form.Label>
+//               <Select
+//                 value={selectedItem}
+//                 onChange={setSelectedItem}
+//                 options={items}
+//                 placeholder="Select an Item"
+//                 className={!isValidModel && !selectedItem ? 'is-invalid' : ''}
+//                 styles={{
+//                   control: (base) => ({
+//                     ...base,
+//                     borderColor: !isValidModel && !selectedItem ? 'red' : base.borderColor,
+//                     '&:hover': {
+//                       borderColor: !isValidModel && !selectedItem ? 'red' : base.borderColor,
+//                     },
+//                   }),
+//                 }}
+//               />
+//               {!isValidModel && !selectedItem && <div className="invalid-feedback d-block">Please select an Item.</div>}
+//             </Form.Group>
+
+//             <Form.Group controlId="formQuantity">
+//               <Form.Label>No of Box(es)</Form.Label>
+//               <Form.Control
+//                 type="number"
+//                 placeholder="Enter No of Box(es)"
+//                 value={quantity}
+//                 onChange={(e) => setQuantity(e.target.value)}
+//                 className={!isValidModel && !quantity ? 'is-invalid' : ''}
+//               />
+//               {!isValidModel && !quantity && <div className="invalid-feedback d-block">Please enter a quantity.</div>}
+//             </Form.Group>
+
+//             <Button variant="primary" type="submit" className="mt-3">
+//               Add Item
+//             </Button>
+//           </Form>
+//         </Modal.Body>
+//       </Modal>
+//     </Container>
+//   </main>
+// );
+// }
 return (
   <main id='main' className='main'>
     <Container className="mt-4">
@@ -448,21 +614,24 @@ return (
           <Form.Label>Select User</Form.Label>
           <Select
             value={selectedUser}
-            onChange={handleChange}
+            onChange={(selectedOption) => {
+              setSelectedUser(selectedOption);
+              setUserValidationError('');
+            }}
             options={usersOptions}
             placeholder="Select User"
-            className={!isValid ? 'is-invalid' : ''}
+            className={userValidationError ? 'is-invalid' : ''}
             styles={{
               control: (base) => ({
                 ...base,
-                borderColor: !isValid ? 'red' : base.borderColor,
+                borderColor: userValidationError ? 'red' : base.borderColor,
                 '&:hover': {
-                  borderColor: !isValid ? 'red' : base.borderColor,
+                  borderColor: userValidationError ? 'red' : base.borderColor,
                 },
               }),
             }}
           />
-          {!isValid && <div className="invalid-feedback d-block">Please select a User.</div>}
+          {userValidationError && <div className="invalid-feedback d-block">{userValidationError}</div>}
         </Form.Group>
 
         <br />
