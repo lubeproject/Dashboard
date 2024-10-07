@@ -34,11 +34,13 @@ export default function ReceiptReport() {
           alert("Pick From Date cannot be later than Pick To Date.");
           return;
         }
+        const adjustedEndDate = new Date(endDate);
+        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.createdtime); // Convert the date string to a Date object
-          return itemDate >= new Date(startDate) && itemDate <= new Date(endDate);
+          return itemDate >= new Date(startDate) && itemDate <= adjustedEndDate;
         });
-        console.log("Date Range Filter Applied:", startDate, "to", endDate);
+        console.log("Date Range Filter Applied:", startDate, "to", adjustedEndDate);
       } else if (startDate) {
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.createdtime);
@@ -46,11 +48,13 @@ export default function ReceiptReport() {
         });
         console.log("Start Date Filter Applied:", startDate);
       } else if (endDate) {
+        const adjustedEndDate = new Date(endDate);
+        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.createdtime);
-          return itemDate <= new Date(endDate);
+          return itemDate <= adjustedEndDate;
         });
-        console.log("End Date Filter Applied:", endDate);
+        console.log("End Date Filter Applied:", adjustedEndDate);
       }
   
       // Set the filtered items data to state
