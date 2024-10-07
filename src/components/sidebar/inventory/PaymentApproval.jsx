@@ -251,7 +251,8 @@ export default function PaymentApproval() {
       }
       
       // 9. Fetch the current amount from represent_visiting1 table first
-      const { data: representVisiting, error: fetchRepresentVisitingError } = await supabase
+      if (punchingId){
+        const { data: representVisiting, error: fetchRepresentVisitingError } = await supabase
         .from('represent_visiting1')
         .select('amount')
         .eq('punchingid', punchingId)
@@ -277,7 +278,7 @@ export default function PaymentApproval() {
       if (updateRepresentVisitingError) {
         throw new Error(`Error updating represent_visiting1 table: ${updateRepresentVisitingError.message}`);
       }
-
+    }
     // 10. Fetch updated payment records after approval
       fetchPayments(); 
   
