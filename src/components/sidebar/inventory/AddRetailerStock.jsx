@@ -486,6 +486,7 @@ export default function AddRetailerStock() {
   const [tempRequestItems, setTempRequestItems] = useState([]);
   const {user} = useContext(UserContext);
   const [isSubmitted,setIsSubmitted] = useState(false);
+  const [remarks, setRemarks] = useState('');
 
   useEffect(() => {
     fetchUsers();
@@ -623,6 +624,12 @@ export default function AddRetailerStock() {
     if (!invoiceAmount) newErrors.invoiceAmount = 'Invoice Amount is required';
     if (!invoiceDate) newErrors.invoiceDate = 'Invoice Date is required';
 
+    if (tempRequestItems.every(item => item.tempDeliveredQty === 0)) {
+      if (!remarks) {
+        newErrors.remarks = 'Remarks are required when all quantities are zero.';
+      }
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -712,6 +719,7 @@ export default function AddRetailerStock() {
           createdby: user?.userid,
           updatedby: user?.userid,
           rewardpoints: 0,
+          remarks: remarks,
         }]).select();
 
       if (insertError) {
@@ -736,9 +744,9 @@ export default function AddRetailerStock() {
           categoryname: item.categoryname,
           segmentid: item.segmentid,
           segmentname: item.segmentname,
-          noofboxes: item.calculatednoofboxes,
+          noofboxes: parseFloat(item.calculatednoofboxes.toFixed(2)),
           qty: item.tempDeliveredQty,
-          liters: item.calculatedTotalLitres,
+          liters: parseFloat(item.calculatedTotalLitres.toFixed(2)),
           rewardpoints:parseFloat(rewardpoints.toFixed(2)),
           createdtime: new Date(),
           updatedtime: new Date(),
@@ -823,6 +831,7 @@ export default function AddRetailerStock() {
       setInvoiceDate(getTodayDate());
       setRequestItems([]);
       setTempRequestItems([]);
+      setRemarks('');
 
 
       console.log('Stock added and invoice created successfully!');
@@ -953,6 +962,22 @@ export default function AddRetailerStock() {
                       ))}
                     </tbody>
                   </Table>
+                  {tempRequestItems.every(item => item.tempDeliveredQty === 0) && (
+                    <Form.Group controlId="formRemarks" className="mb-3">
+                      <Form.Label>Remarks</Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={3}
+                        value={remarks}
+                        onChange={(e) => setRemarks(e.target.value)}
+                        isInvalid={!!errors.remarks}
+                        placeholder="Enter remarks"
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        {errors.remarks}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  )}
                 </>
               )}
 
