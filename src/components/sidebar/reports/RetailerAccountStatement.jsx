@@ -53,16 +53,17 @@ export default function RetailerAccountStatement() {
         alert("Pick From Date cannot be later than Pick To Date.");
         return;
       }
-  
+      const adjustedEndDate = new Date(endDate);
+      adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
       // Helper function to fetch data with filters
       const fetchData = async (tableName) => {
-        let query = supabase.from(tableName).select('*').eq('userid', selectedUser.value);
+        let query = supabase.from(tableName).select('*').eq('userid', selectedUser.value).order('createdtime',{ascending:true});
   
         if (startDate) {
           query = query.gte('createdtime', new Date(startDate).toISOString());
         }
         if (endDate) {
-          query = query.lte('createdtime', new Date(endDate).toISOString());
+          query = query.lte('createdtime', adjustedEndDate.toISOString());
         }
   
         const { data, error } = await query;
@@ -93,6 +94,7 @@ export default function RetailerAccountStatement() {
   
 
   const handleReset = () => {
+    setSelectedUser(null);
     setStartDate(null);
     setEndDate(null);
     setFilteredData([]);
@@ -143,6 +145,9 @@ export default function RetailerAccountStatement() {
                 placeholder="Select User"
                 styles={customSelectStyles}
             />
+            {!selectedUser && (
+        <p className="text-danger">Please select a User.</p>
+      )}
           </Form.Group>
         </Row>
         <Row className="mb-2 filter-row">
