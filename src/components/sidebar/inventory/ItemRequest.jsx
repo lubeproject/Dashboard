@@ -107,10 +107,10 @@ export default function ItemRequest() {
         return;
     }
 
-    if (selectedItems.length === 0) {
-      alert('Please add items to the request.');
-      return;
-    }
+    // if (selectedItems.length === 0) {
+    //   alert('Please add items to the request.');
+    //   return;
+    // }
     
     const duplicateItem = selectedItems.find(item => item.id === selectedItem.value);
 
