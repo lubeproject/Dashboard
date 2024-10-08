@@ -26,6 +26,7 @@ export default function PaymentEntry() {
   const [paymentModes, setPaymentModes] = useState([]);
   const [userOptions, setUserOptions] = useState([]);
   const [otp, setOtp] = useState('');
+ const [remarkValidate, setRemarkValidate ] = useState(false);
   const [generatedOtp, setGeneratedOtp] = useState(null);
   const [isOtpValidated, setIsOtpValidated] = useState(false);
   const [chequeDate, setChequeDate] = useState(getTodayDate());
@@ -277,11 +278,16 @@ const handleValidateOtp = () => {
   if (otp === generatedOtp) {
     setIsOtpValidated(true);
     alert('OTP validated successfully!');
+    return true;
   } else {
     setIsOtpValidated(false);
     alert('Invalid OTP. Please try again.');
+    return false;
   }
 };
+
+
+
 
   // const handleSubmit = async (e) => {
   //   e.preventDefault();
@@ -431,19 +437,31 @@ const handleValidateOtp = () => {
     e.preventDefault();
   
     console.log('Submitting payment entry...');
-    
-    // Validate input
-    if (!User || !selectedInvoices.length || !amount || 
+
+    if (!handleValidateOtp()) {
+   
+      return
+    }
+
+    if (remarks === ""){
+      setRemarkValidate(true)
+    }
+
+     // Validate input
+     if (!User || !selectedInvoices.length || !amount || 
       (!paymentReference && !otp) || !remarks ||  (paymentMode.label === 'Adjustment' && !adjustMode)) {
     setIsValid(false);
     console.log('Validation failed.');
     return;
   }
 
-  if (!isOtpValidated && paymentMode?.label === 'Cash') {
-    setIsOtpValidated(false);
-    alert("Please validate the OTP before submitting.");
-  }
+
+
+
+  // if (!isOtpValidated && paymentMode?.label === 'Cash') {
+  //   setIsOtpValidated(false);
+  //   alert("Please validate the OTP before submitting.");
+  // }
 
   if (!paymentMode || !paymentMode.label) {
     alert("Please select a payment mode");
@@ -700,11 +718,12 @@ return (
                   onChange={(e) => setOtp(e.target.value)}
                 />
               </Form.Group>
-              <Button onClick={handleGenerateOtp} disabled={isOtpValidated} >Generate OTP</Button>
-              <Button onClick={handleValidateOtp} disabled={isOtpValidated} >Validate OTP</Button>
+              <Button onClick={handleGenerateOtp} disabled={isOtpValidated} className={`${generatedOtp ? 'btn-secondary' : "btn-primary"}`}> {generatedOtp ? "Resend OTP": "Generate OTP" }</Button>
+              
             </Col>
           </Row>
         )}
+        <br/>
         {/* Remarks and Submit */}
         <Row className="justify-content-md-center">
           <Col xs lg="12">
@@ -713,6 +732,7 @@ return (
               <Form.Control
                 type="text"
                 placeholder="Enter remarks"
+                className={`${remarkValidate ? 'border border-danger' : ""}`}
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
               />
@@ -722,7 +742,7 @@ return (
         <br />
         <Row className="justify-content-md-center">
           <Col xs lg="12">
-            <Button type="submit" variant="primary" disabled={!isValid}>
+            <Button type="submit" variant="primary" disabled={!isValid && !remarks}>
               Submit
             </Button>
           </Col>
@@ -765,13 +785,18 @@ return (
           </Row>
         </Container>
       </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={() => setShowInvoiceModal(false)}>
-          Close
-        </Button>
-        <Button variant="primary" onClick={() => setShowInvoiceModal(false)}>
+      <Modal.Footer >
+       <div style={{display:"flex", width:"100%", }}>
+        
+        
+        <Button variant="primary" className='w-20' onClick={() => setShowInvoiceModal(false)}>
           Save Selections
         </Button>
+
+        <Button variant="secondary" className='w-20' onClick={() => setShowInvoiceModal(false)}>
+          Close
+        </Button>
+        </div>
       </Modal.Footer>
     </Modal>
   </main>
