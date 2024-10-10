@@ -178,7 +178,7 @@ const [access, setAccess] = useState("");
         <Route path="loyaltymechanicsalesreport" element={<LoyaltyMechanicSalesReport/>} />
         <Route path="mechanicloyaltyreport" element={<MechanicLoyalPointsHistory/>} />
         <Route path="invoicehistory" element={<InvoiceHistory/>} />
-        <Route path="invoicedetails/:invoiceId" element={<InvoiceDetails/>} />
+        <Route path="invoicedetails" element={<InvoiceDetails/>} />
         
         <Route path="changePassword" element={<ChangePassword/>} />
         <Route path="user-approval" element={<Approval_User/>} />
@@ -220,7 +220,7 @@ const [access, setAccess] = useState("");
         <Route path="loyaltymechanicsalesreport" element={<LoyaltyMechanicSalesReport/>} />
         <Route path="mechanicloyaltyreport" element={<MechanicLoyalPointsHistory/>} />
         <Route path="invoicehistory" element={<InvoiceHistory/>} />
-        <Route path="invoicedetails/:invoiceId" element={<InvoiceDetails/>} />
+        <Route path="invoicedetails" element={<InvoiceDetails/>} />
         
         <Route path="changePassword" element={<ChangePassword/>} />
       </> : user.role === "retailer" ?  <>
@@ -250,7 +250,7 @@ const [access, setAccess] = useState("");
         <Route path="mechanicsalesreport" element={<SalesReportMechanicwise/>} />
         <Route path="mechanicttemwisesalesreport" element={<SalesReportMechanicwiseItemwise/>} />
         <Route path="invoicehistory" element={<InvoiceHistory/>} />
-        <Route path="invoicedetails/:invoiceId" element={<InvoiceDetails/>} />
+        <Route path="invoicedetails" element={<InvoiceDetails/>} />
         
         <Route path="changePassword" element={<ChangePassword/>} />
       </> : user.role === "mechanic" ? <>
