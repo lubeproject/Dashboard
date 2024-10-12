@@ -6,7 +6,7 @@ import { supabase } from "../../../supabaseClient";
 import "./paymentApproval.css";
 import { UserContext } from "../../context/UserContext";
 import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+// import "react-toastify/dist/ReactToastify.css";
 
 export default function PaymentApproval() {
   const [data, setData] = useState([]);
