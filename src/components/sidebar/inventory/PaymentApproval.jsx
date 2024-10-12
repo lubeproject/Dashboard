@@ -1,6 +1,6 @@
 import "./paymentApproval.css";
 import React, { useState, useEffect, useContext } from "react";
-import { Container, Table, Button, Row, Col } from "react-bootstrap";
+import { Container, Table, Button, Row, Col, Modal } from "react-bootstrap";
 import { FaCheck } from "react-icons/fa";
 import { supabase } from "../../../supabaseClient"; 
 import "./paymentApproval.css";
@@ -13,6 +13,9 @@ export default function PaymentApproval() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const {user} = useContext(UserContext);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedPayApproveId, setSelectedPayApproveId] = useState(null);
+
 
   useEffect(() => {
     fetchPayments();
@@ -491,6 +494,27 @@ export default function PaymentApproval() {
     }
   };
 
+  const handleShowConfirm = (payapproveid) => {
+    setSelectedPayApproveId(payapproveid);
+    setShowModal(true);
+  };
+
+  // Handle approving after confirmation
+  const handleConfirmApprove = () => {
+    if (selectedPayApproveId) {
+      handleApprove(selectedPayApproveId);
+    }
+    setShowModal(false);
+    setSelectedPayApproveId(null);
+  };
+
+  // Handle closing the modal
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedPayApproveId(null);
+  };
+
+
   if (error) {
     return <div>An error occurred: {error}</div>;
   }
@@ -559,7 +583,7 @@ export default function PaymentApproval() {
                   <td className="d-flex flex-row">
                     <Button
                       variant="success"
-                      onClick={() => handleApprove(item.payapproveid)}
+                      onClick={() => handleShowConfirm(item.payapproveid)}
                       className="d-flex align-items-center justify-content-center"
                     >
                       <FaCheck />
@@ -575,6 +599,21 @@ export default function PaymentApproval() {
             )}
           </tbody>
         </Table>
+        {/* Confirmation Modal */}
+        <Modal show={showModal} onHide={handleCloseModal} className="d-flex justify-content-between">
+          <Modal.Header closeButton>
+            <Modal.Title className="text-center">Confirm Approval</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>Are you sure you want to approve this payment?</Modal.Body>
+          <Modal.Footer className="d-flex justify-content-between">
+            <Button variant="primary" className="me-auto" style={{ width: '100px'}} onClick={handleConfirmApprove}>
+              Confirm
+            </Button>
+            <Button variant="danger" style={{ width: '100px'}} onClick={handleCloseModal}>
+              Cancel
+            </Button>
+          </Modal.Footer>
+        </Modal>
       </Container>
     </main>
   );
