@@ -580,8 +580,8 @@ export default function AddRetailerStock() {
     // Validate the quantity input
     if (isNaN(newQty) || newQty < 0) {
         newItems[index].tempDeliveredQty = 0;
-    } else if (newQty > (newItems[index].pendingqty + newItems[index].deliveredqty)) {
-        newItems[index].tempDeliveredQty = newItems[index].pendingqty + newItems[index].deliveredqty;
+    } else if (newQty > (newItems[index].pendingqty)) {
+        newItems[index].tempDeliveredQty = newItems[index].pendingqty;
     } else {
         newItems[index].tempDeliveredQty = newQty;
     }
@@ -1009,6 +1009,7 @@ export default function AddRetailerStock() {
                           <td>{index + 1}</td>
                           <td>
                             {item.itemname}<br />
+                            <span>No of Boxes: {item.noofboxes}</span> <br/>
                             <span>Required Qty: {item.qty}</span><br />
                             <span>Delivered Qty: {item.deliveredqty}</span><br />
                             <span>Pending Qty: {item.pendingqty}</span>
@@ -1018,6 +1019,7 @@ export default function AddRetailerStock() {
                                 type="number"
                                 value={item.tempDeliveredQty !== undefined ? item.tempDeliveredQty : ''}
                                 onChange={(e) => handleQtyChange(index, e.target.value)}
+                                readOnly={item.pendingqty === 0}
                               />
                           </td>
                           <td>{item.calculatedTotalLitres.toFixed(2)}</td>
