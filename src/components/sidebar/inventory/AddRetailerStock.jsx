@@ -645,6 +645,12 @@ export default function AddRetailerStock() {
       const tempDeliveredQty = tempRequestItems[index]?.tempDeliveredQty || 0;
       const calculatedTotalLitres = tempRequestItems[index]?.calculatedTotalLitres || 0;
       const calculatednoofboxes = tempRequestItems[index]?.calculatednoofboxes || 0;
+
+      if (item.pendingqty === 0) {
+        tempDeliveredQty = 0;
+        calculatedTotalLitres = 0;
+        calculatednoofboxes = 0;
+      }
   
       return {
         ...item,
