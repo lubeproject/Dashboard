@@ -1673,13 +1673,22 @@ export default function PaymentEntry() {
           .from('payment_approval')
           .select('*')
           .eq('active', 'Y');
-
+    
         if (error) {
           console.error('Error fetching payment approvals:', error);
           setToastMessage('Failed to fetch payment approvals.');
           setShowToast(true);
         } else {
-          setPaymentApprovals(data);
+          // Process data to map invoice allocations and handle undefined invoices
+          const processedData = data.map((approval) => {
+            const invoiceIds = approval.invoices
+              ? approval.invoices.split(',').map((id) => id.trim()) // Split if not empty/undefined
+              : []; // Default to empty array if invoices is undefined or empty
+            console.log('Processing payment approval:', approval); // Debugging: log approval record
+            console.log('Invoice IDs:', invoiceIds); // Debugging: log processed invoice IDs
+            return { ...approval, invoiceIds };
+          });
+          setPaymentApprovals(processedData);
         }
       } catch (err) {
         console.error('Unexpected error:', err);
@@ -1797,18 +1806,19 @@ export default function PaymentEntry() {
     e.preventDefault();
     setIsValid(true);
     setRemarkValidate(false);
-
+  
+    // Handle OTP validation for cash payments
     if (paymentMode?.label === 'Cash' && !isOtpValidated) {
       if (!handleValidateOtp()) {
         return;
       }
     }
-
+  
     if (remarks.trim() === '') {
       setRemarkValidate(true);
       setIsValid(false);
     }
-
+  
     if (
       !User ||
       !amount ||
@@ -1820,16 +1830,16 @@ export default function PaymentEntry() {
       setShowToast(true);
       return;
     }
-
+  
     if (!paymentMode || !paymentMode.label) {
       setToastMessage('Please select a payment mode.');
       setShowToast(true);
       return;
     }
-
+  
     try {
       setIsLoading(true);
-
+  
       // Fetch invoice data
       const { data: invoiceData, error: invoiceError } = await supabase
         .from('invoices1')
@@ -1837,50 +1847,63 @@ export default function PaymentEntry() {
         .eq('username', User.name)
         .eq('paymentstatus', 'Pending')
         .order('invid', { ascending: true });
-
+  
       if (invoiceError) throw new Error(`Error fetching invoice data: ${invoiceError.message}`);
-
+  
       if (!invoiceData || invoiceData.length === 0) {
+        // Leave the amount unallocated (no prepaid addition)
         setToastMessage('No pending invoices found for the selected user.');
         setShowToast(true);
         return;
       }
-
+  
       let remainingAmount = parseFloat(amount);
       const invoiceIds = [];
       let totalAllocatedAmount = 0;
-
+  
       for (const invoice of invoiceData) {
         const balance = invoice.amount - invoice.paidamount;
         if (balance <= 0) continue;
-
+  
+        // Calculate the 'To Be Cleared' amount from payment_approval table
+        // const toBeCleared = paymentApprovals
+        //   .filter((pa) => pa.invid === invoice.invid)
+        //   .reduce((total, pa) => total + (pa.amount || 0), 0);
         const toBeCleared = paymentApprovals
-          .filter((pa) => pa.invid === invoice.invid)
-          .reduce((total, pa) => total + (pa.amount || 0), 0);
+  .filter((pa) => {
+    console.log('Matching invoice:', invoice.invid); // Debugging: log current invoice id
+    console.log('Checking in invoiceIds:', pa.invoiceIds); // Debugging: log invoiceIds to be checked
+    return Array.isArray(pa.invoiceIds) && pa.invoiceIds.includes(invoice.invid.toString());
+  })
+  .reduce((total, pa) => total + (pa.amount || 0), 0);
 
+console.log('Calculated toBeCleared:', toBeCleared);
+
+  
         if (toBeCleared === balance) {
           // Skip allocation if "To Be Cleared" is equal to the balance
           continue;
         }
-
+  
         const allocatableAmount = Math.min(remainingAmount, balance - toBeCleared);
-
+  
         invoiceIds.push(invoice.invid);
         totalAllocatedAmount += allocatableAmount;
         remainingAmount -= allocatableAmount;
-
+  
         if (remainingAmount <= 0) break;
       }
-
+  
       if (totalAllocatedAmount === 0) {
         setToastMessage('No eligible invoices to allocate payment.');
         setShowToast(true);
         return;
       }
-
+  
       setToastMessage('Payment allocated successfully!');
       setShowToast(true);
-
+  
+      // Insert payment data into the payment_reference table
       const paymentData = {
         userid: User.value,
         repid: User.repid,
@@ -1899,21 +1922,21 @@ export default function PaymentEntry() {
         updatedby: user?.userid,
         createdby: user?.userid,
       };
-
+  
       if (paymentMode.label === 'Adjustment') {
         paymentData.adjustmode = adjustMode.label;
       }
-
+  
       const { data: pay, error: insertError } = await supabase
         .from('payment_reference')
         .insert([paymentData])
         .select('payid')
         .single();
-
+  
       if (insertError) throw new Error(`Error inserting payment data: ${insertError.message}`);
-
+  
       if (!pay || !pay.payid) throw new Error('Failed to retrieve payid from inserted data.');
-
+  
       const punchingId = Cookies.get('punchingid');
       const paymentApprovalInsert = {
         payid: pay.payid,
@@ -1934,15 +1957,15 @@ export default function PaymentEntry() {
         updatedtime: new Date().toISOString(),
         createdby: user?.userid,
       };
-
+  
       const { error: insertPaymentApproveError } = await supabase
         .from('payment_approval')
         .insert(paymentApprovalInsert);
-
+  
       if (insertPaymentApproveError) {
         throw new Error(`Error inserting payment approval data: ${insertPaymentApproveError.message}`);
       }
-
+  
       resetForm();
     } catch (err) {
       console.error('Unexpected error:', err);
@@ -1951,7 +1974,7 @@ export default function PaymentEntry() {
     } finally {
       setIsLoading(false);
     }
-  };
+  };  
 
   const resetForm = () => {
     setUser(null);
@@ -2002,9 +2025,9 @@ export default function PaymentEntry() {
                   type="number"
                   placeholder="Enter amount"
                   value={amount}
+                  onWheel={(e) => e.target.blur()}
                   onChange={(e) => setAmount(e.target.value)}
                   min="0"
-                  step="0.01"
                   required
                 />
               </Form.Group>
@@ -2195,7 +2218,9 @@ export default function PaymentEntry() {
                   {invoices.map((invoice) => {
                     const balance = invoice.amount - invoice.paidamount;
                     const toBeCleared = paymentApprovals
-                      .filter(pa => pa.invid === invoice.invid)
+                      .filter((pa) => {
+                        return Array.isArray(pa.invoiceIds) && pa.invoiceIds.includes(invoice.invid.toString());
+                      })
                       .reduce((total, pa) => total + (pa.amount || 0), 0);
                     const days = Math.floor(
                       (new Date().getTime() - new Date(invoice.createdtime).getTime()) / (1000 * 60 * 60 * 24)
