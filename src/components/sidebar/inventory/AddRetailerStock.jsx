@@ -1019,7 +1019,7 @@ export default function AddRetailerStock() {
                           <Form.Control
                             type="number"
                             value={item.pendingqty === 0 ? 0 : (item.tempDeliveredQty !== undefined ? item.tempDeliveredQty : '')}
-                            onChange={(e) => handleQtyChange(index, e.target.value)}
+                            onChange={(e) => handleQtyChange(index, item.pendingqty === 0 ? 0 : e.target.value)}
                             onWheel={(e) => e.target.blur()}
                             readOnly={item.pendingqty === 0}
                           />
