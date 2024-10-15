@@ -65,12 +65,27 @@ const { user } = useContext(UserContext);
 
         const numberOfAccounts = uniqueShopNames.size; // Count of unique shop names
 
-        const totalLitres = visitsData.reduce((sum, visit) => {
-          return sum + (visit.orders || 0); // Ensure to handle cases where orders might be undefined
-      }, 0);
+        //   const totalLitres = visitsData.reduce((sum, visit) => {
+        //     return sum + (visit.orders || 0); // Ensure to handle cases where orders might be undefined
+        // }, 0);
+        const today = new Date(selectedDate);
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); // Midnight of today
+        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59); // Just before midnight of today
+        const { data: userRequestsData, error: userRequestsError } = await supabase
+            .from('user_request')
+            .select('totalliters')
+            .eq('createdby', selectedDsr.value)
+            .gte('createdtime', startOfDay.toISOString())
+            .lte('createdtime', endOfDay.toISOString());
 
-      // Update state with fetched data
-      setVisitData({ numberOfVisits, numberOfAccounts, totalLitres });
+        if (userRequestsError) throw userRequestsError;
+
+        const totalLitres = userRequestsData.reduce((sum, request) => {
+          return sum + (request.totalliters || 0);
+        }, 0);
+
+        // Update state with fetched data
+        setVisitData({ numberOfVisits, numberOfAccounts, totalLitres });
 
 
     } catch (error) {
@@ -88,8 +103,7 @@ const { user } = useContext(UserContext);
               .select('amount, paymode') 
               .eq('createdby', selectedDsr.value)
               .gte('createdtime', startOfDay.toISOString()) // Start of today's date
-              .lte('createdtime', endOfDay.toISOString())
-              .eq('paymentstatus','Approved'); // End of today's date
+              .lte('createdtime', endOfDay.toISOString()); // End of today's date
   
           if (error) throw error;
   
@@ -109,7 +123,7 @@ const { user } = useContext(UserContext);
                 case 'Cheque':
                     chequeTotal += payment.amount;
                     break;
-                case 'UPI':
+                case 'UPI/IB':
                     upiTotal += payment.amount;
                     break;
                 case 'Cash':
@@ -215,12 +229,18 @@ const { user } = useContext(UserContext);
                 <li>Total Litres: {visitData.totalLitres}</li>
                 <br/>
                 <li className="highlight">No. of Payments</li>
-                {['Cheque', 'UPI', 'Cash', 'Adjustment'].map(method => (
-                        <div key={method} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span>{method}:</span>
-                          <span>₹ {paymentData[method.toLowerCase()]}</span>
-                        </div>
-                      ))}
+                {['Cheque', 'UPI/IB', 'Cash', 'Adjustment'].map((method) => {
+                        let paymentKey = method.toLowerCase(); // By default, map the method to lowercase key
+                        if (method === 'UPI/IB') {
+                          paymentKey = 'upi'; // Special case for 'UPI/IB'
+                        }
+                        return (
+                          <div key={method} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span>{method}:</span>
+                            <span>₹ {paymentData[paymentKey] || 0}</span> {/* Show 0 if no value exists */}
+                          </div>
+                        );
+                      })}
                 <br/>
                 <li className="highlight">Total Amount: ₹ {paymentData.totalAmounts}</li>
               </ul>
@@ -228,11 +248,5 @@ const { user } = useContext(UserContext);
           </Row>
         </Container>
      </main>
-       
       );
     }
-
-
-
-
-
