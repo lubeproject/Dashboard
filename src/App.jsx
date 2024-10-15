@@ -71,6 +71,9 @@ import { UserContext } from "./components/context/UserContext";
 import RedeemReward from './components/sidebar/inventory/RedeemReward';
 import MechanicPurchaseReport from './components/sidebar/reports/MechanicPurchaseReport';
 import MechanicItenwisePurchase from './components/sidebar/reports/MechanicItenwisePurchase';
+import ForgotPassword from './components/authUser/ForgotPassword';
+import ResetPassword from './components/authUser/ResetPassword';
+import AdminResetPassword from './components/authUser/AdminResetPassword';
 
 
 
@@ -122,7 +125,12 @@ const [access, setAccess] = useState("");
     <Routes>
       <Route path="/" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/admin-reset-password" element={<AdminResetPassword />} />
+
       <Route path="/portal" element={<Portal />}>
+      
       { user ? user.role === "admin"  ? <>
         <Route path="homepage" element={<Home/>} />
         <Route path="dashboard" element={<Dashboard/>} />

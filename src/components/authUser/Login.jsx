@@ -119,7 +119,7 @@ export default function Login() {
   
           // Compare the input password with the hashed password stored in the database
           const passwordMatch = await bcrypt.compare(password, user.password);
-  
+  console.log(passwordMatch, "nothing")
           if (passwordMatch) {
             // Non-admin login successful
             saveUser(user); // Save user data
@@ -143,26 +143,28 @@ export default function Login() {
   
 
   const handleChangePassword = async (event) => {
-    event.preventDefault();
 
-    if (!emailOrMobile) {
-      setError("Email or mobile number is required.");
-      return;
-    }
+    navigate("/forgot-password")
+    // event.preventDefault();
 
-    // Only allow password reset for email users (not mobile number users)
-    if (validateEmail(emailOrMobile)) {
-      const { error } = await supabase.auth.resetPasswordForEmail(emailOrMobile);
-      if (error) {
-        setError("Failed to send password reset email.");
-        setMessage("");
-      } else {
-        setMessage("Password reset email sent!");
-        setError("");
-      }
-    } else {
-      setError("Password reset only available for email users.");
-    }
+    // if (!emailOrMobile) {
+    //   setError("Email or mobile number is required.");
+    //   return;
+    // }
+
+    // // Only allow password reset for email users (not mobile number users)
+    // if (validateEmail(emailOrMobile)) {
+    //   const { error } = await supabase.auth.resetPasswordForEmail(emailOrMobile);
+    //   if (error) {
+    //     setError("Failed to send password reset email.");
+    //     setMessage("");
+    //   } else {
+    //     setMessage("Password reset email sent!");
+    //     setError("");
+    //   }
+    // } else {
+    //   setError("Password reset only available for email users.");
+    // }
   };
 
   // Utility function to validate if input is an email
