@@ -142,7 +142,7 @@ export default function Login() {
   };
   
 
-  const handleChangePassword = async (event) => {
+  const handleChangePassword =  () => {
 
     navigate("/forgot-password")
     // event.preventDefault();
