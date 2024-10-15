@@ -174,10 +174,6 @@ const [recoveryData, setRecoveryData] = useState([]);
           if (parseInt(total) === 0 || data[key]===0) {
             return "0"; // Ensure two decimal places
           }
-
-          if(parseInt(total)===data[key]){
-            return "100";
-          }
           return ((data[key] / total) * 100).toFixed(2);
         });
 
@@ -209,24 +205,9 @@ const [recoveryData, setRecoveryData] = useState([]);
 
         const numberOfAccounts = uniqueShopNames.size; // Count of unique shop names
 
-      //   const totalLitres = visitsData.reduce((sum, visit) => {
-      //     return sum + (visit.orders || 0); // Ensure to handle cases where orders might be undefined
-      // }, 0);
-        const today = new Date();
-        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); // Midnight of today
-        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
-        const { data: userRequestsData, error: userRequestsError } = await supabase
-            .from('user_request')
-            .select('totalliters')
-            .eq('createdby', user?.userid)
-            .gte('createdtime', startOfDay.toISOString())
-            .lte('createdtime', endOfDay.toISOString());
-
-        if (userRequestsError) throw userRequestsError;
-
-        const totalLitres = userRequestsData.reduce((sum, request) => {
-          return sum + (request.totalliters || 0);
-        }, 0);
+        const totalLitres = visitsData.reduce((sum, visit) => {
+          return sum + (visit.orders || 0); // Ensure to handle cases where orders might be undefined
+      }, 0);
 
       // Update state with fetched data
       setVisitData({ numberOfVisits, numberOfAccounts, totalLitres });
@@ -246,7 +227,7 @@ const fetchPaymentData = async () => {
         const { data: paymentsData, error } = await supabase
             .from('payment_reference')
             .select('amount, paymode') // Select the amount and payment mode
-            .eq('createdby', user?.userid) // Filter by current representative ID
+            .eq('repid', user?.userid) // Filter by current representative ID
             .gte('createdtime', startOfDay.toISOString()) // Start of today's date
             .lte('createdtime', endOfDay.toISOString()); // End of today's date
 
@@ -268,7 +249,7 @@ const fetchPaymentData = async () => {
               case 'Cheque':
                   chequeTotal += payment.amount;
                   break;
-              case 'UPI/IB':
+              case 'UPI':
                   upiTotal += payment.amount;
                   break;
               case 'Cash':
@@ -872,7 +853,7 @@ const fetchGiftItems = async () => {
       setPayments(paymentsData);
 
       // Initialize an object to store totals by payment mode for each representative
-      const paymentModes = ["Cheque", "UPI/IB", "Cash", "Adjustment"];
+      const paymentModes = ["Cheque", "UPI", "Cash", "Adjustment"];
       const dataByPaymode = {};
       const totalByRep = {}; // Object to store total amount for each representative
 
@@ -1094,7 +1075,7 @@ const fetchGiftItems = async () => {
   const username = user?.name;
 
   const averageAgeing = "35 Days";
-  // const summaryOfTheDay = "Good progress with significant collections.";
+  const summaryOfTheDay = "Good progress with significant collections.";
   // const numberOfVisits = 5;
   // const numberOfAccounts = 12;
   // const totalLitres = 1500;
@@ -1716,31 +1697,16 @@ const fetchGiftItems = async () => {
 
                     {/* Payments Section */}
                     <div>
-                      <h5
-                        style={{
-                          color: 'red',
-                          fontSize: '1rem',
-                          margin: '0.25rem 0',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                        }}
-                      >
+                      <h5 style={{ color: 'red', fontSize: '1rem', margin: '0.25rem 0', display: 'flex', justifyContent: 'space-between' }}>
                         <span>Number of Payments:</span>
                         <span></span>
                       </h5>
-
-                      {['Cheque', 'UPI/IB', 'Cash', 'Adjustment'].map((method) => {
-                        let paymentKey = method.toLowerCase(); // By default, map the method to lowercase key
-                        if (method === 'UPI/IB') {
-                          paymentKey = 'upi'; // Special case for 'UPI/IB'
-                        }
-                        return (
-                          <div key={method} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>{method}:</span>
-                            <span>₹ {paymentData[paymentKey] || 0}</span> {/* Show 0 if no value exists */}
-                          </div>
-                        );
-                      })}
+                      {['Cheque', 'UPI', 'Cash', 'Adjustment'].map(method => (
+                        <div key={method} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span>{method}:</span>
+                          <span>₹ {paymentData[method.toLowerCase()]}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
 

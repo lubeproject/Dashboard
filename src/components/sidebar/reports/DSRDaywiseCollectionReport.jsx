@@ -178,6 +178,9 @@ export default function DSRDaywiseCollectionReport() {
                 placeholder="Select Representative"
                 styles={customSelectStyles}
             />
+            {!selectedDsr && (
+        <p className="text-danger">Please select a Representative.</p>
+      )}
           </Form.Group>
         </Row>
         <Row className="mb-3 filter-row">

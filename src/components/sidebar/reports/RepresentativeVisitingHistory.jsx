@@ -35,20 +35,25 @@ export default function RepresentativeVisitingHistory() {
       let visitingQuery = supabase
         .from('represent_visiting1')
         .select('*')
-        .eq('repid', selectedDsr.value);
+        .eq('repid', selectedDsr.value)
+        .order('punchingid',{ascending:true});
 
       if (startDate && endDate) {
         if (new Date(startDate) > new Date(endDate)) {
           alert("Pick From Date cannot be later than Pick To Date.");
           return;
         }
+        const adjustedEndDate = new Date(endDate);
+        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
         visitingQuery = visitingQuery
           .gte('created', new Date(startDate).toISOString())  // Ensure only date is used
-          .lte('created', new Date(endDate).toISOString());
+          .lte('created', adjustedEndDate.toISOString());
       } else if (startDate) {
-        visitingQuery = visitingQuery.gte('created', new Date(startDate).toISOString().slice(0, 10));
+        visitingQuery = visitingQuery.gte('created', new Date(startDate).toISOString());
       } else if (endDate) {
-        visitingQuery = visitingQuery.lte('created', new Date(endDate).toISOString().slice(0, 10));
+        const adjustedEndDate = new Date(endDate);
+        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+        visitingQuery = visitingQuery.lte('created', adjustedEndDate.toISOString());
       }
 
       const { data: filteredVisitingData, error: visitingError } = await visitingQuery;

@@ -371,9 +371,11 @@ export default function ItemwiseRetailerRequestReport() {
           alert("Pick From Date cannot be later than Pick To Date.");
           return;
         }
+        const adjustedEndDate = new Date(endDate);
+        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.updatedtime);
-          return itemDate >= new Date(startDate) && itemDate <= new Date(endDate);
+          return itemDate >= new Date(startDate) && itemDate <= adjustedEndDate;
         });
       } else if (startDate) {
         dateFilteredItems = filteredItems.filter(item => {
@@ -381,9 +383,11 @@ export default function ItemwiseRetailerRequestReport() {
           return itemDate >= new Date(startDate);
         });
       } else if (endDate) {
+        const adjustedEndDate = new Date(endDate);
+        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.updatedtime);
-          return itemDate <= new Date(endDate);
+          return itemDate <= adjustedEndDate;
         });
       }
 
@@ -438,6 +442,9 @@ export default function ItemwiseRetailerRequestReport() {
                 placeholder="Select Item"
                 styles={customSelectStyles}
               />
+              {!selectedItem && (
+        <p className="text-danger">Please select a Item.</p>
+      )}
             </Form.Group>
           </Col>
           <Col md={6} xs={12} className="mb-2">

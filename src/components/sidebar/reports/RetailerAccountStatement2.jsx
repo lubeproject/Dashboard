@@ -15,8 +15,8 @@ export default function RetailerAccountStatement() {
   const [endDate, setEndDate] = useState(null);
   const [filteredData, setFilteredData] = useState([]);
   const [filteredData1, setFilteredData1] = useState([]);
-  const [unfilteredData, setUnfilteredData] = useState([]);
-  const [unfilteredData1, setUnfilteredData1] = useState([]);
+  const [filterApplied, setFilterApplied] = useState(false);
+  const [filterApplied1, setFilterApplied1] = useState(false);
   const {user} = useContext(UserContext);
 
   useEffect(() => {
@@ -46,20 +46,6 @@ export default function RetailerAccountStatement() {
     fetchUsers();
   }, [user]);
 
-  // useEffect(() => {
-  //   if (selectedUser) {
-  //     const fetchUnfilteredData = async () => {
-  //       const unfilteredInvoices = await fetchUnfilteredDataFromSupabase('invoices1', selectedUser.value);
-  //       const unfilteredPayments = await fetchUnfilteredDataFromSupabase('payment_reference', selectedUser.value);
-
-  //       setUnfilteredData(unfilteredInvoices);
-  //       setUnfilteredData1(unfilteredPayments);
-  //     };
-
-  //     fetchUnfilteredData();
-  //   }
-  // }, [selectedUser]);
-
   const handleFilter = async () => {
     try {
       // Check if dates are valid
@@ -70,7 +56,7 @@ export default function RetailerAccountStatement() {
       const adjustedEndDate = new Date(endDate);
       adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
       // Helper function to fetch data with filters
-      const fetchData = async (tableName, startDate=null,endDate=null) => {
+      const fetchData = async (tableName) => {
         let query = supabase.from(tableName).select('*').eq('userid', selectedUser.value).order('createdtime',{ascending:true});
   
         if (startDate) {
@@ -89,25 +75,17 @@ export default function RetailerAccountStatement() {
       };
   
       // Fetch data for both tables
-      const allUserRequests = await fetchData('invoices1',startDate,endDate);
-      const allUserRequests1 = await fetchData('payment_reference',startDate,endDate);
-
+      const allUserRequests = await fetchData('invoices1');
+      const allUserRequests1 = await fetchData('payment_reference');
+  
       // Update states
       setFilteredData(allUserRequests || []);
       setFilteredData1(allUserRequests1 || []);
-
+      setFilterApplied(true);
+      setFilterApplied1(true);
+  
       console.log("Filtered Requests for User (invoices):", allUserRequests);
       console.log("Filtered Requests for User (payment_reference):", allUserRequests1);
-
-      const allUserRequests2 = await fetchData('invoices1');
-      const allUserRequests3 = await fetchData('payment_reference');
-
-      // Update states
-      setUnfilteredData(allUserRequests2 || []);
-      setUnfilteredData1(allUserRequests3 || []);
-
-      console.log("UnFiltered Requests for User (invoices):", allUserRequests2);
-      console.log("UnFiltered Requests for User (payment_reference):", allUserRequests3);
   
     } catch (error) {
       console.error('Unexpected error during filtering:', error);
@@ -120,6 +98,7 @@ export default function RetailerAccountStatement() {
     setStartDate(null);
     setEndDate(null);
     setFilteredData([]);
+    setFilterApplied(false);
   };
 
   const formatDate = (dateString) => {
@@ -141,19 +120,13 @@ export default function RetailerAccountStatement() {
   };
 
   // Calculate totals
-  // const totalDebit = filteredData.reduce((sum, data) => sum + parseFloat(data.amount || 0), 0);
-  // const totalCredit = filteredData1.reduce((sum, data) => sum + parseFloat(data.amount || 0), 0);
+  const totalDebit = filteredData.reduce((sum, data) => sum + parseFloat(data.amount || 0), 0);
+  const totalCredit = filteredData1.reduce((sum, data) => sum + parseFloat(data.amount || 0), 0);
 
-  // // Calculate Collection Amount, Closing Balance, and Total
-  // const collectionAmount = totalCredit;
-  // const closingBalance = totalDebit - collectionAmount;
-  // const finalTotal = collectionAmount + closingBalance;
-
-  const totalDebit = unfilteredData.reduce((sum, data) => sum + parseFloat(data.amount || 0), 0);
-  const totalCredit = unfilteredData1.reduce((sum, data) => sum + parseFloat(data.amount || 0), 0);
-  const collectionAmount = filteredData1.reduce((sum, data) => sum + parseFloat(data.amount || 0), 0);
-  const closingBalance = totalDebit - totalCredit;
-  const finalTotal = totalCredit + closingBalance;
+  // Calculate Collection Amount, Closing Balance, and Total
+  const collectionAmount = totalCredit;
+  const closingBalance = totalDebit - collectionAmount;
+  const finalTotal = collectionAmount + closingBalance;
 
   return (
     <main id='main' className='main'>
@@ -234,7 +207,7 @@ export default function RetailerAccountStatement() {
                   ))}
                   {filteredData1.map((data, index) => (
                     <tr key={`payment-${index}`}>
-                      <td>{formatDate(data.createdtime)}</td>
+                      <td>{formatDate(data.updatedtime)}</td>
                       <td>{data.paymode}{data.payref ? ', Refno: ' + data.payref : ''}</td>
                       <td>{/* Additional data or leave blank */}</td>
                       <td>₹ {data.amount}</td>
@@ -243,7 +216,7 @@ export default function RetailerAccountStatement() {
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan="2" className="text-end">Collection Amount for Dates :</td>
+                    <td colSpan="2" className="text-end">Collection Amount :</td>
                     <td>{}</td>
                     <td>₹ {collectionAmount}</td>
                   </tr>

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Button, Container, Row, Col } from 'react-bootstrap';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './updateRepresentativeDetails.css';
 import { supabase } from '../../../supabaseClient';
 
 const UpdateRepresentativeDetails = () => {
   const location = useLocation();
   const { rep } = location.state || {};
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -86,17 +87,101 @@ const UpdateRepresentativeDetails = () => {
     }
   };
 
+  const handleCancel= () => {
+    navigate('/portal/representativelist');
+  }
+
+  // return (
+  //   <main id='main' className='main'>
+  //     <Container>
+  //       <Row>
+  //         <Col>
+  //           <h4 style={{ textAlign: "center" }}>Update Representative Details</h4>
+  //         </Col>
+  //       </Row>
+  //       <Form onSubmit={handleSubmit} className="update-representative-form">
+  //         <Row>
+  //           <Col md={6}>
+  //             <Form.Group controlId="name">
+  //               <Form.Label>Representative Name</Form.Label>
+  //               <Form.Control
+  //                 type="text"
+  //                 name="name"
+  //                 placeholder="Enter Representative Name"
+  //                 value={formData.name}
+  //                 onChange={handleInputChange}
+  //                 isInvalid={!!errors.name}
+  //               />
+  //               <Form.Control.Feedback type="invalid">{errors.name}</Form.Control.Feedback>
+  //             </Form.Group>
+  //           </Col>
+  //         </Row>
+
+  //         <Row>
+  //           <Col md={6}>
+  //             <Form.Group controlId="email">
+  //               <Form.Label>Email</Form.Label>
+  //               <Form.Control
+  //                 type="email"
+  //                 name="email"
+  //                 placeholder="Enter Email ID"
+  //                 value={formData.email}
+  //                 onChange={handleInputChange}
+  //                 isInvalid={!!errors.email}
+  //               />
+  //               <Form.Control.Feedback type="invalid">{errors.email}</Form.Control.Feedback>
+  //             </Form.Group>
+  //           </Col>
+  //         </Row>
+  
+  //         <Row>
+  //           <Col md={6}>
+  //             <Form.Group controlId="mobileNumber">
+  //               <Form.Label>Mobile Number</Form.Label>
+  //               <Form.Control
+  //                 type="text"
+  //                 name="mobileNumber"
+  //                 placeholder="Enter Mobile Number"
+  //                 value={formData.mobileNumber}
+  //                 onChange={handleInputChange}
+  //                 isInvalid={!!errors.mobileNumber}
+  //               />
+  //               <Form.Control.Feedback type="invalid">{errors.mobileNumber}</Form.Control.Feedback>
+  //             </Form.Group>
+  //           </Col>
+  //         </Row>
+  
+  //         <Row>
+  //           <Col md={6}>
+  //             <Form.Group controlId="address">
+  //               <Form.Label>Address</Form.Label>
+  //               <Form.Control
+  //                 as="textarea"
+  //                 name="address"
+  //                 placeholder="Enter Address"
+  //                 value={formData.address}
+  //                 onChange={handleInputChange}
+  //                 isInvalid={!!errors.address}
+  //               />
+  //               <Form.Control.Feedback type="invalid">{errors.address}</Form.Control.Feedback>
+  //             </Form.Group>
+  //           </Col>
+  //         </Row>
+
+  //         <Button type="submit" style={{ minWidth: '100%', alignItems: 'center' }}>
+  //           Submit
+  //         </Button>
+  //       </Form>
+  //     </Container>
+  //   </main>
+  // );
   return (
     <main id='main' className='main'>
-      <Container>
-        <Row>
-          <Col>
-            <h4 style={{ textAlign: "center" }}>Update Representative Details</h4>
-          </Col>
-        </Row>
-        <Form onSubmit={handleSubmit} className="update-representative-form">
-          <Row>
-            <Col md={6}>
+      <Container className="mt-5"> {/* Added mt-5 for top margin */}
+        <Row className="justify-content-center"> {/* Center the Row */}
+          <Col md={6} lg={4}> {/* Adjust column width for responsiveness */}
+            <h4 className="text-center mb-4">Update Representative Details</h4> {/* Added mb-4 for bottom margin */}
+            <Form onSubmit={handleSubmit} className="update-representative-form">
               <Form.Group controlId="name">
                 <Form.Label>Representative Name</Form.Label>
                 <Form.Control
@@ -109,11 +194,7 @@ const UpdateRepresentativeDetails = () => {
                 />
                 <Form.Control.Feedback type="invalid">{errors.name}</Form.Control.Feedback>
               </Form.Group>
-            </Col>
-          </Row>
 
-          <Row>
-            <Col md={6}>
               <Form.Group controlId="email">
                 <Form.Label>Email</Form.Label>
                 <Form.Control
@@ -126,11 +207,7 @@ const UpdateRepresentativeDetails = () => {
                 />
                 <Form.Control.Feedback type="invalid">{errors.email}</Form.Control.Feedback>
               </Form.Group>
-            </Col>
-          </Row>
-  
-          <Row>
-            <Col md={6}>
+
               <Form.Group controlId="mobileNumber">
                 <Form.Label>Mobile Number</Form.Label>
                 <Form.Control
@@ -143,11 +220,7 @@ const UpdateRepresentativeDetails = () => {
                 />
                 <Form.Control.Feedback type="invalid">{errors.mobileNumber}</Form.Control.Feedback>
               </Form.Group>
-            </Col>
-          </Row>
-  
-          <Row>
-            <Col md={6}>
+
               <Form.Group controlId="address">
                 <Form.Label>Address</Form.Label>
                 <Form.Control
@@ -160,13 +233,16 @@ const UpdateRepresentativeDetails = () => {
                 />
                 <Form.Control.Feedback type="invalid">{errors.address}</Form.Control.Feedback>
               </Form.Group>
-            </Col>
-          </Row>
 
-          <Button type="submit" style={{ minWidth: '100%', alignItems: 'center' }}>
-            Submit
-          </Button>
-        </Form>
+              <Button type="submit" className="mt-3 w-100"> {/* Added mt-3 for top margin and w-100 for full width */}
+                Submit
+              </Button>
+              <Button variant="secondary" className="w-48" onClick={handleCancel} style={{ alignItems: 'center',backgroundColor:'red' }}>
+                  Cancel
+                </Button>
+            </Form>
+          </Col>
+        </Row>
       </Container>
     </main>
   );

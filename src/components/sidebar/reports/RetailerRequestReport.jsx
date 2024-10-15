@@ -200,6 +200,9 @@ export default function RetailerRequestReport() {
                 placeholder="Select Retailer"
                 styles={customSelectStyles}
               />
+              {!selectedUser && (
+        <p className="text-danger">Please select a User.</p>
+      )}
             </Form.Group>
           </Col>
           <Col md={6} xs={12} className="mb-2">

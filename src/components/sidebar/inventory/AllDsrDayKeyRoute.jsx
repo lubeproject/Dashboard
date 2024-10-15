@@ -63,11 +63,22 @@ export default function AllDsrDayKeyRoute() {
   const handleFilter = async () => {
     try {
       // Fetch all records for the selected retailer
-      const { data: allDsrDetails, error: dsrError } = await supabase
-        .from('representassigned_master')
-        .select('*')
-        .eq('representativeid', selectedDsr.value)
-        .eq('visitingdayid', selectedDay.value);
+      // const { data: allDsrDetails, error: dsrError } = await supabase
+      //   .from('representassigned_master')
+      //   .select('*')
+      //   .eq('representativeid', selectedDsr.value)
+      //   .eq('visitingdayid', selectedDay.value);
+      let query = supabase
+      .from('representassigned_master')
+      .select('*')
+      .eq('representativeid', selectedDsr.value);
+
+      if (selectedDay) {
+        query = query.eq('visitingdayid', selectedDay.value);
+      }
+
+      const { data: allDsrDetails, error: dsrError } = await query;
+
   
       if (dsrError) {
         console.error('Error fetching representative details:', dsrError);
@@ -122,6 +133,9 @@ export default function AllDsrDayKeyRoute() {
                 placeholder="Select Representative"
                 styles={customSelectStyles}
             />
+            {!selectedDsr && (
+        <p className="text-danger">Please select a representative.</p>
+      )}
           </Form.Group>
         </Col>
         <Col md={6}>

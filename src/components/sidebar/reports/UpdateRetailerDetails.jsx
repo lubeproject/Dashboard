@@ -687,13 +687,14 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Button, Container, Row, Col } from 'react-bootstrap';
 import { FaMapMarkerAlt } from 'react-icons/fa';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './updateRetailerDetails.css';
 import { supabase } from '../../../supabaseClient';
 
 const UpdateRetailerDetails = () => {
   const location = useLocation();
   const { retailer } = location.state || {};
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     shopName: retailer?.shopname?.trim() || '',
@@ -931,6 +932,10 @@ const UpdateRetailerDetails = () => {
       setErrors(formErrors);
     }
   };
+
+  const handleCancel= () => {
+    navigate('/portal/retailerslist');
+  }
 
   return (
     <main id='main' className='main'>
@@ -1234,6 +1239,9 @@ const UpdateRetailerDetails = () => {
 
           <Button type="submit" style={{ minWidth: '100%', alignItems: 'center' }}>
             Submit
+          </Button>
+          <Button variant="secondary" className="w-48" onClick={handleCancel} style={{ minWidth: '100%', alignItems: 'center',backgroundColor:'red' }}>
+            Cancel
           </Button>
         </Form>
       </Container>

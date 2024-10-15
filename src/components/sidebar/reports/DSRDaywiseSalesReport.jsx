@@ -50,10 +50,10 @@ export default function DSRDaywiseSalesReport() {
 
     try {
       // Format startDate and endDate to 'YYYY-MM-DD' format strings
-      const formattedStartDate = startDate.toISOString().split('T')[0];
+      const formattedStartDate = startDate.toISOString();
       const formattedEndDate = new Date(endDate);
       formattedEndDate.setDate(formattedEndDate.getDate() + 1); // Adjust endDate to include the end date
-      const formattedEndDateString = formattedEndDate.toISOString().split('T')[0];
+      const formattedEndDateString = formattedEndDate.toISOString();
 
       // Query for the visits assigned to the representative, filtering by visitingdate (which is a date field)
       let visitsQuery = supabase
@@ -61,7 +61,7 @@ export default function DSRDaywiseSalesReport() {
         .select('*')
         .eq('repid', selectedDsr.value)
         .gte('visitingdate', formattedStartDate) // Use formatted date
-        .lt('visitingdate', formattedEndDateString) // Use formatted end date
+        .lte('visitingdate', formattedEndDateString) // Use formatted end date
         .order('visitingdate');
 
       const { data: visitsData, error: visitsError } = await visitsQuery;
@@ -109,7 +109,7 @@ export default function DSRDaywiseSalesReport() {
   };
 
   const handleReset = () => {
-    selectedDsr(null);
+    setSelectedDsr(null);
     setStartDate(null);
     setEndDate(null);
     setFilteredData([]);
@@ -143,6 +143,9 @@ export default function DSRDaywiseSalesReport() {
                 placeholder="Select Representative"
                 styles={customSelectStyles}
             />
+            {!selectedDsr && (
+        <p className="text-danger">Please select a Representative.</p>
+      )}
           </Form.Group>
         </Row>
         <Row className="mb-3 filter-row">

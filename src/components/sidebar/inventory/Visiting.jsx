@@ -601,6 +601,8 @@ const Visiting = () => {
     } else {
       console.log("No visit ID found or already checked out.");
       setErrorMessage("No active visit found to checkout.");
+      setCheckedOut(true);
+      setQrMatch(null);
     }
   };
 
@@ -782,7 +784,7 @@ const Visiting = () => {
 
             {qrMatch ?  <>
             <div>
-                <h4>Scan Result:</h4>
+                {/* <h4>Scan Result:</h4> */}
                 <br />
                 {scanResult === "Not a valid QR code" ? (
                   <p
@@ -797,7 +799,7 @@ const Visiting = () => {
                 ) : (
                   <>
                 
-                { qrMatch ? <h2>{qrMatch}</h2> :<h2>{scanResult}</h2> }
+                {/* { qrMatch ? <h2>{qrMatch}</h2> :<h2>{scanResult}</h2> } */}
                     <br />
                     <Button
                       className="text-center"
