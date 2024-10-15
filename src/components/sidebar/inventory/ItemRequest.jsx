@@ -306,6 +306,7 @@ const handleSubmit = async (e) => {
           orders: totalLiters,
           orderref: reqId,
           updatedby: user?.userid,
+          lastupdatetime: new Date().toISOString(),
         })
         .eq('punchingid', punchId); // Match the visiting record by user
 
@@ -439,7 +440,7 @@ return (
       {/* Edit Modal for modifying item quantities */}
       <Modal show={editShow} onHide={handleEditClose}>
         <Modal.Header closeButton>
-          <Modal.Title>Edit No of Boxes</Modal.Title>
+          <Modal.Title>Edit Items</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form>
@@ -460,6 +461,7 @@ return (
                 onChange={(e) => setEditQuantity(e.target.value)}
                 onWheel={(e) => e.target.blur()}
                 min ="0"
+                step = "1"
               />
             </Form.Group>
           </Form>
@@ -516,6 +518,7 @@ return (
                 onChange={(e) => setQuantity(e.target.value)}
                 onWheel={(e) => e.target.blur()}
                 min ="0"
+                step = "1"
                 className={!isValidModel && !quantity ? 'is-invalid' : ''}
               />
               {!isValidModel && !quantity && <div className="invalid-feedback d-block">Please enter No of boxes.</div>}
