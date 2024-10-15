@@ -452,10 +452,10 @@ return (
               />
             </Form.Group>
             <Form.Group controlId="editItemQuantity">
-              <Form.Label>Edit Quantity</Form.Label>
+              <Form.Label>Edit No of Boxes</Form.Label>
               <Form.Control
                 type="number"
-                placeholder="Enter new quantity"
+                placeholder="Enter new No of Boxes"
                 value={editQuantity}
                 onChange={(e) => setEditQuantity(e.target.value)}
                 onWheel={(e) => e.target.blur()}
@@ -518,7 +518,7 @@ return (
                 min ="0"
                 className={!isValidModel && !quantity ? 'is-invalid' : ''}
               />
-              {!isValidModel && !quantity && <div className="invalid-feedback d-block">Please enter a quantity.</div>}
+              {!isValidModel && !quantity && <div className="invalid-feedback d-block">Please enter No of boxes.</div>}
             </Form.Group>
 
             <Button variant="primary" type="submit" className="mt-3">
