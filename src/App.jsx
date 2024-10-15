@@ -237,6 +237,7 @@ const [access, setAccess] = useState("");
       <Route path="billingtomechanic" element={<BillingToMechanic/>} />
       
       <Route path="viewQrCode" element={<ViewQrCode  />} />
+      <Route path="paymententry" element={<PaymentEntry/>} />
      
 
    {/* Under Report components */}
