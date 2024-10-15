@@ -460,7 +460,7 @@ import { Container, Row, Col, Button, Form, Table, Card } from 'react-bootstrap'
 import Select from 'react-select';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './InvoiceHistory.css';
 import { UserContext } from '../../context/UserContext';
 
@@ -473,6 +473,17 @@ export default function InvoiceHistory() {
   const [paymentApprovals, setPaymentApprovals] = useState([]);
   const navigate = useNavigate();
   const {user} = useContext(UserContext);
+  const location = useLocation();
+  
+
+  useEffect(() => {
+    if (location.state) {
+      const { selectedUser, startDate, endDate } = location.state;
+      setSelectedUser(selectedUser);
+      setStartDate(startDate ? new Date(startDate) : null);
+      setEndDate(endDate ? new Date(endDate) : null);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     // Fetch users from the users table
@@ -539,6 +550,13 @@ export default function InvoiceHistory() {
     }
   };
 
+  useEffect(() => {
+    // Call handleFilter whenever selectedUser, startDate or endDate changes
+    if (selectedUser || (startDate && endDate)) {
+      handleFilter();
+    }
+  }, [selectedUser, startDate, endDate]);
+
   const formatDate = dateString => {
     const date = new Date(dateString);
     const day = date.getDate().toString().padStart(2, '0');
@@ -599,7 +617,14 @@ export default function InvoiceHistory() {
   };
 
   const handleInvoiceClick = (invoiceId) => {
-    navigate(`/portal/invoicedetails`,{state:{invoiceId}});
+    navigate('/portal/invoicedetails', {
+      state: {
+        invoiceId,
+        selectedUser,
+        startDate,
+        endDate,
+      },
+    });
   };
 
   return (
