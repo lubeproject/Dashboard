@@ -5,7 +5,7 @@ import { useParams, useNavigate ,useLocation} from 'react-router-dom';
 
 export default function InvoiceDetails() {
   const location = useLocation();
-  const { invoiceId } = location.state || {};
+  const { invoiceId, selectedUser, startDate, endDate } = location.state || {};
   const [invoice, setInvoice] = useState(null);
   const [invoiceItems, setInvoiceItems] = useState([]);
   const [userAddress, setUserAddress] = useState(''); // State for user's address
@@ -80,7 +80,13 @@ export default function InvoiceDetails() {
   };
 
   const handleBack = () => {
-    navigate('/portal/invoicehistory'); // Navigate back to Invoice History
+    navigate('/portal/invoicehistory', {
+      state: {
+        selectedUser,
+        startDate,
+        endDate,
+      },
+    });
   };
 
   // Calculate total litres and total amount
