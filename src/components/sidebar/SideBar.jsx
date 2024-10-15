@@ -341,7 +341,17 @@ export default function SideBar() {
                 <span>QR Code</span>
               </Link>
             </li>
-            </> : user.role === "mechanic" ? <>
+            <li>
+             <Link
+               to="/portal/paymententry"
+               style={{ textDecoration: "none" }}
+               onClick={handleToggleSideBar}
+             >
+               <i class="bi bi-cash-coin"  style={{fontSize:"20px"}}></i>
+               <span>Payment Entry</span>
+             </Link>
+           </li>
+           </> : user.role === "mechanic" ? <>
             <li>
               <Link
                 to="/portal/redeemRewards"
