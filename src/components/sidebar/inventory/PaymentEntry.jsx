@@ -145,6 +145,17 @@ export default function PaymentEntry() {
       }
       setIsLoading(false);
       fetchVisiting();
+    } else if (user?.role === 'retailer' || user?.role === 'mechanic') {
+      setUserOptions([
+        {
+          value: user.userid,
+          label: user.shopname,
+          name: user.name,
+          role: user.role,
+          repname: user.representativename||'Not Assigned',
+          repid: user.representativeid||1,
+        },
+      ]);
     } else {
       fetchUserOptions();
     }
@@ -159,7 +170,6 @@ export default function PaymentEntry() {
           .eq('userid', User.value)
           .single();
         if (!error) {
-          // console.log(data);
           const prepaid = parseFloat(data.prepaid) || 0; // Handle invalid values
           setPrepaidBalance(prepaid);
         } else {
