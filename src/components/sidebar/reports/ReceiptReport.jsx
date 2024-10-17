@@ -13,6 +13,31 @@ export default function ReceiptReport() {
   const [filteredData, setFilteredData] = useState([]);
   const [filterApplied, setFilterApplied] = useState(false);
 
+  const setStartOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(0, 0, 0, 0);  // Set hours, minutes, seconds, and milliseconds to 0
+    return newDate;
+  };
+  
+  // Set end date to 23:59:59 (end of the day) if needed
+  const setEndOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(23, 59, 59, 999);  // Set hours, minutes, seconds, and milliseconds to the end of the day
+    return newDate;
+  };
+
+  const formatDateForSQL = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    // Return the formatted date in 'YYYY-MM-DD HH:MM:SS' format
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
   const handleFilter = async () => {
     try {
         const { data: filteredItems, error: receiptError } = await supabase
@@ -53,23 +78,23 @@ export default function ReceiptReport() {
           alert("Pick From Date cannot be later than Pick To Date.");
           return;
         }
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+        const startOfDay = setStartOfDay(startDate);
+        const endOfDay = setEndOfDay(endDate);
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.createdtime);
-          return itemDate >= new Date(startDate) && itemDate <= adjustedEndDate;
+          return itemDate >= startOfDay && itemDate <= endOfDay;
         });
       } else if (startDate) {
+        const startOfDay = setStartOfDay(startDate);
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.createdtime);
-          return itemDate >= new Date(startDate);
+          return itemDate >= startOfDay;
         });
       } else if (endDate) {
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+        const endOfDay = setEndOfDay(endDate);
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.createdtime);
-          return itemDate <= adjustedEndDate;
+          return itemDate <= endOfDay;
         });
       }
 
