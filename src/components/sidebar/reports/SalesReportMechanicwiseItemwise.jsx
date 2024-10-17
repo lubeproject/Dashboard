@@ -216,87 +216,111 @@ export default function SalesReportMechanicwiseItemwise() {
     return `${day}/${month}/${year}`;
   };
 
+  const setStartOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(0, 0, 0, 0);  // Set hours, minutes, seconds, and milliseconds to 0
+    return newDate;
+  };
+  
+  // Set end date to 23:59:59 (end of the day) if needed
+  const setEndOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(23, 59, 59, 999);  // Set hours, minutes, seconds, and milliseconds to the end of the day
+    return newDate;
+  };
+
   const handleFilter = async () => {
     try {
-      // Step 1: Fetch from user_request table where role is mechanic
-      let userQuery = supabase
-        .from('user_request')
-        .select('userid, username, usershopname, reqid, role')
-        .eq('role', 'mechanic')
-        .order('createdtime',{ascending:false});
-
-        if (user?.role === 'representative'){
-          userQuery = userQuery
-          .eq('createdby',user?.userid);
-        }else if(user?.role === 'mechanic'){
-          userQuery = userQuery
-          .eq('userid',user?.userid);
-        }
-      const { data: userRequests, error: userRequestError } = await userQuery;
-
-
-      if (userRequestError) {
-        console.error('Error fetching user requests:', userRequestError);
-        return;
-      }
-
-      // Get reqids from the fetched user requests
-      const reqIds = userRequests.map(request => request.reqid);
-
-      if (reqIds.length === 0) {
-        console.warn('No requests found for mechanics.');
-        setFilteredData([]);
-        return;
-      }
-
-      // Step 2: Fetch from user_request_items table based on the selected item and reqids
+      // Step 1: Fetch from user_request_items table where itemid matches the selected item
       const { data: requestItems, error: requestItemsError } = await supabase
         .from('user_request_items')
         .select('*')
-        .eq('itemid', selectedItem.value)
-        .in('reqid', reqIds);
-
+        .eq('itemid', selectedItem.value);
+  
       if (requestItemsError) {
         console.error('Error fetching request items:', requestItemsError);
         return;
       }
-
-      // Merge requestItems with userRequests
+  
+      // Get reqids from the fetched user_request_items
+      const reqIds = requestItems.map(item => item.reqid);
+  
+      if (reqIds.length === 0) {
+        console.warn('No request items found for the selected item.');
+        setFilteredData([]);
+        return;
+      }
+  
+      // Step 2: Fetch corresponding user requests from user_request table based on reqids
+      let userQuery = supabase
+        .from('user_request')
+        .select('userid, username, usershopname, reqid, role, createdtime, updatedtime')
+        .eq('role', 'mechanic')  // Match role mechanic
+        .in('reqid', reqIds)
+        .order('createdtime', { ascending: false });  // Sort by created time in descending order
+  
+      if (user?.role === 'representative') {
+        userQuery = userQuery.eq('createdby', user?.userid);
+      } else if (user?.role === 'mechanic') {
+        userQuery = userQuery.eq('userid', user?.userid);
+      }
+  
+      const { data: userRequests, error: userRequestError } = await userQuery;
+  
+      if (userRequestError) {
+        console.error('Error fetching user requests:', userRequestError);
+        return;
+      }
+  
+      // Merge the data: Combine requestItems with corresponding user requests
       const mergedData = requestItems.map(item => {
-        const user = userRequests.find(request => request.reqid === item.reqid);
-        return { ...item, username: user ? user.username : 'Unknown', usershopname: user ? user.usershopname : 'Unknown' };
+        const userRequest = userRequests.find(request => request.reqid === item.reqid);
+        return {
+          ...item,
+          username: userRequest ? userRequest.username : 'Unknown',
+          usershopname: userRequest ? userRequest.usershopname : 'Unknown',
+          createdtime: userRequest ? userRequest.createdtime : null,
+          updatedtime: userRequest ? userRequest.updatedtime : null
+        };
       });
-
+  
       let filteredItems = mergedData;
       let dateFilteredItems = filteredItems;
-
-      // Filter by start and end date
+  
+      // Step 3: Apply date filtering (if provided)
       if (startDate && endDate) {
         if (new Date(startDate) > new Date(endDate)) {
           alert("Pick From Date cannot be later than Pick To Date.");
           return;
         }
+        const startOfDay = setStartOfDay(startDate);
+        const endOfDay = setEndOfDay(endDate);
         dateFilteredItems = filteredItems.filter(item => {
-          const itemDate = new Date(item.updatedtime);
-          return itemDate >= new Date(startDate) && itemDate <= new Date(endDate);
+          const itemDate = new Date(item.createdtime);
+          return itemDate >= startOfDay && itemDate <= endOfDay;
         });
       } else if (startDate) {
+        const startOfDay = setStartOfDay(startDate);
         dateFilteredItems = filteredItems.filter(item => {
-          const itemDate = new Date(item.updatedtime);
-          return itemDate >= new Date(startDate);
+          const itemDate = new Date(item.createdtime);
+          return itemDate >= startOfDay;
         });
       } else if (endDate) {
+        const endOfDay = setEndOfDay(endDate);
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.updatedtime);
-          return itemDate <= new Date(endDate);
+          return itemDate <= endOfDay;
         });
       }
-
+  
+      // Step 4: Set the filtered data to display
       setFilteredData(dateFilteredItems || []);
+  
     } catch (error) {
       console.error('Unexpected error during filtering:', error);
     }
   };
+  
 
   const handleReset = () => {
     setSelectedItem(null);
@@ -336,6 +360,9 @@ export default function SalesReportMechanicwiseItemwise() {
               placeholder="Select Item"
               styles={customSelectStyles}
             />
+            {!selectedItem && (
+                <p className="text-danger">Please select a Item</p>
+              )}
           </Form.Group>
         </Row>
         <Row className="mb-3 filter-row">
@@ -378,7 +405,7 @@ export default function SalesReportMechanicwiseItemwise() {
                 <Table striped bordered hover responsive className="sales-report-table">
                   <thead>
                     <tr>
-                      <th>Order</th>
+                      <th>Order no/ Date</th>
                       <th>Account</th>
                       <th>Total Liters</th>
                       <th>Total Price</th>
@@ -386,9 +413,11 @@ export default function SalesReportMechanicwiseItemwise() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredData.map((item) => (
+                    {filteredData
+                    .sort((a, b) => new Date(b.createdtime) - new Date(a.createdtime))
+                    .map((item) => (
                       <tr key={item.reqid}>
-                        <td>{item.reqid} / {formatDate(item.createdtime)}</td>
+                        <td>{item.reqid} <br/> {formatDate(item.createdtime)}</td>
                         <td>
                         <span>{item.usershopname}</span><br/>
                           <span>{item.username}</span>
