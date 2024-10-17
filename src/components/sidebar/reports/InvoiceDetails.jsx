@@ -107,7 +107,7 @@ export default function InvoiceDetails() {
               <Col>
                 <Card>
                   <Card.Body>
-                    <Card.Title>Invoice No: {invoice.tallyrefinvno} / {formatDate(invoice.paymentdate)}</Card.Title>
+                    <Card.Title>Invoice No: {invoice.tallyrefinvno} / {formatDate(invoice.createdtime)}</Card.Title>
                     <Card.Subtitle className="mb-2 text-muted">
                       Request Id: {invoice.reqid} / {formatDate(invoice.invdate)}
                     </Card.Subtitle>
