@@ -31,11 +31,36 @@ export default function LinesperDealerReport() {
     fetchUsers();
   }, []);
 
+  const setStartOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(0, 0, 0, 0);  // Set hours, minutes, seconds, and milliseconds to 0
+    return newDate;
+  };
+  
+  // Set end date to 23:59:59 (end of the day) if needed
+  const setEndOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(23, 59, 59, 999);  // Set hours, minutes, seconds, and milliseconds to the end of the day
+    return newDate;
+  };
+
+  const formatDateForSQL = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    // Return the formatted date in 'YYYY-MM-DD HH:MM:SS' format
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
   const handleFilter = async () => {
     try {
       // Fetch all records for the selected user
       const { data: allUserRequests, error: userError } = await supabase
-        .from('invoices1')
+        .from('user_request')
         .select('*')
         .eq('userid', selectedUser.value);
   
@@ -44,10 +69,10 @@ export default function LinesperDealerReport() {
         return;
       }
   
-      console.log("All Requests for User:", allUserRequests);
+      // console.log("All Requests for User:", allUserRequests);
   
-      // Extract reqid values
-      const invIdArray = allUserRequests.map(invoice => invoice.invid);
+      // Extract invid values
+      const invIdArray = allUserRequests.map(req => req.reqid);
   
       if (invIdArray.length === 0) {
         console.warn('No requests found for the selected user.');
@@ -55,56 +80,85 @@ export default function LinesperDealerReport() {
         return;
       }
   
-      // Fetch all items from invoice_items
+      // Fetch all items from invoice_items1
       const { data: allItemsData, error: itemsError } = await supabase
-        .from('invoice_items1')
+        .from('user_request_items')
         .select('*')
-        .in('invid', invIdArray);
+        .in('reqid', invIdArray)
+        .gt('pendingqty', 0);
   
       if (itemsError) {
         console.error('Error fetching items data:', itemsError);
         return;
       }
   
-      console.log("All Items Data:", allItemsData);
-
-      let filteredItems = allItemsData;
-      // Apply Date Range Filter
-      let dateFilteredItems = filteredItems;
+      // console.log("All Items Data:", allItemsData);
   
+      let filteredItems = allItemsData;
+  
+      // Apply Date Range Filter
       if (startDate && endDate) {
         if (new Date(startDate) > new Date(endDate)) {
           alert("Pick From Date cannot be later than Pick To Date.");
           return;
         }
-        dateFilteredItems = filteredItems.filter(item => {
-          const itemDate = new Date(item.updatedtime); // Convert the date string to a Date object
-          return itemDate >= new Date(startDate) && itemDate <= new Date(endDate);
+        const startOfDay = setStartOfDay(startDate);
+        const endOfDay = setEndOfDay(endDate);
+  
+        filteredItems = filteredItems.filter(item => {
+          const itemDate = new Date(item.createdtime);
+          return itemDate >= startOfDay && itemDate <= endOfDay;
         });
+  
         console.log("Date Range Filter Applied:", startDate, "to", endDate);
       } else if (startDate) {
-        dateFilteredItems = filteredItems.filter(item => {
-          const itemDate = new Date(item.updatedtime);
-          return itemDate >= new Date(startDate);
+        const startOfDay = setStartOfDay(startDate);
+        filteredItems = filteredItems.filter(item => {
+          const itemDate = new Date(item.createdtime);
+          return itemDate >= startOfDay;
         });
         console.log("Start Date Filter Applied:", startDate);
       } else if (endDate) {
-        dateFilteredItems = filteredItems.filter(item => {
-          const itemDate = new Date(item.updatedtime);
-          return itemDate <= new Date(endDate);
+        const endOfDay = setEndOfDay(endDate);
+        filteredItems = filteredItems.filter(item => {
+          const itemDate = new Date(item.createdtime);
+          return itemDate <= endOfDay;
         });
         console.log("End Date Filter Applied:", endDate);
       }
+
+      const combinedItems = filteredItems.reduce((accumulator, currentItem) => {
+        const { itemname, pendingqty } = currentItem; // Adjust as needed
+  
+        // Check if the itemname already exists in the accumulator
+        if (accumulator[itemname]) {
+          // Combine quantities or any other properties you need
+          accumulator[itemname].pendingqty += pendingqty; // Example of combining quantities
+          // If you need to combine more properties, adjust here
+        } else {
+          // If it doesn't exist, add it to the accumulator
+          accumulator[itemname] = { ...currentItem }; // Spread current item
+        }
+  
+        return accumulator;
+      }, {});
+  
+      // Convert the accumulator object back to an array
+      const finalFilteredItems = Object.values(combinedItems);
   
       // Set the filtered items data to state
-      setFilteredData(dateFilteredItems || []);
+      // console.log("Final Filtered Items Data:", finalFilteredItems);
+      setFilteredData(finalFilteredItems || []);
+  
+      // // Set the filtered items data to state
+      // console.log("Final Filtered Items Data:", filteredItems);
+      // setFilteredData(filteredItems || []);
       setFilterApplied(true);
-      console.log("Final Filtered Items Data:", dateFilteredItems);
   
     } catch (error) {
       console.error('Unexpected error during filtering:', error);
     }
-  };
+  };  
 
   const handleReset = () => {
     setSelectedUser(null);
@@ -197,7 +251,7 @@ export default function LinesperDealerReport() {
                       <td>{index+1}</td>
                       <td>{data.itemname.trim()}</td>
                       <td>{data.segmentname.trim()}</td>
-                      <td>{data.liters}</td>
+                      <td>{data.pendingqty*data.itemweight}</td>
                     </tr>
                   ))}
                 </tbody>
