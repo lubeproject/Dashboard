@@ -131,6 +131,8 @@ export default function PaymentEntry() {
             label: visit.shopname,
             name: visit.visitor,
             role: visit.role,
+            repname: visit.repname,
+            repid: visit.repid,
           }))
         );
       }
@@ -170,7 +172,7 @@ export default function PaymentEntry() {
           .eq('userid', User.value)
           .single();
         if (!error) {
-          const prepaid = parseFloat(data.prepaid) || 0; // Handle invalid values
+          const prepaid = parseFloat(data.prepaid).toFixed(2) || 0; // Handle invalid values
           setPrepaidBalance(prepaid);
         } else {
           console.error('Error fetching prepaid balance:', error);
@@ -431,7 +433,7 @@ export default function PaymentEntry() {
         usershopname: User.label,
         invoices: invoiceIds.join(', '), // Combine all invoice IDs as a single string
         paymode: paymentMode.label,
-        amount: parseFloat(amount), // Use original amount here
+        amount: parseFloat(amount).toFixed(2), // Use original amount here
         remarks: remarks.trim(),
         paymentstatus: 'Pending',
         payref: paymentReference || null,
@@ -469,7 +471,7 @@ export default function PaymentEntry() {
         paymentstatus: 'To be cleared',
         payref: paymentReference || (paymentMode.label === 'Adjustment' ? adjustMode.label : null),
         remarks: remarks.trim(),
-        amount: parseFloat(amount), // Use the original amount entered
+        amount: parseFloat(amount).toFixed(2), // Use the original amount entered
         active: 'Y',
         chequedate: chequeDate || new Date().toISOString().split('T')[0],
         createdtime: new Date().toISOString(),
@@ -611,6 +613,7 @@ export default function PaymentEntry() {
                   onWheel={(e) => e.target.blur()}
                   onChange={(e) => setAmount(e.target.value)}
                   min="0"
+                  step="0.01"
                   required
                 />
               </Form.Group>
