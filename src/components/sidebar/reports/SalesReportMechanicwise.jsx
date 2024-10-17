@@ -59,32 +59,122 @@ export default function SalesReportMechanicwise() {
     return `${day}/${month}/${year}`; // Change format as needed
   };
 
+  const setStartOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(0, 0, 0, 0);  // Set hours, minutes, seconds, and milliseconds to 0
+    return newDate;
+  };
+  
+  // Set end date to 23:59:59 (end of the day) if needed
+  const setEndOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(23, 59, 59, 999);  // Set hours, minutes, seconds, and milliseconds to the end of the day
+    return newDate;
+  };
+
+  const formatDateForSQL = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    // Return the formatted date in 'YYYY-MM-DD HH:MM:SS' format
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
 
   const handleFilter = async () => {
-    if (!selectedMechanic || !startDate || !endDate) {
-      alert('Please select a mechanic and date range.');
+    if (!selectedMechanic) {
+      alert('Please select a Mechanic.');
       return;
     }
 
-    if (startDate > endDate) {
-      alert("Pick From Date cannot be later than Pick To Date.");
-      return;
+    if (startDate && endDate) {
+      if (new Date(startDate) > new Date(endDate)) {
+        alert("Pick From Date cannot be later than Pick To Date.");
+        return;
+      }
     }
 
     // Fetch billing data from billing_mechanic table
-    const { data, error } = await supabase
+    let query = supabase
       .from('user_request')
       .select('*')
-      .eq('userid', selectedMechanic.value)
-      .gte('createdtime', startDate.toISOString())
-      .lte('createdtime', endDate.toISOString());
+      .eq('userid', selectedMechanic.value);
 
-    if (error) {
-      console.error('Error fetching billing data:', error);
+    const { data: userRequests, error: userRequestError } = await query;
+
+    if (userRequestError) {
+      console.error('Error fetching user requests:', userRequestError);
       return;
     }
 
-    setFilteredData(data);
+    // Get the reqids from the fetched userRequests
+    const reqIds = userRequests.map(request => request.reqid);
+
+    // If no requests found, handle gracefully
+    if (reqIds.length === 0) {
+      console.warn('No requests found for the selected mechanic.');
+      setFilteredData([]);
+      return;
+    }
+
+    // Fetch request items from the `user_request_items` table using the fetched reqids
+    const { data: requestItems, error: requestItemsError } = await supabase
+      .from('user_request_items')
+      .select('*')
+      .eq('userid', selectedMechanic.value) // Match with mechanic's user ID
+      .in('reqid', reqIds); // Match with reqids
+
+    if (requestItemsError) {
+      console.error('Error fetching request items:', requestItemsError);
+      return;
+    }
+
+    // Merge the fetched request items with their corresponding user requests
+    const mergedData = requestItems.map(item => {
+      const userRequest = userRequests.find(request => request.reqid === item.reqid);
+      return {
+        ...item, 
+        itemname: item.itemname || 'Unknown', // Assuming itemname is in `user_request_items`
+        usershopname: userRequest ? userRequest.usershopname : 'Unknown',
+        createdtime: userRequest ? userRequest.createdtime : null
+      };
+    });
+
+    // Date filtering based on start and end dates (if provided)
+    let filteredItems = mergedData;
+    if (startDate || endDate) {
+      let dateFilteredItems = filteredItems;
+      
+      if (startDate && endDate) {
+        const startOfDay = setStartOfDay(startDate);
+        const endOfDay = setEndOfDay(endDate);
+        dateFilteredItems = filteredItems.filter(item => {
+          const itemDate = new Date(item.createdtime);
+          return itemDate >= startOfDay && itemDate <= endOfDay;
+        });
+      } else if (startDate) {
+        const startOfDay = setStartOfDay(startDate);
+        dateFilteredItems = filteredItems.filter(item => {
+          const itemDate = new Date(item.createdtime);
+          return itemDate >= startOfDay;
+        });
+      } else if (endDate) {
+        const endOfDay = setEndOfDay(endDate);
+        dateFilteredItems = filteredItems.filter(item => {
+          const itemDate = new Date(item.createdtime);
+          return itemDate <= endOfDay;
+        });
+      }
+
+      filteredItems = dateFilteredItems;
+    }
+
+    // Update the state with the filtered data
+    setFilteredData(filteredItems || []);
     setFilterApplied(true);
   };
 
@@ -123,6 +213,9 @@ export default function SalesReportMechanicwise() {
               placeholder="Select Mechanic"
               styles={customSelectStyles}
             />
+            {!selectedMechanic && (
+                <p className="text-danger">Please select a Mechanic</p>
+              )}
           </Form.Group>
         </Row>
         <Row className="mb-3 filter-row">
@@ -167,23 +260,25 @@ export default function SalesReportMechanicwise() {
                   <tr>
                     <th>Sl</th>
                     <th>Date</th>
-                    <th>Name</th>
-                    <th>Shopname</th>
+                    <th>Item name</th>
                     <th>Qty</th>
                     <th>Liters</th>
+                    <th>YTD Liters</th>
                     <th>Amount</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredData.map((data, index) => (
+                  {filteredData
+                  .sort((a, b) => new Date(b.createdtime) - new Date(a.createdtime))
+                  .map((data, index) => (
                     <tr key={index}>
                       <td>{index + 1}</td>
                       <td>{formatDate(data.createdtime)}</td>
-                      <td>{data.username}</td>
-                      <td>{data.usershopname}</td>
-                      <td>{data.totalqty}</td>
-                      <td>{data.totalliters}</td>
-                      <td>{data.totalamount}</td>
+                      <td>{data.itemname}</td>
+                      <td>{data.qty}</td>
+                      <td>{data.totalliters.toFixed(2)}</td>
+                      <td>{(data.pendingqty*data.itemweight).toFixed(2)}</td>
+                      <td>₹{data.totalprice.toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
