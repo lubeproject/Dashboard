@@ -137,6 +137,7 @@ export default function RetailerAccountStatement() {
 
       // Update the state with the sorted combined data
       setFilteredData(combinedData);
+      setFilteredData1(allUserRequests1);
       const allUserRequests2 = await fetchData('invoices1');
       const allUserRequests3 = await fetchData('payment_reference');
 
