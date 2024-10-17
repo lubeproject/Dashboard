@@ -26,9 +26,28 @@ export default function ReceiptReport() {
       }
   
       console.log("All Receipts:", filteredItems);
-      // Apply Date Range Filter
+      // Step 2: Extract unique user IDs from the createdby field
+    const userIds = [...new Set(filteredItems.map(item => item.createdby))];
+
+    // Step 3: Fetch user details from users table
+    const { data: usersData, error: userError } = await supabase
+      .from('users')
+      .select('userid, name')
+      .in('userid', userIds);
+
+    if (userError) {
+      console.error('Error fetching user details:', userError.message);
+      return;
+    }
+
+    // Step 4: Map users by userid for easier lookup
+    const userMap = {};
+    usersData.forEach(user => {
+      userMap[user.userid] = user.name;
+    });
+
+      // Step 5: Apply Date Range Filter
       let dateFilteredItems = filteredItems;
-  
       if (startDate && endDate) {
         if (new Date(startDate) > new Date(endDate)) {
           alert("Pick From Date cannot be later than Pick To Date.");
@@ -37,16 +56,14 @@ export default function ReceiptReport() {
         const adjustedEndDate = new Date(endDate);
         adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
         dateFilteredItems = filteredItems.filter(item => {
-          const itemDate = new Date(item.createdtime); // Convert the date string to a Date object
+          const itemDate = new Date(item.createdtime);
           return itemDate >= new Date(startDate) && itemDate <= adjustedEndDate;
         });
-        console.log("Date Range Filter Applied:", startDate, "to", adjustedEndDate);
       } else if (startDate) {
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.createdtime);
           return itemDate >= new Date(startDate);
         });
-        console.log("Start Date Filter Applied:", startDate);
       } else if (endDate) {
         const adjustedEndDate = new Date(endDate);
         adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
@@ -54,11 +71,15 @@ export default function ReceiptReport() {
           const itemDate = new Date(item.createdtime);
           return itemDate <= adjustedEndDate;
         });
-        console.log("End Date Filter Applied:", adjustedEndDate);
       }
-  
-      // Set the filtered items data to state
-      setFilteredData(dateFilteredItems || []);
+
+      // Step 6: Set the filtered items data to state with mapped user names
+      const finalData = dateFilteredItems.map(item => ({
+        ...item,
+        createdbyName: userMap[item.createdby] || 'Unknown' // Map createdby to user name
+      }));
+
+      setFilteredData(finalData || []);
       setFilterApplied(true);
       console.log("Final Filtered Items Data:", dateFilteredItems);
   
@@ -135,10 +156,13 @@ export default function ReceiptReport() {
                       <th>Pay Type</th>
                       <th>Amount</th>
                       <th>DSR</th>
+                      <th>Entry By</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredData.map((data, index) => (
+                  {filteredData
+                  .sort((a, b) => new Date(b.createdtime) - new Date(a.createdtime))
+                  .map((data, index) => (
                     <tr key={index}>
                       <td>{formatDate(data.createdtime)}</td>
                       <td>
@@ -148,6 +172,7 @@ export default function ReceiptReport() {
                       <td>{data.paymode.trim()}</td>
                       <td>{data.amount}</td>
                       <td>{data.repname.trim()}</td>
+                      <td style={{ color: data.createdbyName.trim() === data.repname.trim() ? 'green' : 'red' }}>{data.createdbyName.trim()}</td>
                     </tr>
                   ))}
                 </tbody>
