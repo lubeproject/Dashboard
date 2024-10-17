@@ -58,6 +58,19 @@ export default function RetailerRequestReport() {
     fetchOrderStatus();
   }, [user]);
 
+  const setStartOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(0, 0, 0, 0);  // Set hours, minutes, seconds, and milliseconds to 0
+    return newDate;
+  };
+  
+  // Set end date to 23:59:59 (end of the day) if needed
+  const setEndOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(23, 59, 59, 999);  // Set hours, minutes, seconds, and milliseconds to the end of the day
+    return newDate;
+  };
+
   const handleFilter = async () => {
     try {
       // Fetch all records for the selected user
@@ -122,27 +135,27 @@ export default function RetailerRequestReport() {
           alert("Pick From Date cannot be later than Pick To Date.");
           return;
         }
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+        const startOfDay = setStartOfDay(startDate);
+        const endOfDay = setEndOfDay(endDate);
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.updatedtime); // Convert the date string to a Date object
-          return itemDate >= new Date(startDate) && itemDate <= adjustedEndDate;
+          return itemDate >= startOfDay && itemDate <= endOfDay;
         });
-        console.log("Date Range Filter Applied:", startDate, "to", adjustedEndDate);
+        // console.log("Date Range Filter Applied:", startOfDay, "to", endOfDay);
       } else if (startDate) {
+        const startOfDay = setStartOfDay(startDate);
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.updatedtime);
-          return itemDate >= new Date(startDate);
+          return itemDate >= startOfDay;
         });
-        console.log("Start Date Filter Applied:", startDate);
+        // console.log("Start Date Filter Applied:", startDate);
       } else if (endDate) {
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+        const endOfDay = setEndOfDay(endDate);
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.updatedtime);
-          return itemDate <= adjustedEndDate;
+          return itemDate <= endOfDay;
         });
-        console.log("End Date Filter Applied:", adjustedEndDate);
+        // console.log("End Date Filter Applied:", endOfDay);
       }
   
       // Set the filtered items data to state
