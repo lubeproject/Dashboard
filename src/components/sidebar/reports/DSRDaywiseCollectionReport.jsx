@@ -47,6 +47,31 @@ export default function DSRDaywiseCollectionReport() {
     }
   }, [user]);
 
+  const setStartOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(0, 0, 0, 0);  // Set hours, minutes, seconds, and milliseconds to 0
+    return newDate;
+  };
+  
+  // Set end date to 23:59:59 (end of the day) if needed
+  const setEndOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(23, 59, 59, 999);  // Set hours, minutes, seconds, and milliseconds to the end of the day
+    return newDate;
+  };
+
+  const formatDateForSQL = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    // Return the formatted date in 'YYYY-MM-DD HH:MM:SS' format
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
   const handleFilter = async () => {
     try {
       // Step 1: Filter invoices by date range
@@ -54,50 +79,50 @@ export default function DSRDaywiseCollectionReport() {
         .from('payment_reference')
         .select('*')
         .eq('createdby', selectedDsr.value)
-        .eq('paymentstatus','Approved')
         .order('createdtime',{ascending:true});
-  
+      
       if (startDate && endDate) {
         if (new Date(startDate) > new Date(endDate)) {
           alert("Pick From Date cannot be later than Pick To Date.");
           return;
         }
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+        const formattedStartDate = formatDateForSQL(setStartOfDay(startDate));
+        const formattedEndDate = formatDateForSQL(setEndOfDay(endDate));
         represent_visitingQuery = represent_visitingQuery
-          .gte('createdtime', new Date(startDate).toISOString())
-          .lt('createdtime', adjustedEndDate.toISOString());
-        console.log("Date Range Filter Applied:", startDate, "to", adjustedEndDate);
+          .gte('createdtime', formattedStartDate)
+          .lte('createdtime', formattedEndDate);
+        console.log("Date Range Filter Applied:", formattedStartDate, "to", formattedEndDate);
       } else if (startDate) {
-        represent_visitingQuery = represent_visitingQuery.gte('createdtime', new Date(startDate).toISOString());
-        console.log("Start Date Filter Applied:", startDate);
+        const formattedStartDate = formatDateForSQL(setStartOfDay(startDate));
+        represent_visitingQuery = represent_visitingQuery.gte('createdtime', formattedStartDate);
+        console.log("Start Date Filter Applied:", formattedStartDate);
       } else if (endDate) {
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
-        represent_visitingQuery = represent_visitingQuery.lt('createdtime', adjustedEndDate.toISOString());
-        console.log("End Date Filter Applied:", adjustedEndDate);
+        const formattedEndDate = formatDateForSQL(setEndOfDay(endDate));
+        represent_visitingQuery = represent_visitingQuery.lte('createdtime', formattedEndDate);
+        console.log("End Date Filter Applied:", formattedEndDate);
       }
   
       const { data: filteredRepresentVisiting, error: represent_visitingError } = await represent_visitingQuery;
-  
+
+      // console.log(filteredRepresentVisiting);
       if (represent_visitingError) {
         console.error('Error fetching filtered represent visiting:', represent_visitingError.message);
         return;
       }
   
       if (!filteredRepresentVisiting || filteredRepresentVisiting.length === 0) {
-        console.warn('No Represent Visiting found for the selected date range.');
+        console.warn('No Sales Order found for the selected date range.');
         setFilteredData([]);
         return;
       }
-      console.log(filteredRepresentVisiting);
+      // console.log(filteredRepresentVisiting);
   
       // Step 2: Calculate totals by payment mode and date
       const totalsByDate = {};
       const overallTotals = { Cash: 0, Cheque: 0, UPI: 0 ,Adjust:0 };
   
       filteredRepresentVisiting.forEach((record) => {
-        const date = new Date(record.updatedtime).toISOString().split('T')[0]; // Get date in 'YYYY-MM-DD' format
+        const date = formatDate(record.createdtime); // Get date in 'YYYY-MM-DD' format
         const { paymode, amount } = record;
   
         if (!totalsByDate[date]) {
@@ -110,7 +135,7 @@ export default function DSRDaywiseCollectionReport() {
         } else if (paymode === 'Cheque') {
           totalsByDate[date].Cheque += amount;
           overallTotals.Cheque += amount;
-        } else if (paymode === 'UPI') {
+        } else if (paymode === 'UPI/IB') {
           totalsByDate[date].UPI += amount;
           overallTotals.UPI += amount;
         } else if (paymode === 'Adjustment') {
@@ -120,7 +145,7 @@ export default function DSRDaywiseCollectionReport() {
       });
   
       setFilteredData(totalsByDate);
-      console.log(filteredData);
+      // console.log(filteredData);
       setOverallTotalsCash(overallTotals.Cash);
       setOverallTotalsCheque(overallTotals.Cheque);
       setOverallTotalsUPI(overallTotals.UPI);
@@ -128,7 +153,7 @@ export default function DSRDaywiseCollectionReport() {
       setFilterApplied(true);
       console.log("Final Filtered Totals by Date:", totalsByDate);
       console.log("Overall Totals:", overallTotals);
-      console.log(filteredData);
+      // console.log(filteredData);
     } catch (error) {
       console.error('Unexpected error during filtering:', error);
     }
@@ -226,7 +251,7 @@ export default function DSRDaywiseCollectionReport() {
                     <th>Date</th>
                     <th>Cheque</th>
                     <th>Cash</th>
-                    <th>UPI</th>
+                    <th>UPI/IB</th>
                     <th>Adjustment</th>
                     <th>Day Total</th>
                   </tr>
@@ -243,7 +268,7 @@ export default function DSRDaywiseCollectionReport() {
 
                     return (
                       <tr key={index}>
-                        <td>{formatDate(date)}</td>
+                        <td>{date}</td>
                         <td>{chequeAmount}</td>
                         <td>{cashAmount}</td>
                         <td>{upiAmount}</td>
