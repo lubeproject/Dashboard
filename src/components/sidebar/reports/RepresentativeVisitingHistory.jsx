@@ -5,7 +5,7 @@ import Select from 'react-select';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import norecordfound from "../../../images/norecordfound.gif";
-import "./RepresentativeVisitingHistory";
+import "./RepresentativeVisitingHistory.css";
 
 export default function RepresentativeVisitingHistory() {
   const [dsrOptions, setDsrOptions] = useState([]);
