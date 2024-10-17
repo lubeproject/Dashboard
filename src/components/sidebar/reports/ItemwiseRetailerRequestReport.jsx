@@ -311,6 +311,19 @@ export default function ItemwiseRetailerRequestReport() {
     fetchOrderStatus();
   }, []);
 
+  const setStartOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(0, 0, 0, 0);  // Set hours, minutes, seconds, and milliseconds to 0
+    return newDate;
+  };
+  
+  // Set end date to 23:59:59 (end of the day) if needed
+  const setEndOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(23, 59, 59, 999);  // Set hours, minutes, seconds, and milliseconds to the end of the day
+    return newDate;
+  };
+
   const handleFilter = async () => {
     try {
       // Step 1: Fetch from user_request table where role is mechanic
@@ -371,23 +384,24 @@ export default function ItemwiseRetailerRequestReport() {
           alert("Pick From Date cannot be later than Pick To Date.");
           return;
         }
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+        const startOfDay = setStartOfDay(startDate);
+        const endOfDay = setEndOfDay(endDate);
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.updatedtime);
-          return itemDate >= new Date(startDate) && itemDate <= adjustedEndDate;
+          return itemDate >= startOfDay && itemDate <= endOfDay;
         });
       } else if (startDate) {
+        const startOfDay = setStartOfDay(startDate);
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.updatedtime);
-          return itemDate >= new Date(startDate);
+          return itemDate >= startOfDay;
         });
       } else if (endDate) {
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+        const endOfDay = setEndOfDay(endDate);
+        
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.updatedtime);
-          return itemDate <= adjustedEndDate;
+          return itemDate <= endOfDay;
         });
       }
 
@@ -443,8 +457,8 @@ export default function ItemwiseRetailerRequestReport() {
                 styles={customSelectStyles}
               />
               {!selectedItem && (
-        <p className="text-danger">Please select a Item.</p>
-      )}
+                <p className="text-danger">Please select a Item.</p>
+              )}
             </Form.Group>
           </Col>
           <Col md={6} xs={12} className="mb-2">
@@ -507,7 +521,9 @@ export default function ItemwiseRetailerRequestReport() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredData.map((item) => (
+                  {filteredData
+                  .sort((a, b) => a.reqid - b.reqid)
+                  .map((item) => (
                     <tr key={item.reqid}>
                       <td>{item.reqid} / {formatDate(item.createdtime)}</td>
                       <td>
