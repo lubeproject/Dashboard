@@ -49,7 +49,7 @@ export default function DSRDaywiseSalesReport() {
     }
 
     if(startDate>endDate){
-      alert("Start Date cannot be greater than End Date.");
+      alert("Pick From Date cannot be later than Pick To Date.");
       return;
     }
 
