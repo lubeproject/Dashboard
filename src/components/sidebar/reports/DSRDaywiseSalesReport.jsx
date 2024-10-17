@@ -43,15 +43,15 @@ export default function DSRDaywiseSalesReport() {
   }, [user]);
 
   const handleFilter = async () => {
-    if (!selectedDsr || !startDate || !endDate) {
+    if (!selectedDsr) {
       alert("Please select a representative and date range.");
       return;
     }
 
-    if(startDate>endDate){
-      alert("Pick From Date cannot be later than Pick To Date.");
-      return;
-    }
+    // if(startDate>endDate){
+    //   alert("Pick From Date cannot be later than Pick To Date.");
+    //   return;
+    // }
 
     try {
       // Format startDate and endDate to 'YYYY-MM-DD' format strings
@@ -80,19 +80,34 @@ export default function DSRDaywiseSalesReport() {
         // Return the formatted date in 'YYYY-MM-DD HH:MM:SS' format
         return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
       };
-      
-      // Apply start and end of the day adjustments
-      const formattedStartDate = formatDateForSQL(setStartOfDay(startDate));
-      const formattedEndDate = formatDateForSQL(setEndOfDay(endDate));
 
       // Query for the visits assigned to the representative, filtering by visitingdate (which is a date field)
       let visitsQuery = supabase
         .from('user_request')
         .select('*')
         .eq('createdby', selectedDsr.value)
-        .gte('createdtime', formattedStartDate) // Use formatted date
-        .lte('createdtime', formattedEndDate) // Use formatted end date
         .order('reqid');
+
+        if (startDate && endDate) {
+          if (new Date(startDate) > new Date(endDate)) {
+            alert("Pick From Date cannot be later than Pick To Date.");
+            return;
+          }
+          const formattedStartDate = formatDateForSQL(setStartOfDay(startDate));
+          const formattedEndDate = formatDateForSQL(setEndOfDay(endDate));
+          visitsQuery = visitsQuery
+          .gte('createdtime', formattedStartDate)
+          .lte('createdtime', formattedEndDate);
+        console.log("Date Range Filter Applied:", formattedStartDate, "to", formattedEndDate);
+        } else if (startDate) {
+          const formattedStartDate = formatDateForSQL(setStartOfDay(startDate));
+          visitsQuery = visitsQuery.gte('createdtime', formattedStartDate);
+          console.log("Start Date Filter Applied:", formattedStartDate);
+        } else if (endDate) {
+          const formattedEndDate = formatDateForSQL(setEndOfDay(endDate));
+          visitsQuery = visitsQuery.lte('createdtime', formattedEndDate);
+          console.log("End Date Filter Applied:", formattedEndDate);
+        }
 
       const { data: visitsData, error: visitsError } = await visitsQuery;
 
@@ -211,7 +226,7 @@ export default function DSRDaywiseSalesReport() {
         </Row>
         <Row className="mt-4">
           <Col>
-            {filteredData.length === 0 ? (
+            {filteredData && Object.keys(filteredData).length === 0 ? (
               <div className="text-center">
                 <img src={norecordfound} alt="No Record Found" className="no-record-img" />
               </div>
