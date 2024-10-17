@@ -1168,7 +1168,7 @@ const fetchGiftItems = async () => {
                 </td>
                 {totalCategoryValues.map((val, i) => (
                   <td key={i}>
-                    <center>{val}</center>
+                    <center>{val.toFixed(2)}</center>
                   </td>
                 ))}
               </tr>
