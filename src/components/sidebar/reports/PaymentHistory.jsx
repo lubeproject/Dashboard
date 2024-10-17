@@ -367,27 +367,75 @@ export default function PaymentHistory() {
   //   }
   // };
 
+  const setStartOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(0, 0, 0, 0);  // Set hours, minutes, seconds, and milliseconds to 0
+    return newDate;
+  };
+  
+  // Set end date to 23:59:59 (end of the day) if needed
+  const setEndOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(23, 59, 59, 999);  // Set hours, minutes, seconds, and milliseconds to the end of the day
+    return newDate;
+  };
+
+  const formatDateForSQL = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    // Return the formatted date in 'YYYY-MM-DD HH:MM:SS' format
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
   const handleFilter = async () => {
-    if (!selectedUser) {
+    if (!selectedUser && !selectedPaymentStatus) {
+      alert('Please select a user and payment status');
+      return;
+    }
+    else if (!selectedUser && selectedPaymentStatus) {
       alert('Please select a user');
       return;
     }
-  
+    else if (selectedUser && !selectedPaymentStatus) {
+      alert('Please select payment status');
+      return;
+    }
+
+    if (startDate && endDate) {
+      if (new Date(startDate) > new Date(endDate)) {
+        alert("Pick From Date cannot be later than Pick To Date.");
+        return;
+      }
+    }
     try {
       let approvalData = [];
       let referenceData = [];
-      const adjustedEndDate = new Date(endDate);
-      adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
   
       // Handle "To be cleared"
       if (selectedPaymentStatus && selectedPaymentStatus.label === 'To be cleared') {
-        const { data: approvalDataResponse, error: approvalError } = await supabase
+        let query = supabase
           .from('payment_approval')
           .select('*')
           .eq('userid', selectedUser.value)
-          .eq('paymentstatus', 'To be cleared')
-          .gte('createdtime', startDate.toISOString())
-          .lt('createdtime', adjustedEndDate.toISOString());
+          .eq('paymentstatus', 'To be cleared');
+
+          if (startDate) {
+            const startOfDay = formatDateForSQL(setStartOfDay(startDate));
+            query = query
+              .gte('createdtime', startOfDay);
+          }
+          if (endDate) {
+            const endOfDay = formatDateForSQL(setEndOfDay(endDate));
+            query = query
+              .lte('createdtime', endOfDay);
+          }
+
+        const { data: approvalDataResponse, error: approvalError } = await query;
   
         if (approvalError) throw approvalError;
         approvalData = approvalDataResponse.map(item => ({
@@ -399,13 +447,24 @@ export default function PaymentHistory() {
   
       // Handle "Approved"
       } else if (selectedPaymentStatus && selectedPaymentStatus.label === 'Approved') {
-        const { data: referenceDataResponse, error: referenceError } = await supabase
+        let query = supabase
           .from('payment_reference')
           .select('*')
           .eq('userid', selectedUser.value)
-          .eq('paymentstatus', 'Approved')
-          .gte('createdtime', startDate.toISOString())
-          .lt('createdtime', adjustedEndDate.toISOString());
+          .eq('paymentstatus', 'Approved');
+
+          if (startDate) {
+            const startOfDay = formatDateForSQL(setStartOfDay(startDate));
+            query = query
+              .gte('createdtime', startOfDay);
+          }
+          if (endDate) {
+            const endOfDay = formatDateForSQL(setEndOfDay(endDate));
+            query = query
+              .lte('createdtime', endOfDay);
+          }
+
+        const { data: referenceDataResponse, error: referenceError } = await query;
   
         if (referenceError) throw referenceError;
         referenceData = referenceDataResponse.map(item => ({
@@ -417,13 +476,24 @@ export default function PaymentHistory() {
   
       // Handle "Pending"
       } else if (selectedPaymentStatus && selectedPaymentStatus.label === 'Pending') {
-        const { data: referenceDataResponse, error: referenceError } = await supabase
+        let query = supabase
           .from('invoices1')
           .select('*')
           .eq('userid', selectedUser.value)
-          .eq('paymentstatus', 'Pending')
-          .gte('createdtime', startDate.toISOString())
-          .lt('createdtime', adjustedEndDate.toISOString());
+          .eq('paymentstatus', 'Pending');
+
+          if (startDate) {
+            const startOfDay = formatDateForSQL(setStartOfDay(startDate));
+            query = query
+              .gte('createdtime', startOfDay);
+          }
+          if (endDate) {
+            const endOfDay = formatDateForSQL(setEndOfDay(endDate));
+            query = query
+              .lte('createdtime', endOfDay);
+          }
+
+        const { data: referenceDataResponse, error: referenceError } = await query;
   
         if (referenceError) throw referenceError;
         referenceData = referenceDataResponse.map(item => ({
@@ -437,13 +507,24 @@ export default function PaymentHistory() {
       // Handle "All"
       } else if (selectedPaymentStatus && selectedPaymentStatus.label === 'All') {
         // Fetch "To be cleared" from payment_approval
-        const { data: approvalDataResponse, error: approvalError } = await supabase
+        let query = supabase
           .from('payment_approval')
           .select('*')
           .eq('userid', selectedUser.value)
-          .eq('paymentstatus', 'To be cleared')
-          .gte('createdtime', startDate.toISOString())
-          .lt('createdtime', adjustedEndDate.toISOString());
+          .eq('paymentstatus', 'To be cleared');
+
+          if (startDate) {
+            const startOfDay = formatDateForSQL(setStartOfDay(startDate));
+            query = query
+              .gte('createdtime', startOfDay);
+          }
+          if (endDate) {
+            const endOfDay = formatDateForSQL(setEndOfDay(endDate));
+            query = query
+              .lte('createdtime', endOfDay);
+          }
+
+        const { data: approvalDataResponse, error: approvalError } = await query;
   
         if (approvalError) throw approvalError;
         approvalData = approvalDataResponse.map(item => ({
@@ -453,13 +534,24 @@ export default function PaymentHistory() {
         }));
   
         // Fetch "Approved" from payment_reference
-        const { data: referenceDataResponse, error: referenceError } = await supabase
+        let payquery = supabase
           .from('payment_reference')
           .select('*')
           .eq('userid', selectedUser.value)
-          .eq('paymentstatus', 'Approved')
-          .gte('createdtime', startDate.toISOString())
-          .lt('createdtime', adjustedEndDate.toISOString());
+          .eq('paymentstatus', 'Approved');
+
+          if (startDate) {
+            const startOfDay = formatDateForSQL(setStartOfDay(startDate));
+            payquery = payquery
+              .gte('createdtime', startOfDay);
+          }
+          if (endDate) {
+            const endOfDay = formatDateForSQL(setEndOfDay(endDate));
+            payquery = payquery
+              .lte('createdtime', endOfDay);
+          }
+
+        const { data: referenceDataResponse, error: referenceError } = await payquery;
   
         if (referenceError) throw referenceError;
         referenceData = referenceDataResponse.map(item => ({
@@ -502,6 +594,9 @@ export default function PaymentHistory() {
                 options={usersOptions}
                 placeholder="Select User"
               />
+              {!selectedUser && (
+                <p className="text-danger">Please select a User</p>
+              )}
             </Form.Group>
           </Col>
           <Col md={6} xs={12} className="mb-2">
@@ -512,6 +607,9 @@ export default function PaymentHistory() {
                 options={paymentStatusOptions}
                 placeholder="Select Payment Status"
               />
+              {!selectedPaymentStatus && (
+                <p className="text-danger">Please select a Payment Status</p>
+              )}
             </Form.Group>
           </Col>
         </Row>
@@ -563,14 +661,16 @@ export default function PaymentHistory() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredData.map((data, index) => (
+                  {filteredData
+                  .sort((a, b) => new Date(b.createdtime) - new Date(a.createdtime))
+                  .map((data, index) => (
                     <tr key={index}>
                       <td>{formatDate(data.createdtime)}</td>
                       <td>
                             {data.usershopname}<br/>
                             {data.username}
                       </td>
-                      <td>{data.paymentmode}<br/>
+                      <td>{data.paymode}<br/>
                           {data.payref} 
                       </td>
                       <td>₹{data.amount}</td>
