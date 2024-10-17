@@ -48,24 +48,55 @@ export default function DSRDaywiseSalesReport() {
       return;
     }
 
+    if(startDate>endDate){
+      alert("Start Date cannot be greater than End Date.");
+      return;
+    }
+
     try {
       // Format startDate and endDate to 'YYYY-MM-DD' format strings
-      const formattedStartDate = startDate.toISOString();
-      const formattedEndDate = new Date(endDate);
-      formattedEndDate.setDate(formattedEndDate.getDate() + 1); // Adjust endDate to include the end date
-      const formattedEndDateString = formattedEndDate.toISOString();
+      const setStartOfDay = (date) => {
+        const newDate = new Date(date);
+        newDate.setHours(0, 0, 0, 0);  // Set hours, minutes, seconds, and milliseconds to 0
+        return newDate;
+      };
+      
+      // Set end date to 23:59:59 (end of the day) if needed
+      const setEndOfDay = (date) => {
+        const newDate = new Date(date);
+        newDate.setHours(23, 59, 59, 999);  // Set hours, minutes, seconds, and milliseconds to the end of the day
+        return newDate;
+      };
+      
+      // Format the date to 'YYYY-MM-DD' to use in the query
+      const formatDateForSQL = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+
+        // Return the formatted date in 'YYYY-MM-DD HH:MM:SS' format
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      };
+      
+      // Apply start and end of the day adjustments
+      const formattedStartDate = formatDateForSQL(setStartOfDay(startDate));
+      const formattedEndDate = formatDateForSQL(setEndOfDay(endDate));
 
       // Query for the visits assigned to the representative, filtering by visitingdate (which is a date field)
       let visitsQuery = supabase
-        .from('represent_visiting1')
+        .from('user_request')
         .select('*')
-        .eq('repid', selectedDsr.value)
-        .gte('visitingdate', formattedStartDate) // Use formatted date
-        .lte('visitingdate', formattedEndDateString) // Use formatted end date
-        .order('visitingdate');
+        .eq('createdby', selectedDsr.value)
+        .gte('createdtime', formattedStartDate) // Use formatted date
+        .lte('createdtime', formattedEndDate) // Use formatted end date
+        .order('reqid');
 
       const { data: visitsData, error: visitsError } = await visitsQuery;
 
+      // console.log(visitsData);
       if (visitsError) {
         console.error('Error fetching visits:', visitsError.message);
         return;
@@ -77,8 +108,8 @@ export default function DSRDaywiseSalesReport() {
 
       if (visitsData?.length > 0) {
         visitsData.forEach((record) => {
-          const date = record.visitingdate;
-          const { orders } = record;
+          const date = formatDate(record.createdtime);
+          const { totalliters } = record;
 
           // Initialize date entry if not present
           if (!totalsByDate[date]) {
@@ -86,7 +117,7 @@ export default function DSRDaywiseSalesReport() {
           }
 
           // Add orders (in liters) to the total for the date
-          totalsByDate[date] += orders;
+          totalsByDate[date] += totalliters;
         });
       }
 
@@ -94,7 +125,7 @@ export default function DSRDaywiseSalesReport() {
       setFilteredData(totalsByDate);
       setFilterApplied(true);
 
-      console.log("Final Filtered Totals by Date:", totalsByDate);
+      // console.log("Final Filtered Totals by Date:", totalsByDate);
     } catch (error) {
       console.error('Unexpected error during filtering:', error);
     }
@@ -201,7 +232,7 @@ export default function DSRDaywiseSalesReport() {
                   ))} */}
                   {Object.keys(filteredData).map((date, index) => (
                     <tr key={index}>
-                      <td>{formatDate(date)}</td>
+                      <td>{date}</td>
                       <td>{filteredData[date]}</td>
                     </tr>
                   ))}
