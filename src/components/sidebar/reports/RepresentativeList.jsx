@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Container, Table, Button, Row, Col } from 'react-bootstrap';
 import { FaCheck, FaTimes, FaEdit } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../supabaseClient'; // Ensure this path is correct
+import { UserContext } from '../../context/UserContext';
 
 export default function RepresentativeList() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const {user} = useContext(UserContext);
 
   useEffect(() => {
     fetchRepresentatives();
@@ -48,7 +50,8 @@ export default function RepresentativeList() {
         .update({
           active: 'N',
           lastupdatedtime: new Date().toISOString(),
-          updatedtime: new Date().toISOString()
+          updatedtime: new Date().toISOString(),
+          updatedby: user?.userid,
         })
         .eq('userid', userid);
 
