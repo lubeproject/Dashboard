@@ -504,7 +504,7 @@ export default function AddRetailerStock() {
                   isInvalid={!!errors.invoiceAmount}
                   placeholder="Invoice Amount"
                   min = "0"
-                  steps="0.01"
+                  step="0.01"
                 />
                 <Form.Control.Feedback type="invalid">
                   {errors.invoiceAmount}
