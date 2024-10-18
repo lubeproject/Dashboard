@@ -1,10 +1,11 @@
 // UpdateMechanicDetails.jsx
-import React, { useState} from 'react';
-import { Form, Button, Container, Row, Col } from 'react-bootstrap';
+import React, { useContext, useState} from 'react';
+import { Form, Button, Container, Row, Col,Modal } from 'react-bootstrap';
 import { FaMapMarkerAlt } from 'react-icons/fa';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './updateMechanicDetails.css';
 import {supabase} from '../../../supabaseClient';
+import { UserContext } from '../../context/UserContext';
 
 const UpdateMechanicDetails = () => {
   const location = useLocation();
@@ -34,6 +35,9 @@ const UpdateMechanicDetails = () => {
   });
 
   const [errors, setErrors] = useState({});
+  const {user} = useContext(UserContext);
+  const [showModal, setShowModal] = useState(false); // State for modal visibility
+  const [isSubmitting, setIsSubmitting] = useState(false); // State to track if submission is in progress
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -167,74 +171,81 @@ const UpdateMechanicDetails = () => {
 
     return publicData.publicUrl;
   };
-
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    const formattedDob = convertDateFormat(formData.dob);
-    const formattedlocateddate = convertDateFormat(formData.locateddate);
-    // const formattedDob = convertDateTimeFormat(formData.dob);
-    
-    // Validate form data
     const formErrors = validateForm();
     if (Object.keys(formErrors).length === 0) {
-      try {
-        let shopImageUrl = formData.shopImage1;
-        let shopImage2Url = formData.shopImage2;
-
-        if (formData.shopImageFile) {
-          shopImageUrl = await uploadImage(formData.shopImageFile, 'Image1');
-          if (!shopImageUrl) {
-            setErrors({ ...errors, shopImage: 'Failed to upload image' });
-            return;
-          }
-        }
-
-        if (formData.shopImage2File) {
-          shopImage2Url = await uploadImage(formData.shopImage2File, 'Image2');
-          if (!shopImage2Url) {
-            setErrors({ ...errors, shopImage2: 'Failed to upload image' });
-            return;
-          }
-        }
-        const { error } = await supabase
-          .from('users')
-          .update({
-            shopname: formData.shopName,
-            name: formData.ownerName,
-            mobile: formData.mobileNumber,
-            email: formData.email,
-            address: formData.address,
-            qrcode: formData.qrCode,
-            shopimgurl: shopImageUrl,
-            shopimgurl2: shopImage2Url,
-            totalarea: formData.totalarea,
-            noofemployees: formData.noofemployees,
-            monthlypotential: formData.monthlyPotential,
-            longitude: formData.geoLocation.split(',')[1]?.trim() || '',
-            latitude: formData.geoLocation.split(',')[0]?.trim() || '',
-            spacetype: formData.spacetype,
-            dob: formattedDob,
-            locateddate:formattedlocateddate,
-            updatedtime: new Date().toISOString(),
-            lastupdatedtime: new Date().toISOString(), // Adjust if needed
-          })
-          .eq('userid', mechanic.userid); // Ensure you update the correct mechanic
-  
-        if (error) {
-          throw error;
-        }
-  
-        // Redirect or show success message
-        console.log('mechanic details updated successfully');
-        // Example: redirect to another page or show a success message
-      } catch (error) {
-        console.error('Error updating mechanic details:', error);
-        setErrors({ ...errors, submit: 'Failed to update details. Please try again.' });
-      }
+      setShowModal(true); // Show confirmation modal
     } else {
       setErrors(formErrors);
     }
   };
+
+  const handleConfirmUpdate = async () => {
+    setIsSubmitting(true);
+    setShowModal(false);
+    const formattedDob = convertDateFormat(formData.dob);
+    const formattedlocateddate = convertDateFormat(formData.locateddate);
+    try {
+      let shopImageUrl = formData.shopImage1;
+      let shopImage2Url = formData.shopImage2;
+
+      if (formData.shopImageFile) {
+        shopImageUrl = await uploadImage(formData.shopImageFile, 'Image1');
+        if (!shopImageUrl) {
+          setErrors({ ...errors, shopImage: 'Failed to upload image' });
+          return;
+        }
+      }
+
+      if (formData.shopImage2File) {
+        shopImage2Url = await uploadImage(formData.shopImage2File, 'Image2');
+        if (!shopImage2Url) {
+          setErrors({ ...errors, shopImage2: 'Failed to upload image' });
+          return;
+        }
+      }
+      const { error } = await supabase
+        .from('users')
+        .update({
+          shopname: formData.shopName,
+          name: formData.ownerName,
+          mobile: formData.mobileNumber,
+          email: formData.email,
+          address: formData.address,
+          qrcode: formData.qrCode,
+          shopimgurl: shopImageUrl,
+          shopimgurl2: shopImage2Url,
+          totalarea: formData.totalarea,
+          noofemployees: formData.noofemployees,
+          monthlypotential: formData.monthlyPotential,
+          longitude: formData.geoLocation.split(',')[1]?.trim() || '',
+          latitude: formData.geoLocation.split(',')[0]?.trim() || '',
+          spacetype: formData.spacetype,
+          dob: formattedDob,
+          locateddate:formattedlocateddate,
+          updatedtime: new Date().toISOString(),
+          lastupdatedtime: new Date().toISOString(), // Adjust if needed
+          updatedby: user?.userid,
+        })
+        .eq('userid', mechanic.userid); // Ensure you update the correct mechanic
+
+      if (error) {
+        throw error;
+      }
+
+      // Redirect or show success message
+      console.log('mechanic details updated successfully');
+      navigate('/portal/mechaniclist');
+      // Example: redirect to another page or show a success message
+    } catch (error) {
+      console.error('Error updating mechanic details:', error);
+      setErrors({ ...errors, submit: 'Failed to update details. Please try again.' });
+    }finally {
+      setIsSubmitting(false);
+    }
+  };
+
 
   const handleCancel= () => {
     navigate('/portal/mechaniclist');
@@ -515,14 +526,28 @@ const UpdateMechanicDetails = () => {
               </Form.Group>
             </Col>
           </Row>
-  
-          <Button type="submit" style={{ minWidth: '100%', alignItems: 'center' }}>
+          <Button type="submit" className="mt-3 w-100" disabled={isSubmitting}>
             Submit
           </Button>
-          <Button variant="secondary" className="w-48" onClick={handleCancel} style={{ minWidth: '100%', alignItems: 'center',backgroundColor:'red' }}>
+          <Button variant="secondary" className="w-48" onClick={handleCancel} style={{ alignItems: 'center',backgroundColor:'red' }}>
             Cancel
           </Button>
         </Form>
+        {/* Confirmation Modal */}
+        <Modal show={showModal} onHide={() => setShowModal(false)} centered>
+          <Modal.Header closeButton>
+            <Modal.Title className="text-center">Update Mechanic Details</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>Are you sure you want to update the details of <br/> {formData.shopName}?</Modal.Body>
+          <Modal.Footer className="d-flex justify-content-between">
+            <Button variant="primary" className="me-auto" style={{ width: '100px'}} onClick={handleConfirmUpdate} disabled={isSubmitting}>
+            {isSubmitting ? 'Updating...' : 'Confirm'}
+            </Button>
+            <Button variant="danger" style={{ width: '100px'}} onClick={() => setShowModal(false)}>
+              Cancel
+            </Button>
+          </Modal.Footer>
+        </Modal>
       </Container>
     </main>
   );
