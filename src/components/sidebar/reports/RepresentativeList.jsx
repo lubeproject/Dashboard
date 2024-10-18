@@ -112,7 +112,6 @@ export default function RepresentativeList() {
                       onClick={() => handleEditClick(item)}
                     >
                       <FaEdit />
-                      {/* <span style={{ marginLeft: "10px" }}> Edit </span> */}
                     </Button>
                   </td>
                 </tr>
