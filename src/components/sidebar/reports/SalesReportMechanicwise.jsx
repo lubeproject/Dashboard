@@ -263,7 +263,6 @@ export default function SalesReportMechanicwise() {
                     <th>Item name</th>
                     <th>Qty</th>
                     <th>Liters</th>
-                    <th>YTD Liters</th>
                     <th>Amount</th>
                   </tr>
                 </thead>
@@ -277,7 +276,6 @@ export default function SalesReportMechanicwise() {
                       <td>{data.itemname}</td>
                       <td>{data.qty}</td>
                       <td>{data.totalliters.toFixed(2)}</td>
-                      <td>{(data.pendingqty*data.itemweight).toFixed(2)}</td>
                       <td>₹{data.totalprice.toFixed(2)}</td>
                     </tr>
                   ))}
