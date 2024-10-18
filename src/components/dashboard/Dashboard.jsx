@@ -846,7 +846,8 @@ const fetchGiftItems = async () => {
       const { data: reps, error: repsError } = await supabase
         .from("users")
         .select("userid, name, role")
-        .eq("role", "representative");
+        .eq("role", "representative")
+        .eq("active",'Y');
 
       if (repsError) throw repsError;
 
