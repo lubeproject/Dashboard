@@ -684,12 +684,13 @@
 // };
 
 // export default UpdateRetailerDetails;
-import React, { useState, useEffect } from 'react';
-import { Form, Button, Container, Row, Col } from 'react-bootstrap';
+import React, { useState, useEffect, useContext } from 'react';
+import { Form, Button, Container, Row, Col,Modal } from 'react-bootstrap';
 import { FaMapMarkerAlt } from 'react-icons/fa';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './updateRetailerDetails.css';
 import { supabase } from '../../../supabaseClient';
+import { UserContext } from '../../context/UserContext';
 
 const UpdateRetailerDetails = () => {
   const location = useLocation();
@@ -722,6 +723,9 @@ const UpdateRetailerDetails = () => {
   const [creditTerms, setCreditTerms] = useState([]);
   const [segments, setSegments] = useState([]);
   const [errors, setErrors] = useState({});
+  const [showModal, setShowModal] = useState(false); // State for modal visibility
+  const [isSubmitting, setIsSubmitting] = useState(false); // State to track if submission is in progress
+  const {user} = useContext(UserContext);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -865,71 +869,79 @@ const UpdateRetailerDetails = () => {
     return publicData.publicUrl;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    const formattedDob = convertDateFormat(formData.dob);
-    const joinedSegments = Array.isArray(formData.segment) ? formData.segment.join(', ') : '';
     const formErrors = validateForm();
-
     if (Object.keys(formErrors).length === 0) {
-      try {
-        let shopImageUrl = formData.shopImage;
-        let shopImage2Url = formData.shopImage2;
-
-        if (formData.shopImageFile) {
-          shopImageUrl = await uploadImage(formData.shopImageFile, 'Image1');
-          if (!shopImageUrl) {
-            setErrors({ ...errors, shopImage: 'Failed to upload image' });
-            return;
-          }
-        }
-
-        if (formData.shopImage2File) {
-          shopImage2Url = await uploadImage(formData.shopImage2File, 'Image2');
-          if (!shopImage2Url) {
-            setErrors({ ...errors, shopImage2: 'Failed to upload image' });
-            return;
-          }
-        }
-
-        const { error } = await supabase
-          .from('users')
-          .update({
-            shopname: formData.shopName,
-            name: formData.ownerName,
-            mobile: formData.mobileNumber,
-            email: formData.email,
-            address: formData.address,
-            qrcode: formData.qrCode,
-            shopimgurl: shopImageUrl,
-            shopimgurl2: shopImage2Url,
-            shippingaddress: formData.shippingAddress,
-            segment: joinedSegments,
-            enablecheck: formData.rewardPointApplicable ? 'Y' : 'N',
-            monthlypotential: formData.monthlyPotential,
-            longitude: formData.geoLocation.split(',')[1]?.trim() || '',
-            latitude: formData.geoLocation.split(',')[0]?.trim() || '',
-            creditterm: formData.creditTerm,
-            cginno: formData.cgin,
-            dob: formattedDob,
-            updatedtime: new Date().toISOString(),
-            lastupdatedtime: new Date().toISOString(), // Adjust if needed
-          })
-          .eq('userid', retailer.userid); // Ensure you update the correct retailer
-
-        if (error) {
-          throw error;
-        }
-
-        // Redirect or show success message
-        console.log('Retailer details updated successfully');
-        // Example: redirect to another page or show a success message
-      } catch (error) {
-        console.error('Error updating retailer details:', error);
-        setErrors({ ...errors, submit: 'Failed to update details. Please try again.' });
-      }
+      setShowModal(true); // Show confirmation modal
     } else {
       setErrors(formErrors);
+    }
+  };
+
+  const handleConfirmUpdate = async () => {
+    setIsSubmitting(true);
+    setShowModal(false);
+    try {
+      const formattedDob = convertDateFormat(formData.dob);
+      const joinedSegments = Array.isArray(formData.segment) ? formData.segment.join(', ') : '';
+      let shopImageUrl = formData.shopImage;
+      let shopImage2Url = formData.shopImage2;
+
+      if (formData.shopImageFile) {
+        shopImageUrl = await uploadImage(formData.shopImageFile, 'Image1');
+        if (!shopImageUrl) {
+          setErrors({ ...errors, shopImage: 'Failed to upload image' });
+          return;
+        }
+      }
+
+      if (formData.shopImage2File) {
+        shopImage2Url = await uploadImage(formData.shopImage2File, 'Image2');
+        if (!shopImage2Url) {
+          setErrors({ ...errors, shopImage2: 'Failed to upload image' });
+          return;
+        }
+      }
+
+      const { error } = await supabase
+        .from('users')
+        .update({
+          shopname: formData.shopName,
+          name: formData.ownerName,
+          mobile: formData.mobileNumber,
+          email: formData.email,
+          address: formData.address,
+          qrcode: formData.qrCode,
+          shopimgurl: shopImageUrl,
+          shopimgurl2: shopImage2Url,
+          shippingaddress: formData.shippingAddress,
+          segment: joinedSegments,
+          enablecheck: formData.rewardPointApplicable ? 'Y' : 'N',
+          monthlypotential: formData.monthlyPotential,
+          longitude: formData.geoLocation.split(',')[1]?.trim() || '',
+          latitude: formData.geoLocation.split(',')[0]?.trim() || '',
+          creditterm: formData.creditTerm,
+          cginno: formData.cgin,
+          dob: formattedDob,
+          updatedtime: new Date().toISOString(),
+          lastupdatedtime: new Date().toISOString(), // Adjust if needed
+          updatedby: user?.userid,
+        })
+        .eq('userid', retailer.userid); // Ensure you update the correct retailer
+
+      if (error) {
+        throw error;
+      }
+
+      // Redirect or show success message
+      console.log('Retailer details updated successfully');
+      navigate('/portal/retailerslist'); 
+    } catch (error) {
+      console.error('Error updating retailer details:', error);
+      setErrors({ ...errors, submit: 'Failed to update details. Please try again.' });
+    }finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1237,13 +1249,28 @@ const UpdateRetailerDetails = () => {
             </Col>
           </Row>
 
-          <Button type="submit" style={{ minWidth: '100%', alignItems: 'center' }}>
+          <Button type="submit" className="mt-3 w-100" disabled={isSubmitting}>
             Submit
           </Button>
-          <Button variant="secondary" className="w-48" onClick={handleCancel} style={{ minWidth: '100%', alignItems: 'center',backgroundColor:'red' }}>
+          <Button variant="secondary" className="w-48" onClick={handleCancel} style={{ alignItems: 'center',backgroundColor:'red' }}>
             Cancel
           </Button>
         </Form>
+        {/* Confirmation Modal */}
+        <Modal show={showModal} onHide={() => setShowModal(false)} centered>
+          <Modal.Header closeButton>
+            <Modal.Title className="text-center">Update Retailer Details</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>Are you sure you want to update the details of <br/> {formData.shopName}?</Modal.Body>
+          <Modal.Footer className="d-flex justify-content-between">
+            <Button variant="primary" className="me-auto" style={{ width: '100px'}} onClick={handleConfirmUpdate} disabled={isSubmitting}>
+            {isSubmitting ? 'Updating...' : 'Confirm'}
+            </Button>
+            <Button variant="danger" style={{ width: '100px'}} onClick={() => setShowModal(false)}>
+              Cancel
+            </Button>
+          </Modal.Footer>
+        </Modal>
       </Container>
     </main>
   );
