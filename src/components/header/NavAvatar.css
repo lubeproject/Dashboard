@@ -1,0 +1,13 @@
+.user-initials {
+    width: 40px; /* Adjust size as needed */
+    height: 40px; /* Adjust size as needed */
+    border-radius: 50%;
+    background-color:whitesmoke; /* Background color */
+    color: rgba(14, 14, 99, 0.871); /* Text color */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 16px; /* Adjust font size as needed */
+    font-weight: bold; /* Make the initials bold */
+  }
+  
