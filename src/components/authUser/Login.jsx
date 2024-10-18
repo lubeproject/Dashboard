@@ -7,6 +7,7 @@ import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import bcrypt from "bcryptjs";
 import "./Login.css";
 import { UserContext } from "../context/UserContext";
+import company_logo from "../../images/logo.png";
 
 
 export default function Login() {
@@ -177,8 +178,10 @@ export default function Login() {
     <div className="login-container">
       <div className="login-box">
         <h2>
+          <img src={company_logo} alt="Company Logo" style={{ width: "35px" }} />
           <b>Login to Lube</b>
         </h2>
+        <p class="dark-gray-text">Enter your credentials to access your account</p>
         {error && <p>{error}</p>}
         <form onSubmit={handleLogin}>
           <div className="form-group">
