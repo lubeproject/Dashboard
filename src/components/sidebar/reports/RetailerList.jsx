@@ -119,6 +119,8 @@ export default function RetailerList() {
               <th>Sl.No</th>
               <th>Retailer Name</th>
               <th>Address</th>
+              <th>Reward Points</th>
+              <th>Prepaid Amount</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -129,6 +131,8 @@ export default function RetailerList() {
                   <td>{index + 1}</td>
                   <td>{item.shopname}</td>
                   <td>{item.address}</td>
+                  <td>{item.rewardpoints || 0}</td>
+                  <td>₹{item.prepaid||0}</td>
                   <td className="d-flex flex-row">
                     <Button
                       variant={item.active === "Y" ? "danger" : "success"}
