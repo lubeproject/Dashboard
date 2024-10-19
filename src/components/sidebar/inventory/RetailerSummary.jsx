@@ -204,14 +204,30 @@ export default function RetailerSummary() {
           acc[year] = (acc[year] || 0) + record.amount;
           return acc;
         }, {});
-  
+
+        const { data: userCreditData, error: userCreditError } = await supabase
+          .from('users')
+          .select('creditterm')
+          .eq('userid', userId)
+          .single();
+
+        if (userCreditError) throw userCreditError;
+        const creditterm = userCreditData.creditterm;
+        // Fetch limitdays from credititem_master based on creditterm
+        const { data: creditMasterData, error: creditMasterError } = await supabase
+          .from('credititem_master')
+          .select('limitdays')
+          .eq('credittermname', creditterm)
+          .single();
+        if (creditMasterError) throw creditMasterError;
+        const creditDaysAvailed = creditMasterData.limitdays || 0;
         // Generate the final data array for display
         const allYears = new Set([...Object.keys(turnoverByYear), ...Object.keys(toBeClearedByYear)]);
         const finalData = Array.from(allYears).map(year => ({
           year,
           turnover: turnoverByYear[year] || 0,
           toBeCleared: toBeClearedByYear[year] || 0,
-          creditDaysAvailed: 30, // Placeholder, replace with actual logic if needed
+          creditDaysAvailed: creditDaysAvailed,
         }));
   
         // Update the state with the final data
