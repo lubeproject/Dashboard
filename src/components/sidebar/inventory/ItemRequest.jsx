@@ -24,6 +24,7 @@ export default function ItemRequest() {
   const [editingItem, setEditingItem] = useState(null); // To store the item being edited
   const [editQuantity, setEditQuantity] = useState(""); // To store the edited quantity
   const [isLoading, setIsLoading] = useState(false);
+  const [editQuantityError, setEditQuantityError] = useState('');
    // For storing the updated quantity
 
 
@@ -103,13 +104,15 @@ export default function ItemRequest() {
 
   const handleEditClose = () => {
     setEditShow(false);
+    setEditQuantityError(''); // Clear the error when closing the modal
   };
 
   const handleEditItem = (index) => {
-    const item = selectedItems[index]; // Get the selected item
-    setEditingItem(item); // Set the item to be edited
-    setEditQuantity(item.quantity); // Set the initial value to the current quantity
-    setEditShow(true); // Show the edit pop-up
+    const item = selectedItems[index];
+    setEditingItem(item);
+    setEditQuantity(item.quantity.toString());
+    setEditQuantityError(''); // Clear any previous error
+    setEditShow(true);
   };
   
 
@@ -157,18 +160,42 @@ export default function ItemRequest() {
     handleClose();
 };
 
-const handleEditSubmit = () => {
-  if (editingItem && editQuantity) {
-    const updatedItems = selectedItems.map(item =>
+// const handleEditSubmit = () => {
+//   if (editingItem && editQuantity) {
+//     const updatedItems = selectedItems.map(item =>
+//       item.id === editingItem.id
+//         ? { ...item, quantity: Number(editQuantity) }
+//         : item
+//     );
+//     setSelectedItems(updatedItems); // Update the selected items with new quantity
+//     setEditShow(false); // Close the modal
+//   }
+// };
+
+const handleEditSubmit = (e) => {
+  e.preventDefault();
+  setEditQuantityError('');
+
+  // Check if the quantity is a float
+  if (!Number.isInteger(editQuantity) || editQuantity <= 0) {
+    const floorValue = Math.floor(editQuantity);
+    const ceilValue = Math.ceil(editQuantity);
+    setEditQuantityError(`Please enter a valid value. The two nearest values are ${floorValue} and ${ceilValue}.`);
+    return;
+  }
+
+  if (editingItem) {
+    const noofboxes = (editQuantity / editingItem.noofitemsinbox).toFixed(2);
+    const updatedItems = selectedItems.map((item) =>
       item.id === editingItem.id
-        ? { ...item, quantity: Number(editQuantity) }
+        ? { ...item, quantity: editQuantity, noofboxes: noofboxes }
         : item
     );
-    setSelectedItems(updatedItems); // Update the selected items with new quantity
-    setEditShow(false); // Close the modal
+    setSelectedItems(updatedItems);
+    setEditShow(false);
+    setEditQuantityError('');
   }
 };
-
 
 const handleDeleteItem = (index) => {
   const deletedItem = selectedItems[index];
@@ -200,9 +227,9 @@ const handleSubmit = async (e) => {
   setIsLoading(true);
 
   // Calculate total quantity, total amount, and total liters
-  const totalQty = selectedItems.reduce((acc, item) => acc + item.quantity * item.noofitemsinbox, 0);
-  const totalAmount = selectedItems.reduce((acc, item) => acc + item.quantity * item.rrprice, 0);
-  const totalLiters = selectedItems.reduce((acc, item) => acc + item.quantity * item.itemweight * item.noofitemsinbox, 0);
+  const totalQty = selectedItems.reduce((acc, item) => acc + item.quantity, 0);
+  const totalAmount = selectedItems.reduce((acc, item) => acc + ((item.quantity * item.rrprice)/item.noofitemsinbox), 0);
+  const totalLiters = selectedItems.reduce((acc, item) => acc + item.quantity * item.itemweight, 0);
 
   // Prepare request data to insert into User_request table
   const requestData = {
@@ -211,10 +238,10 @@ const handleSubmit = async (e) => {
     usershopname: selectedUser.label || '', // Use an empty string if shop name is not available
     role: selectedUser.role,
     totalliters: totalLiters,
-    totalqty: totalQty,
-    pendingqty : totalQty,
+    totalqty: parseFloat(totalQty).toFixed(2),
+    pendingqty : parseFloat(totalQty).toFixed(2),
     deliveredqty: 0,
-    totalamount: totalAmount,
+    totalamount: parseFloat(totalAmount).toFixed(2),
     orderstatus: 'pending',
     orderref: '', // Add a reference if available
     // createdby: '1',
@@ -249,9 +276,10 @@ const handleSubmit = async (e) => {
     for (let i = 0; i < selectedItems.length; i++) {
       const selectedItem = selectedItems[i];
       const quantity = selectedItem.quantity; // Ensure quantity is an integer
-      const totalQty = quantity * selectedItem.noofitemsinbox;
-      const totalPrice = quantity * selectedItem.rrprice;
-      const totalLiters = quantity * selectedItem.itemweight * selectedItem.noofitemsinbox;
+      const noofboxes = (quantity / selectedItem.noofitemsinbox).toFixed(2);
+      const totalQty = quantity;
+      const totalPrice = ((quantity * selectedItem.rrprice)/selectedItem.noofitemsinbox);
+      const totalLiters = quantity * selectedItem.itemweight;
 
       console.log('Selected Item:', selectedItem);
       
@@ -272,14 +300,14 @@ const handleSubmit = async (e) => {
         segmentid: selectedItem.segmentid,
         segmentname: selectedItem.segmentname,
         itemweight: selectedItem.itemweight,
-        noofboxes: quantity,
+        noofboxes: noofboxes,
         noofitemsinbox: selectedItem.noofitemsinbox,
         price: selectedItem.rrprice,
-        qty: totalQty, // Total quantity
-        pendingqty: totalQty, // Initially, pending quantity is the same as ordered quantity
+        qty:  parseFloat(totalQty).toFixed(2), // Total quantity
+        pendingqty: parseFloat(totalQty).toFixed(2), // Initially, pending quantity is the same as ordered quantity
         deliveredqty: 0, // Initially, no items are delivered
         orderstatus: 'pending', // Set the initial order status to 'pending'
-        totalliters: totalLiters, // Total liters
+        totalliters: parseFloat(totalLiters).toFixed(2), // Total liters
         totalprice: totalPrice, // Total price
         createdtime: new Date().toISOString(), // Format datetime to YYYY-MM-DDTHH:mm:ss.sssZ
         updatedtime: new Date().toISOString() // Format datetime to YYYY-MM-DDTHH:mm:ss.sssZ
@@ -380,14 +408,22 @@ return (
               </tr>
             </thead>
             <tbody>
-              {selectedItems.map((item, index) => (
+              {selectedItems.map((item, index) => {
+              const calculatedBoxes = item.quantity / item.noofitemsinbox;
+
+              // Display logic for noofboxes
+              const displayBoxes = Number.isInteger(calculatedBoxes)
+                ? Math.floor(calculatedBoxes) // Remove decimal points for whole numbers
+                : calculatedBoxes.toFixed(2);
+
+              return (
                 <tr key={index}>
                   <td><center>{index + 1}</center></td>
                   <td><center>{item.id}</center></td>
                   <td><center>{item.name}</center></td>
+                  <td><center>{displayBoxes}</center></td> {/* Use the calculated displayBoxes */}
                   <td><center>{item.quantity}</center></td>
-                  <td><center>{item.quantity * item.noofitemsinbox}</center></td>
-                  <td><center>{item.quantity * item.noofitemsinbox * item.itemweight}</center></td>
+                  <td><center>{item.quantity * item.itemweight}</center></td>
                   <td className="actions">
                     <button 
                       type="button"
@@ -405,8 +441,9 @@ return (
                     </button>
                   </td>
                 </tr>
-              ))}
-            </tbody>
+              );
+            })}
+          </tbody>
           </table>
         </div>
 
@@ -440,10 +477,10 @@ return (
       {/* Edit Modal for modifying item quantities */}
       <Modal show={editShow} onHide={handleEditClose}>
         <Modal.Header closeButton>
-          <Modal.Title>Edit Items</Modal.Title>
+          <Modal.Title>Edit Quantity</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form>
+          <Form onSubmit={(event) => handleEditSubmit(event)}>
             <Form.Group controlId="editItemName">
               <Form.Label>Item Name</Form.Label>
               <Form.Control
@@ -453,16 +490,21 @@ return (
               />
             </Form.Group>
             <Form.Group controlId="editItemQuantity">
-              <Form.Label>Edit No of Boxes</Form.Label>
+              <Form.Label>Edit Quantity</Form.Label>
               <Form.Control
                 type="number"
-                placeholder="Enter new No of Boxes"
+                placeholder="Enter Quantity"
                 value={editQuantity}
-                onChange={(e) => setEditQuantity(e.target.value)}
-                onWheel={(e) => e.target.blur()}
-                min ="0"
-                step = "1"
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  setEditQuantity(isNaN(value) ? 0 : value);
+                }}
+                min="1"
+                step="1"
+                className={editQuantityError ? 'is-invalid' : ''}
+                required
               />
+              {editQuantityError && <div className="invalid-feedback">{editQuantityError}</div>}
             </Form.Group>
           </Form>
         </Modal.Body>
@@ -470,12 +512,7 @@ return (
           <Button variant="secondary" onClick={() => setEditShow(false)}>
             Cancel
           </Button>
-          <Button
-            variant="primary"
-            onClick={() => {
-              handleEditSubmit();
-            }}
-          >
+          <Button variant="primary" onClick={handleEditSubmit}>
             Update changes
           </Button>
         </Modal.Footer>
@@ -510,18 +547,18 @@ return (
             </Form.Group>
 
             <Form.Group controlId="formQuantity">
-              <Form.Label>No of Box(es)</Form.Label>
+              <Form.Label>Quantity</Form.Label>
               <Form.Control
                 type="number"
-                placeholder="Enter No of Box(es)"
+                placeholder="Enter Quantity"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 onWheel={(e) => e.target.blur()}
                 min ="0"
-                step = "1"
+                step="1"
                 className={!isValidModel && !quantity ? 'is-invalid' : ''}
               />
-              {!isValidModel && !quantity && <div className="invalid-feedback d-block">Please enter No of boxes.</div>}
+              {!isValidModel && !quantity && <div className="invalid-feedback d-block">Please enter Quantity.</div>}
             </Form.Group>
 
             <Button variant="primary" type="submit" className="mt-3">
