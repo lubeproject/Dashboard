@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Table } from 'react-bootstrap';
+import React, { useState, useEffect, useContext } from 'react';
+import { Container, Row, Col, Table, Button } from 'react-bootstrap';
 import './retailerSummary.css';
 import { FaTools } from "react-icons/fa";
 import { MdOutlineWaterDrop } from "react-icons/md";
@@ -9,6 +9,7 @@ import { useLocation } from 'react-router-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../../supabaseClient';
 import { startOfWeek, subWeeks, isAfter, format } from 'date-fns';
+import { UserContext } from '../../context/UserContext';
 
 const dummyLoyalMechanics = [
   { id: 1, Mechanic: 'John Doe', Litres: '100', Points: '50' },
@@ -17,8 +18,8 @@ const dummyLoyalMechanics = [
 export default function RetailerSummary() {
   // const { userId } = useParams();
   const location = useLocation();
-  const { userId } = location.state || {};
-  const [user, setUser] = useState(null);
+  const { userId,selectedDsr, selectedDay } = location.state || {};
+  const [User, setUser] = useState(null);
   const [weeklyData, setWeeklyData] = useState([]);
   const [recoveryData, setRecoveryData] = useState([]);
   const [totalBalance, setTotalBalance] = useState(0);
@@ -27,6 +28,8 @@ export default function RetailerSummary() {
     years: {},
     months: {}
   });
+  const navigate = useNavigate();
+  const {user} = useContext(UserContext);
 
   const convertDateFormat = (dateStr) => {
     if (!dateStr) return '';
@@ -218,31 +221,51 @@ export default function RetailerSummary() {
           .eq('userid', userId)
           .single();
 
-        if (userCreditError) throw userCreditError;
-        const creditterm = userCreditData.creditterm;
-        // Fetch limitdays from credititem_master based on creditterm
-        const { data: creditMasterData, error: creditMasterError } = await supabase
-          .from('credititem_master')
-          .select('limitdays')
-          .eq('credittermname', creditterm)
-          .single();
-        if (creditMasterError) throw creditMasterError;
-        const creditDaysAvailed = creditMasterData.limitdays || 0;
-        // Generate the final data array for display
-        const allYears = new Set([...Object.keys(turnoverByYear), ...Object.keys(toBeClearedByYear)]);
-        const finalData = Array.from(allYears).map(year => ({
-          year,
-          turnover: turnoverByYear[year] || 0,
-          toBeCleared: toBeClearedByYear[year] || 0,
-          creditDaysAvailed: creditDaysAvailed,
-        }));
-  
-        // Update the state with the final data
-        setPerformanceData(finalData);
-      } catch (error) {
-        console.error('Error fetching year-wise performance data:', error);
-      }
-    };
+          if (userCreditError) {
+            if (userCreditError.code === 'PGRST116') {
+              // Handle case where no user data is found
+              console.warn('No user credit term data found, defaulting to empty string.');
+              const creditterm = ''; // Default value if no data found
+            } else {
+              throw userCreditError;
+            }
+          } else {
+            const creditterm = userCreditData.creditterm;
+      
+            // Fetch limit days from credititem_master based on credit term
+            const { data: creditMasterData, error: creditMasterError } = await supabase
+              .from('credititem_master')
+              .select('limitdays')
+              .eq('credittermname', creditterm)
+              .single(); // This might return no rows
+      
+            if (creditMasterError) {
+              if (creditMasterError.code === 'PGRST116') {
+                console.warn('No credit master data found for the given credit term, defaulting limit days to 0.');
+                var creditDaysAvailed = 0; // Default value if no data found
+              } else {
+                throw creditMasterError;
+              }
+            } else {
+              const creditDaysAvailed = creditMasterData.limitdays || 0; // Fallback to 0 if limitdays is not found
+            }
+      
+            // Generate the final data array for display
+            const allYears = new Set([...Object.keys(turnoverByYear), ...Object.keys(toBeClearedByYear)]);
+            const finalData = Array.from(allYears).map(year => ({
+              year,
+              turnover: turnoverByYear[year] || 0, // Default to 0 if not found
+              toBeCleared: toBeClearedByYear[year] || 0, // Default to 0 if not found
+              creditDaysAvailed: creditDaysAvailed || 0, // Ensure it's defined
+            }));
+      
+            // Update the state with the final data
+            setPerformanceData(finalData);
+          }
+        } catch (error) {
+          console.error('Error fetching year-wise performance data:', error);
+        }
+      };
   
 
     // const fetchWeeklyData = async () => {
@@ -356,6 +379,7 @@ export default function RetailerSummary() {
           }));
     
         setWeeklyData(formattedData); // Set weekly data in state
+        // console.log(user?.role);
       } catch (error) {
         console.error('Error fetching weekly data:', error);
       }
@@ -367,14 +391,30 @@ export default function RetailerSummary() {
     fetchWeeklyData();
   }, [userId]);
 
+  const handleBack = () => {
+    if (!user) {
+        console.error('User is not defined');
+        return; // Early return if user is not defined
+    }
+
+    const url = (user?.role === 'admin') ? '/portal/allDSRdaykeyroute' : '/portal/dsrKeyRouteOnDay';
+    navigate(url, {
+      state: {
+        selectedDsr: selectedDsr || null, // Default to null if not defined
+        selectedDay: selectedDay || null, // Default to null if not defined
+      },
+    });
+};
+
+
   return (
     <main id='main' className='main'>
       <h2><center>User Summary</center></h2>
 
-      {user && (
+      {User && (
         <div style={{ textAlign: "center", marginTop: "10px" }}>
-          <h3>{user.shopname}</h3>
-          <span style={{ fontSize: "14px", fontWeight: "bold" }}>{user.role}</span>
+          <h3>{User.shopname}</h3>
+          <span style={{ fontSize: "14px", fontWeight: "bold" }}>{User.role}</span>
         </div>
       )}
 
@@ -557,6 +597,13 @@ export default function RetailerSummary() {
                 ))}
               </tbody>
             </Table>
+          </Col>
+        </Row>
+        <Row>
+          <Col className="text-center">
+            <Button variant="secondary" onClick={handleBack}>
+               DSR Day Route 
+            </Button>
           </Col>
         </Row>
       </Container>
