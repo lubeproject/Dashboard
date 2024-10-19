@@ -55,7 +55,7 @@ export default function RedeemReward() {
         .select('*')
         .eq('active', 'Y')
         .eq('enablecheck','Y')
-        .eq('userid',user?.userid);
+        .eq('userid',user.userid);
     
         if (error) {
           console.error('Error fetching gift items:', error.message);
@@ -70,7 +70,9 @@ export default function RedeemReward() {
       const { data, error } = await supabase
         .from('giftitem_master')
         .select('*')
-        .eq('activestatus', 'Y');
+        .eq('activestatus', 'Y')
+        .order('itemid',{ascending:true})
+        .in('role',[user.role,'Both']);
 
       if (error) {
         console.error('Error fetching gift items:', error.message);
