@@ -6,7 +6,7 @@ import { supabase } from "../../../supabaseClient";
 import "./paymentApproval.css";
 import { UserContext } from "../../context/UserContext";
 import { toast, ToastContainer } from "react-toastify";
-// import "react-toastify/dist/ReactToastify.css";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function PaymentApproval() {
   const [data, setData] = useState([]);
@@ -15,6 +15,8 @@ export default function PaymentApproval() {
   const {user} = useContext(UserContext);
   const [showModal, setShowModal] = useState(false);
   const [selectedPayApproveId, setSelectedPayApproveId] = useState(null);
+  const [isApproved, setIsApproved] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
 
 
   useEffect(() => {
@@ -295,6 +297,7 @@ export default function PaymentApproval() {
   // };
   const handleApprove = async (payapproveid) => {
     try {
+      setIsApproving(true);
       // 1. Fetch payment approval entry
       const { data: paymentApproval, error: paymentApprovalError } = await supabase
         .from('payment_approval')
@@ -324,6 +327,17 @@ export default function PaymentApproval() {
       if (updatePaymentApprovalError) {
         throw new Error("Error updating payment approval status.");
       }
+
+      setIsApproved(true);
+      toast.success('Payment Approved Successfully!', {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
   
       // 3. Split invoice IDs and process each
       const invoiceIds = invoices.split(',').map(id => id.trim());
@@ -474,15 +488,7 @@ export default function PaymentApproval() {
           throw new Error(`Error updating represent_visiting1 table: ${updateRepresentVisitingError.message}`);
         }
       }
-      toast.success('Payment Approved Successfully!', {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
+      
       // 10. Fetch updated payment records after approval
       fetchPayments();
   
@@ -491,6 +497,9 @@ export default function PaymentApproval() {
       console.error("Error approving payment:", error.message);
       setError(error.message);
       toast.error("Error approving payment: " + error.message);
+    }finally{
+      setIsApproving(false);
+      setIsApproved(false)
     }
   };
 
@@ -501,10 +510,10 @@ export default function PaymentApproval() {
 
   // Handle approving after confirmation
   const handleConfirmApprove = () => {
+    setShowModal(false);
     if (selectedPayApproveId) {
       handleApprove(selectedPayApproveId);
     }
-    setShowModal(false);
     setSelectedPayApproveId(null);
   };
 
@@ -581,6 +590,7 @@ export default function PaymentApproval() {
                   </td>
                   <td>₹{item.amount.toFixed(2)}</td>
                   <td className="d-flex flex-row">
+                  {!isApproved && !isApproving && (
                     <Button
                       variant="success"
                       onClick={() => handleShowConfirm(item.payapproveid)}
@@ -589,6 +599,8 @@ export default function PaymentApproval() {
                       <FaCheck />
                       <span style={{ marginLeft: "10px" }}>Approve</span>
                     </Button>
+                  )}
+                  {isApproving && <p>Approving...</p>}
                   </td>
                 </tr>
               ))
