@@ -28,7 +28,14 @@ export default function RetailerSummary() {
     months: {}
   });
 
-    
+  const convertDateFormat = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${dd}/${mm}/${yyyy}`;
+  };
 
   useEffect(() => {
     // Fetch user details and recovery data when the component mounts
@@ -519,7 +526,7 @@ export default function RetailerSummary() {
                 {recoveryData.map((data, index) => (
                     <tr key={data.invid}>
                       <td>{data.tallyrefinvno}</td>
-                      <td>{new Date(data.invdate).toLocaleDateString()}</td>
+                      <td>{convertDateFormat(data.invdate)}</td>
                       <td>₹{data.amount}</td>
                       <td>₹{data.balance}</td>
                       <td>{data.ODDays}</td>
