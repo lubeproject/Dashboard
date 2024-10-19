@@ -291,6 +291,7 @@ function GiftItemMaster() {
   const [newItemName, setNewItemName] = useState('');
   const [newQuantity, setNewQuantity] = useState('');
   const [newRedeemPoints, setNewRedeemPoints] = useState('');
+  const [newRole, setNewRole] = useState('');
   const [currentItem, setCurrentItem] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState('');
   const [imageUploading, setImageUploading] = useState(false);
@@ -317,6 +318,7 @@ function GiftItemMaster() {
     setNewItemName('');
     setNewQuantity('');
     setNewRedeemPoints('');
+    setNewRole('');
     setImagePreviewUrl('');
     setShowAddPopup(false);
     setShowEditPopup(false);
@@ -330,6 +332,7 @@ function GiftItemMaster() {
     if (!newItemName) newErrors.itemname = "Please enter Item Name.";
     if (!newQuantity || isNaN(parseInt(newQuantity)) || parseInt(newQuantity) <= 0) newErrors.quantity = "Please enter a valid Quantity greater than 0.";
     if (!newRedeemPoints || isNaN(parseInt(newRedeemPoints)) || parseInt(newRedeemPoints) <= 0) newErrors.redeempoints = "Please enter a valid Redeem Points greater than 0.";
+    if (!newRole) newErrors.newRole = "Please Select a Role"
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -341,6 +344,7 @@ function GiftItemMaster() {
       itemname: newItemName,
       quantity: newQuantity,
       redeempoints: newRedeemPoints,
+      role: newRole,
       activestatus: 'Y',
       createdby: user?.userid,
       updatedby: user?.userid,
@@ -379,6 +383,7 @@ function GiftItemMaster() {
       itemname: newItemName,
       quantity: newQuantity,
       redeempoints: newRedeemPoints,
+      role: newRole,
       itemimg: imagePreviewUrl,
     };
 
@@ -427,6 +432,7 @@ function GiftItemMaster() {
     setNewItemName(item.itemname.trim());
     setNewQuantity(item.quantity);
     setNewRedeemPoints(item.redeempoints);
+    setNewRole(item.role);
 
     if (item.itemimg) {
       setImagePreviewUrl(item.itemimg);
@@ -458,6 +464,7 @@ function GiftItemMaster() {
               <th><center>Item Name</center></th>
               <th><center>Qty</center></th>
               <th><center>Redeem Points</center></th>
+              <th><center>Role</center></th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -468,6 +475,7 @@ function GiftItemMaster() {
                 <td><center>{item.itemname.trim()}</center></td>
                 <td><center>{item.quantity}</center></td>
                 <td><center>{item.redeempoints}</center></td>
+                <td><center>{item.role}</center></td>
                 <td className="actions">
                   <button 
                     onClick={() => handleEditButtonClick(item)} 
@@ -534,6 +542,19 @@ function GiftItemMaster() {
               {errors.redeempoints && <span style={{ color: 'red' }}>{errors.redeempoints}</span>}
             </label>
             <label>
+              Role <br />
+              <select 
+                value={newRole} 
+                onChange={(e) => setNewRole(e.target.value)} 
+              >
+                <option value="" disabled hidden>Select a role</option>
+                <option value="Retailer">Retailer</option>
+                <option value="Mechanic">Mechanic</option>
+                <option value="Both">Both</option>
+              </select>
+              {errors.newRole && <span style={{ color: 'red' }}>{errors.newRole}</span>}
+            </label>
+            <label>
               Upload Image
               <input 
                 type="file" 
@@ -596,6 +617,19 @@ function GiftItemMaster() {
                 onChange={(e) => setNewRedeemPoints(e.target.value)} 
               />
               {errors.redeempoints && <span style={{ color: 'red' }}>{errors.redeempoints}</span>}
+            </label>
+            <label>
+              Role <br />
+              <select 
+                value={newRole} 
+                onChange={(e) => setNewRole(e.target.value)} 
+              >
+                <option value="" disabled hidden>Select a role</option>
+                <option value="Retailer">Retailer</option>
+                <option value="Mechanic">Mechanic</option>
+                <option value="Both">Both</option>
+              </select>
+              {errors.newRole && <span style={{ color: 'red' }}>{errors.newRole}</span>}
             </label>
             <label>
               Upload Image
