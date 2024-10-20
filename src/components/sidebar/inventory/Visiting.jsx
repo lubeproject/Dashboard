@@ -234,7 +234,7 @@ const Visiting = () => {
       const hours = now.getHours();
       const minutes = now.getMinutes();
 
-      if (hours === 23 && minutes === 18) {
+      if (hours === 23 && minutes === 25) {
         handleCheckout();
       }
     }, 60000); // Check every minute
