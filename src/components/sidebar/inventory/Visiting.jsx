@@ -229,7 +229,18 @@ const Visiting = () => {
       setVisitId(storedPunchingId);
       console.log(`Restored punchingid from cookie: ${storedPunchingId}`);
     }
-  }, []);
+    const checkoutAtMidnight = setInterval(() => {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+
+      if (hours === 23 && minutes === 18) {
+        handleCheckout();
+      }
+    }, 60000); // Check every minute
+
+    return () => clearInterval(checkoutAtMidnight);
+  }, [visitId]);
 
 
   const fetchUserDetails = async (qrcode) => {
