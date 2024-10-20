@@ -197,7 +197,7 @@ const [recoveryData, setRecoveryData] = useState([]);
         const { data: visitsData, error: visitsError } = await supabase
             .from('represent_visiting1')
             .select('*') // Get all data to filter unique shop names later
-            .eq('repid', user.userid) // Filter by current representative ID
+            .eq('createdby', user.userid) // Filter by current representative ID
             .eq('visitingdate', visitingDate); // Filter by today's date using visitingdate
 
         if (visitsError) throw visitsError;
@@ -377,7 +377,9 @@ const fetchGiftItems = async () => {
   const { data, error } = await supabase
     .from('giftitem_master')
     .select('*')
-    .eq('activestatus', 'Y');
+    .eq('activestatus', 'Y')
+    .order('itemid',{ascending:true})
+    .in('role',[user.role,'Both']);
 
   if (error) {
     console.error('Error fetching gift items:', error.message);
@@ -846,18 +848,18 @@ const fetchGiftItems = async () => {
       const { data: reps, error: repsError } = await supabase
         .from("users")
         .select("userid, name, role")
-        .eq("role", "representative");
+        .eq("role", "representative")
+        .eq("active",'Y');
 
       if (repsError) throw repsError;
 
       setRepresentatives(reps);
 
-      // Fetch payments for today's date from the payment_reference2 table
-      // const today = new Date().toISOString().slice(0, 10); // Format date as YYYY-MM-DD
-      const todayStart = new Date(new Date().setDate(new Date().getDate() - 1));
-      todayStart.setHours(0, 0, 0, 0); // Set to 00:00:00
-    const todayEnd = new Date(todayStart);
-    todayEnd.setHours(23, 59, 59, 999); 
+      
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(todayStart);
+      todayEnd.setHours(23, 59, 59, 999); 
 
 
       const { data: paymentsData, error: paymentsError } = await supabase
@@ -1156,7 +1158,7 @@ const fetchGiftItems = async () => {
                       <center>
                         {categoryData[category.categoryname] &&
                         categoryData[category.categoryname][col] !== undefined
-                          ? categoryData[category.categoryname][col]
+                          ? categoryData[category.categoryname][col].toFixed(2)
                           : 0}
                       </center>
                     </td>
@@ -1169,7 +1171,7 @@ const fetchGiftItems = async () => {
                 </td>
                 {totalCategoryValues.map((val, i) => (
                   <td key={i}>
-                    <center>{val}</center>
+                    <center>{val.toFixed(2)}</center>
                   </td>
                 ))}
               </tr>
@@ -1200,7 +1202,7 @@ const fetchGiftItems = async () => {
                       <center>
                         {segmentData[segment.segmentname] &&
                         segmentData[segment.segmentname][col] !== undefined
-                          ? segmentData[segment.segmentname][col]
+                          ? segmentData[segment.segmentname][col].toFixed(2)
                           : 0}
                       </center>
                     </td>
@@ -1213,7 +1215,7 @@ const fetchGiftItems = async () => {
                 </td>
                 {totalSegmentValues.map((val, i) => (
                   <td key={i}>
-                    <center>{val}</center>
+                    <center>{val.toFixed(2)}</center>
                   </td>
                 ))}
               </tr>
@@ -1242,10 +1244,10 @@ const fetchGiftItems = async () => {
                     <center>Week {index + 1}</center>
                   </td>
                   <td>
-                    <center>{weekData.totalliters}</center>
+                    <center>{weekData.totalliters.toFixed(2)}</center>
                   </td>
                   <td>
-                    <center>₹{weekData.paidamount}</center>
+                    <center>₹{weekData.paidamount.toFixed(2)}</center>
                   </td>
                 </tr>
               ))}
@@ -1277,7 +1279,7 @@ const fetchGiftItems = async () => {
                       <center>
                       ₹{segmentPriceData[segment.segmentname] &&
                         segmentPriceData[segment.segmentname][col] !== undefined
-                          ? segmentPriceData[segment.segmentname][col]
+                          ? segmentPriceData[segment.segmentname][col].toFixed(2)
                           : 0}
                       </center>
                     </td>
@@ -1290,7 +1292,7 @@ const fetchGiftItems = async () => {
                 </td>
                 {totalSegmentPriceValues.map((val, i) => (
                   <td key={i}>
-                    <center>₹{val}</center>
+                    <center>₹{val.toFixed(2)}</center>
                   </td>
                 ))}
               </tr>
@@ -1300,7 +1302,7 @@ const fetchGiftItems = async () => {
                 </td>
                 {totalSegmentPriceAvg.map((avg, i) => (
                   <td key={i}>
-                    <center>₹{avg}</center>
+                    <center>₹{avg.toFixed(2)}</center>
                   </td>
                 ))}
               </tr>
@@ -1341,11 +1343,11 @@ const fetchGiftItems = async () => {
                 </td>
                 {Object.values(data).map((value, index) => (
                   <td key={index}>
-                    <center>₹{value}</center>
+                    <center>₹{value.toFixed(2)}</center>
                   </td>
                 ))}
                 <td>
-                  <center>₹{totalAmount}</center>
+                  <center>₹{totalAmount.toFixed(2)}</center>
                 </td>
               </tr>
               <tr>
@@ -1389,7 +1391,7 @@ const fetchGiftItems = async () => {
                     <center>{paymentapproval.usershopname.trim()}</center>
                   </td>
                   <td>
-                    <center>₹{paymentapproval.amount}</center>
+                    <center>₹{paymentapproval.amount.toFixed(2)}</center>
                   </td>
                 </tr>
               ))}
@@ -1433,7 +1435,7 @@ const fetchGiftItems = async () => {
                         (sum, rep) =>
                           sum + (mappedData[paymode][rep.userid] || 0),
                         0
-                      )}
+                      ).toFixed(2)}
                     </center>
                   </td>
                 </tr>
@@ -1447,7 +1449,7 @@ const fetchGiftItems = async () => {
                 {representatives.map((rep) => (
                   <td key={rep.userid}>
                     <center>
-                      <strong>₹{totals[rep.userid] || 0}</strong>
+                      <strong>₹{totals[rep.userid].toFixed(2) || 0}</strong>
                     </center>
                   </td>
                 ))}
@@ -1459,7 +1461,7 @@ const fetchGiftItems = async () => {
                       {Object.values(totals).reduce(
                         (sum, amount) => sum + amount,
                         0
-                      )}
+                      ).toFixed(2)}
                     </strong>
                   </center>
                 </td>
@@ -1503,7 +1505,7 @@ const fetchGiftItems = async () => {
                             <center>
                               {categoryData[category.categoryname] &&
                               categoryData[category.categoryname][col] !== undefined
-                                ? categoryData[category.categoryname][col]
+                                ? categoryData[category.categoryname][col].toFixed(2)
                                 : 0}
                             </center>
                           </td>
@@ -1516,7 +1518,7 @@ const fetchGiftItems = async () => {
                       </td>
                       {totalCategoryValues.map((val, i) => (
                         <td key={i}>
-                          <center>{val}</center>
+                          <center>{val.toFixed(2)}</center>
                         </td>
                       ))}
                     </tr>
@@ -1557,8 +1559,8 @@ const fetchGiftItems = async () => {
                 {weeklyData.map((data, index) => (
                   <tr key={data.weekStart || index}>
                     <td>{data.week}</td>
-                    <td>{data.order}</td>
-                    <td>₹{data.collection}</td>
+                    <td>{data.order.toFixed(2)}</td>
+                    <td>₹{data.collection.toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1626,11 +1628,11 @@ const fetchGiftItems = async () => {
                     </td>
                     {Object.values(data).map((value, index) => (
                       <td key={index}>
-                        <center>₹{value}</center>
+                        <center>₹{value.toFixed(2)}</center>
                       </td>
                     ))}
                     <td>
-                      <center>₹{totalAmount}</center>
+                      <center>₹{totalAmount.toFixed(2)}</center>
                     </td>
                   </tr>
                   <tr>
@@ -1737,7 +1739,7 @@ const fetchGiftItems = async () => {
                         return (
                           <div key={method} style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span>{method}:</span>
-                            <span>₹ {paymentData[paymentKey] || 0}</span> {/* Show 0 if no value exists */}
+                            <span>₹ {paymentData[paymentKey].toFixed(2) || 0}</span> {/* Show 0 if no value exists */}
                           </div>
                         );
                       })}
@@ -1747,7 +1749,7 @@ const fetchGiftItems = async () => {
                   {/* Total Amount Section */}
                   <h5 style={{ color: 'red', fontSize: '1rem', margin: '0.5rem 0 0.25rem 0', display: 'flex', justifyContent: 'space-between' }}>
                     <span>Total Amount:</span>
-                    <span>₹ {paymentData.totalAmounts}</span>
+                    <span>₹ {paymentData.totalAmounts.toFixed(2)}</span>
                   </h5>
                 </Card.Text>
               </Card.Body>
@@ -1825,7 +1827,7 @@ const fetchGiftItems = async () => {
                             <center>
                               {categoryData[category.categoryname] &&
                               categoryData[category.categoryname][col] !== undefined
-                                ? categoryData[category.categoryname][col]
+                                ? categoryData[category.categoryname][col].toFixed(2)
                                 : 0}
                             </center>
                           </td>
@@ -1838,7 +1840,7 @@ const fetchGiftItems = async () => {
                       </td>
                       {totalCategoryValues.map((val, i) => (
                         <td key={i}>
-                          <center>{val}</center>
+                          <center>{val.toFixed(2)}</center>
                         </td>
                       ))}
                     </tr>
@@ -1864,8 +1866,8 @@ const fetchGiftItems = async () => {
                   <tr key={index+1}>
                     <td>{index+1}</td>
                     <td>{data.year}</td>
-                    <td>₹{data.turnover}</td>
-                    <td>₹{data.toBeCleared}</td>
+                    <td>₹{data.turnover.toFixed(2)}</td>
+                    <td>₹{data.toBeCleared.toFixed(2)}</td>
                     <td>{data.creditDaysAvailed}</td>
                   </tr>
                 ))}
@@ -1916,7 +1918,7 @@ const fetchGiftItems = async () => {
               {/* First Box */}
               <div className="mechanic-dashboard-box">
                 <div className="mechanic-content">
-                  <h5>{totalLitresCount}</h5>
+                  <h5>{totalLitresCount.toFixed(2)}</h5>
                   <h5>Total Litres</h5>
                 </div>
               </div>

@@ -43,29 +43,75 @@ export default function DSRDaywiseSalesReport() {
   }, [user]);
 
   const handleFilter = async () => {
-    if (!selectedDsr || !startDate || !endDate) {
+    if (!selectedDsr) {
       alert("Please select a representative and date range.");
       return;
     }
 
+    // if(startDate>endDate){
+    //   alert("Pick From Date cannot be later than Pick To Date.");
+    //   return;
+    // }
+
     try {
       // Format startDate and endDate to 'YYYY-MM-DD' format strings
-      const formattedStartDate = startDate.toISOString();
-      const formattedEndDate = new Date(endDate);
-      formattedEndDate.setDate(formattedEndDate.getDate() + 1); // Adjust endDate to include the end date
-      const formattedEndDateString = formattedEndDate.toISOString();
+      const setStartOfDay = (date) => {
+        const newDate = new Date(date);
+        newDate.setHours(0, 0, 0, 0);  // Set hours, minutes, seconds, and milliseconds to 0
+        return newDate;
+      };
+      
+      // Set end date to 23:59:59 (end of the day) if needed
+      const setEndOfDay = (date) => {
+        const newDate = new Date(date);
+        newDate.setHours(23, 59, 59, 999);  // Set hours, minutes, seconds, and milliseconds to the end of the day
+        return newDate;
+      };
+      
+      // Format the date to 'YYYY-MM-DD' to use in the query
+      const formatDateForSQL = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+
+        // Return the formatted date in 'YYYY-MM-DD HH:MM:SS' format
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      };
 
       // Query for the visits assigned to the representative, filtering by visitingdate (which is a date field)
       let visitsQuery = supabase
-        .from('represent_visiting1')
+        .from('user_request')
         .select('*')
-        .eq('repid', selectedDsr.value)
-        .gte('visitingdate', formattedStartDate) // Use formatted date
-        .lte('visitingdate', formattedEndDateString) // Use formatted end date
-        .order('visitingdate');
+        .eq('createdby', selectedDsr.value)
+        .order('reqid');
+
+        if (startDate && endDate) {
+          if (new Date(startDate) > new Date(endDate)) {
+            alert("Pick From Date cannot be later than Pick To Date.");
+            return;
+          }
+          const formattedStartDate = formatDateForSQL(setStartOfDay(startDate));
+          const formattedEndDate = formatDateForSQL(setEndOfDay(endDate));
+          visitsQuery = visitsQuery
+          .gte('createdtime', formattedStartDate)
+          .lte('createdtime', formattedEndDate);
+        console.log("Date Range Filter Applied:", formattedStartDate, "to", formattedEndDate);
+        } else if (startDate) {
+          const formattedStartDate = formatDateForSQL(setStartOfDay(startDate));
+          visitsQuery = visitsQuery.gte('createdtime', formattedStartDate);
+          console.log("Start Date Filter Applied:", formattedStartDate);
+        } else if (endDate) {
+          const formattedEndDate = formatDateForSQL(setEndOfDay(endDate));
+          visitsQuery = visitsQuery.lte('createdtime', formattedEndDate);
+          console.log("End Date Filter Applied:", formattedEndDate);
+        }
 
       const { data: visitsData, error: visitsError } = await visitsQuery;
 
+      // console.log(visitsData);
       if (visitsError) {
         console.error('Error fetching visits:', visitsError.message);
         return;
@@ -77,8 +123,8 @@ export default function DSRDaywiseSalesReport() {
 
       if (visitsData?.length > 0) {
         visitsData.forEach((record) => {
-          const date = record.visitingdate;
-          const { orders } = record;
+          const date = formatDate(record.createdtime);
+          const { totalliters } = record;
 
           // Initialize date entry if not present
           if (!totalsByDate[date]) {
@@ -86,7 +132,7 @@ export default function DSRDaywiseSalesReport() {
           }
 
           // Add orders (in liters) to the total for the date
-          totalsByDate[date] += orders;
+          totalsByDate[date] += totalliters;
         });
       }
 
@@ -94,7 +140,7 @@ export default function DSRDaywiseSalesReport() {
       setFilteredData(totalsByDate);
       setFilterApplied(true);
 
-      console.log("Final Filtered Totals by Date:", totalsByDate);
+      // console.log("Final Filtered Totals by Date:", totalsByDate);
     } catch (error) {
       console.error('Unexpected error during filtering:', error);
     }
@@ -180,7 +226,7 @@ export default function DSRDaywiseSalesReport() {
         </Row>
         <Row className="mt-4">
           <Col>
-            {filteredData.length === 0 ? (
+            {filteredData && Object.keys(filteredData).length === 0 ? (
               <div className="text-center">
                 <img src={norecordfound} alt="No Record Found" className="no-record-img" />
               </div>
@@ -201,7 +247,7 @@ export default function DSRDaywiseSalesReport() {
                   ))} */}
                   {Object.keys(filteredData).map((date, index) => (
                     <tr key={index}>
-                      <td>{formatDate(date)}</td>
+                      <td>{date}</td>
                       <td>{filteredData[date]}</td>
                     </tr>
                   ))}

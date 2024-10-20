@@ -13,6 +13,31 @@ export default function ReceiptReport() {
   const [filteredData, setFilteredData] = useState([]);
   const [filterApplied, setFilterApplied] = useState(false);
 
+  const setStartOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(0, 0, 0, 0);  // Set hours, minutes, seconds, and milliseconds to 0
+    return newDate;
+  };
+  
+  // Set end date to 23:59:59 (end of the day) if needed
+  const setEndOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(23, 59, 59, 999);  // Set hours, minutes, seconds, and milliseconds to the end of the day
+    return newDate;
+  };
+
+  const formatDateForSQL = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    // Return the formatted date in 'YYYY-MM-DD HH:MM:SS' format
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
   const handleFilter = async () => {
     try {
         const { data: filteredItems, error: receiptError } = await supabase
@@ -26,39 +51,60 @@ export default function ReceiptReport() {
       }
   
       console.log("All Receipts:", filteredItems);
-      // Apply Date Range Filter
+      // Step 2: Extract unique user IDs from the createdby field
+    const userIds = [...new Set(filteredItems.map(item => item.createdby))];
+
+    // Step 3: Fetch user details from users table
+    const { data: usersData, error: userError } = await supabase
+      .from('users')
+      .select('userid, name')
+      .in('userid', userIds);
+
+    if (userError) {
+      console.error('Error fetching user details:', userError.message);
+      return;
+    }
+
+    // Step 4: Map users by userid for easier lookup
+    const userMap = {};
+    usersData.forEach(user => {
+      userMap[user.userid] = user.name;
+    });
+
+      // Step 5: Apply Date Range Filter
       let dateFilteredItems = filteredItems;
-  
       if (startDate && endDate) {
         if (new Date(startDate) > new Date(endDate)) {
           alert("Pick From Date cannot be later than Pick To Date.");
           return;
         }
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+        const startOfDay = setStartOfDay(startDate);
+        const endOfDay = setEndOfDay(endDate);
         dateFilteredItems = filteredItems.filter(item => {
-          const itemDate = new Date(item.createdtime); // Convert the date string to a Date object
-          return itemDate >= new Date(startDate) && itemDate <= adjustedEndDate;
+          const itemDate = new Date(item.createdtime);
+          return itemDate >= startOfDay && itemDate <= endOfDay;
         });
-        console.log("Date Range Filter Applied:", startDate, "to", adjustedEndDate);
       } else if (startDate) {
+        const startOfDay = setStartOfDay(startDate);
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.createdtime);
-          return itemDate >= new Date(startDate);
+          return itemDate >= startOfDay;
         });
-        console.log("Start Date Filter Applied:", startDate);
       } else if (endDate) {
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+        const endOfDay = setEndOfDay(endDate);
         dateFilteredItems = filteredItems.filter(item => {
           const itemDate = new Date(item.createdtime);
-          return itemDate <= adjustedEndDate;
+          return itemDate <= endOfDay;
         });
-        console.log("End Date Filter Applied:", adjustedEndDate);
       }
-  
-      // Set the filtered items data to state
-      setFilteredData(dateFilteredItems || []);
+
+      // Step 6: Set the filtered items data to state with mapped user names
+      const finalData = dateFilteredItems.map(item => ({
+        ...item,
+        createdbyName: userMap[item.createdby] || 'Unknown' // Map createdby to user name
+      }));
+
+      setFilteredData(finalData || []);
       setFilterApplied(true);
       console.log("Final Filtered Items Data:", dateFilteredItems);
   
@@ -135,10 +181,13 @@ export default function ReceiptReport() {
                       <th>Pay Type</th>
                       <th>Amount</th>
                       <th>DSR</th>
+                      <th>Entry By</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredData.map((data, index) => (
+                  {filteredData
+                  .sort((a, b) => new Date(b.createdtime) - new Date(a.createdtime))
+                  .map((data, index) => (
                     <tr key={index}>
                       <td>{formatDate(data.createdtime)}</td>
                       <td>
@@ -148,6 +197,7 @@ export default function ReceiptReport() {
                       <td>{data.paymode.trim()}</td>
                       <td>{data.amount}</td>
                       <td>{data.repname.trim()}</td>
+                      <td style={{ color: data.createdbyName.trim() === data.repname.trim() ? 'green' : 'red' }}>{data.createdbyName.trim()}</td>
                     </tr>
                   ))}
                 </tbody>

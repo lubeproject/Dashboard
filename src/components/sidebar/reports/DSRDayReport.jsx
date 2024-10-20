@@ -46,8 +46,17 @@ const { user } = useContext(UserContext);
     }
   }, [user]);
 
+  const formatDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`; // Returns date in 'YYYY-MM-DD' format
+  };
+  
+
   const fetchVisitData = async () => {
-    const visitingDate = new Date(selectedDate).toISOString().split('T')[0];
+    const today = new Date(selectedDate);
+    const visitingDate = formatDate(today);
     try {
         // Fetch total visits for the current representative on the current date
         const { data: visitsData, error: visitsError } = await supabase
@@ -176,76 +185,74 @@ const { user } = useContext(UserContext);
   };
 
     
-      return (
-
+  return (
         <main id='main' className='main'>
-
-<Container className="dsr-day-report">
+          <Container className="dsr-day-report">
             <Row className="mb-4">
-          <Col>
-            <h4 className="text-center">DSR Day Report </h4>
-          </Col>
-        </Row>
-          <Row>
-            <Col md={6}>
-              <Form.Group controlId="representative">
-                {/* <Form.Label>Select Representative</Form.Label> */}
-                <Select
-                value={selectedDsr}
-                onChange={setSelectedDsr}
-                options={dsrOptions}
-                placeholder="Select Representative"
-                styles={customSelectStyles}
-            />
-              </Form.Group>
-            </Col>
-    
-            <Col md={3}>
-              <Form.Group controlId="date">
-                {/* <Form.Label>Pick Date</Form.Label>s */}
-                <DatePicker
-                  selected={selectedDate}
-                  onChange={date => setSelectedDate(date)}
-                  dateFormat="dd/MM/yyyy"
-                  className="form-control"
-                  placeholderText="Pick Date"
+              <Col>
+                <h4 className="text-center">DSR Day Report </h4>
+              </Col>
+            </Row>
+              <Row>
+                <Col md={6}>
+                  <Form.Group controlId="representative">
+                    {/* <Form.Label>Select Representative</Form.Label> */}
+                    <Select
+                    value={selectedDsr}
+                    onChange={setSelectedDsr}
+                    options={dsrOptions}
+                    placeholder="Select Representative"
+                    styles={customSelectStyles}
                 />
-              </Form.Group>
-            </Col>
-            <Col md={3} xs={6} className="mb-2">
-            <Button variant="primary" onClick={handleFilter} block>
-              Apply Filter
-            </Button>
-          </Col>
-          </Row>
+                  </Form.Group>
+                </Col>
+        
+                <Col md={3}>
+                  <Form.Group controlId="date">
+                    {/* <Form.Label>Pick Date</Form.Label>s */}
+                    <DatePicker
+                      selected={selectedDate}
+                      onChange={date => setSelectedDate(date)}
+                      dateFormat="dd/MM/yyyy"
+                      className="form-control"
+                      placeholderText="Pick Date"
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={3} xs={6} className="mb-2">
+                <Button variant="primary" onClick={handleFilter} block>
+                  Apply Filter
+                </Button>
+              </Col>
+            </Row>
     
-          <Row>
-            <Col>
-              <ul className="report-list">
-                <li>No. of Visits: {visitData.numberOfVisits}</li>
-                <br/>
-                <li className="highlight">No. of Orders</li>
-                <li>No. of Accounts: {visitData.numberOfAccounts}</li>
-                <li>Total Litres: {visitData.totalLitres}</li>
-                <br/>
-                <li className="highlight">No. of Payments</li>
-                {['Cheque', 'UPI/IB', 'Cash', 'Adjustment'].map((method) => {
-                        let paymentKey = method.toLowerCase(); // By default, map the method to lowercase key
-                        if (method === 'UPI/IB') {
-                          paymentKey = 'upi'; // Special case for 'UPI/IB'
-                        }
-                        return (
-                          <div key={method} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>{method}:</span>
-                            <span>₹ {paymentData[paymentKey] || 0}</span> {/* Show 0 if no value exists */}
-                          </div>
-                        );
-                      })}
-                <br/>
-                <li className="highlight">Total Amount: ₹ {paymentData.totalAmounts}</li>
-              </ul>
-            </Col>
-          </Row>
+            <Row>
+              <Col>
+                <ul className="report-list">
+                  <li>No. of Visits: {visitData.numberOfVisits}</li>
+                  <br/>
+                  <li className="highlight">No. of Orders</li>
+                  <li>No. of Accounts: {visitData.numberOfAccounts}</li>
+                  <li>Total Litres: {visitData.totalLitres}</li>
+                  <br/>
+                  <li className="highlight">No. of Payments</li>
+                  {['Cheque', 'UPI/IB', 'Cash', 'Adjustment'].map((method) => {
+                          let paymentKey = method.toLowerCase(); // By default, map the method to lowercase key
+                          if (method === 'UPI/IB') {
+                            paymentKey = 'upi'; // Special case for 'UPI/IB'
+                          }
+                          return (
+                            <div key={method} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>{method}:</span>
+                              <span>₹ {paymentData[paymentKey] || 0}</span> {/* Show 0 if no value exists */}
+                            </div>
+                          );
+                        })}
+                  <br/>
+                  <li className="highlight">Total Amount: ₹ {paymentData.totalAmounts}</li>
+                </ul>
+              </Col>
+            </Row>
         </Container>
      </main>
       );

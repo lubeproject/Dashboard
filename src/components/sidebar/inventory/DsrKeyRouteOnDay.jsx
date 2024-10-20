@@ -85,7 +85,7 @@ import { Table, Form, Button, Container } from 'react-bootstrap';
 import { FaChevronRight } from "react-icons/fa";
 import { supabase } from '../../../supabaseClient';
 import "./dsrKeyRouteOnDay.css";
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { UserContext } from "../../context/UserContext";
 import Select from 'react-select';
 
@@ -95,6 +95,20 @@ export default function DsrKeyRouteOnDay() {
   const [tableData, setTableData] = useState([]);
   const { user } = useContext(UserContext); // Get user context
   const navigate = useNavigate();
+  const location = useLocation();
+  
+
+  const selectedDsr = user?.name;
+
+  useEffect(() => {
+    // Check if there's relevant state to apply filters automatically
+    if (location.state && location.state.selectedDay) {
+      const {selectedDsr,selectedDay} = location.state;
+      // Update local state with these values
+      setSelectedDay(selectedDay);
+      // Convert dates to appropriate format or use as is if already in Date format
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const fetchDays = async () => {
@@ -129,11 +143,8 @@ export default function DsrKeyRouteOnDay() {
     let query = supabase
       .from('representassigned_master')
       .select('*')
-      .eq('representativeid', user?.userid);
-
-      if (selectedDay) {
-        query = query.eq('visitingdayid', dayId);
-      }
+      .eq('representativeid', user?.userid)
+      .eq('visitingdayid', dayId);
 
       const { data, error } = await query;
     if (error) {
@@ -153,7 +164,7 @@ export default function DsrKeyRouteOnDay() {
   };
 
   const handleDetailsClick = (userId) => {
-    navigate(`/portal/retailer-summary`,{state:{userId}});
+    navigate(`/portal/retailer-summary`,{state:{userId,selectedDsr,selectedDay}});
   };
 
   return (
@@ -167,7 +178,11 @@ export default function DsrKeyRouteOnDay() {
             onChange={handleDayChange}
             options={daysOptions}
             placeholder="Select Visiting Day"
+            required
           />
+          {!selectedDay && (
+            <p className="text-danger">Please select a Visiting Day.</p>
+          )}
         </Form.Group>
         <br />
         {selectedDay && tableData.length > 0 && (
@@ -188,9 +203,12 @@ export default function DsrKeyRouteOnDay() {
                     <td>{item.account} <br /> <span style={{ color: "darkblue" }}>{item.category}</span></td>
                     <td>{item.visitingday}</td>
                     <td>
-                      <Button variant="secondary" size="sm" className="details-button" style={{ color: "white" }} onClick={() => handleDetailsClick(item.visitorid)}>
-                        <b>Details</b> <FaChevronRight />
-                      </Button>
+                      {item.category === 'retailer' ? (
+                        <Button variant="warning" size="sm" className="details-button" onClick={() => handleDetailsClick(item.visitorid)}>
+                          <b>Details</b> <FaChevronRight />
+                        </Button>
+                        ) : null
+                      }
                     </td>
                   </tr>
                 ))}

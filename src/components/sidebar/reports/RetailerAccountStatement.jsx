@@ -60,6 +60,31 @@ export default function RetailerAccountStatement() {
   //   }
   // }, [selectedUser]);
 
+  const setStartOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(0, 0, 0, 0);  // Set hours, minutes, seconds, and milliseconds to 0
+    return newDate;
+  };
+  
+  // Set end date to 23:59:59 (end of the day) if needed
+  const setEndOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(23, 59, 59, 999);  // Set hours, minutes, seconds, and milliseconds to the end of the day
+    return newDate;
+  };
+
+  const formatDateForSQL = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    // Return the formatted date in 'YYYY-MM-DD HH:MM:SS' format
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
   const handleFilter = async () => {
     try {
       // Check if dates are valid
@@ -67,17 +92,19 @@ export default function RetailerAccountStatement() {
         alert("Pick From Date cannot be later than Pick To Date.");
         return;
       }
-      const adjustedEndDate = new Date(endDate);
-      adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+      
+      
       // Helper function to fetch data with filters
       const fetchData = async (tableName, startDate=null,endDate=null) => {
         let query = supabase.from(tableName).select('*').eq('userid', selectedUser.value).order('createdtime',{ascending:true});
   
         if (startDate) {
-          query = query.gte('createdtime', new Date(startDate).toISOString());
+          const startOfDay = formatDateForSQL(setStartOfDay(startDate));
+          query = query.gte('createdtime', startOfDay);
         }
         if (endDate) {
-          query = query.lte('createdtime', adjustedEndDate.toISOString());
+          const endOfDay = formatDateForSQL(setEndOfDay(endDate));
+          query = query.lte('createdtime', endOfDay);
         }
   
         const { data, error } = await query;
@@ -92,13 +119,25 @@ export default function RetailerAccountStatement() {
       const allUserRequests = await fetchData('invoices1',startDate,endDate);
       const allUserRequests1 = await fetchData('payment_reference',startDate,endDate);
 
-      // Update states
-      setFilteredData(allUserRequests || []);
-      setFilteredData1(allUserRequests1 || []);
+      const combinedData = [
+        ...allUserRequests.map(data => ({
+          date: data.invdate,
+          particulars: `Inv: ${data.tallyrefinvno}`,
+          debit: data.amount,
+          credit: null,
+        })),
+        ...allUserRequests1.map(data => ({
+          date: data.createdtime,
+          particulars: `${data.paymode}${data.payref ? `, Refno: ${data.payref}` : ''}`,
+          debit: null,
+          credit: data.amount,
+        })),
+      ];
+      combinedData.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-      console.log("Filtered Requests for User (invoices):", allUserRequests);
-      console.log("Filtered Requests for User (payment_reference):", allUserRequests1);
-
+      // Update the state with the sorted combined data
+      setFilteredData(combinedData);
+      setFilteredData1(allUserRequests1);
       const allUserRequests2 = await fetchData('invoices1');
       const allUserRequests3 = await fetchData('payment_reference');
 
@@ -225,19 +264,11 @@ export default function RetailerAccountStatement() {
                 </thead>
                 <tbody>
                   {filteredData.map((data, index) => (
-                    <tr key={`invoice-${index}`}>
-                      <td>{formatDate(data.invdate)}</td>
-                      <td>invNo. {data.tallyrefinvno}</td>
-                      <td>₹ {data.amount}</td>
-                      <td>{/* Additional data or leave blank */}</td>
-                    </tr>
-                  ))}
-                  {filteredData1.map((data, index) => (
-                    <tr key={`payment-${index}`}>
-                      <td>{formatDate(data.createdtime)}</td>
-                      <td>{data.paymode}{data.payref ? ', Refno: ' + data.payref : ''}</td>
-                      <td>{/* Additional data or leave blank */}</td>
-                      <td>₹ {data.amount}</td>
+                    <tr key={`combined-${index}`}>
+                      <td>{formatDate(data.date)}</td>
+                      <td>{data.particulars}</td>
+                      <td>{data.debit ? `₹ ${data.debit}` : ''}</td>
+                      <td>{data.credit ? `₹ ${data.credit}` : ''}</td>
                     </tr>
                   ))}
                 </tbody>

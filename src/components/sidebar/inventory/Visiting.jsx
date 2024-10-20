@@ -236,7 +236,7 @@ const Visiting = () => {
     try {
       const { data: userData, error: userTableError } = await supabase
         .from("users")
-        .select("userid, name, shopname, role, latitude, longitude")
+        .select("userid, name, shopname, role, latitude, longitude,representativeid,representativename")
         .eq("qrcode", qrcode)
         .single();
 
@@ -395,6 +395,8 @@ const Visiting = () => {
         name,
         shopname,
         role,
+        representativeid,
+        representativename
       } = userDetails;
       setUserLocation({ latitude: userLat, longitude: userLon });
 
@@ -414,16 +416,15 @@ const Visiting = () => {
         const visitingday = getDayFromDate(visitingDate);
         const now = new Date();
 
-        // TODO: Replace 'repid' and 'repname' with actual representative's ID and name
-        const repId = user.userid; // Placeholder for representative ID
-        const repName = user.name; // Placeholder for representative name
+        // const repId = user.userid;
+        // const repName = user.name;
 
         const { data: insertData, error: insertError } = await supabase
           .from("represent_visiting1")
           .insert([
             {
-              repid: repId||1,
-              repname: repName||'SV Agency',
+              repid: representativeid||1,
+              repname: representativename||'SV Agency',
               visitorid: userid,
               visitor: name,
               shopname: shopname,

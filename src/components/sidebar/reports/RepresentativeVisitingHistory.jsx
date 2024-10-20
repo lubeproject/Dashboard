@@ -5,7 +5,7 @@ import Select from 'react-select';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import norecordfound from "../../../images/norecordfound.gif";
-import "./RepresentativeVisitingHistory";
+import "./RepresentativeVisitingHistory.css";
 
 export default function RepresentativeVisitingHistory() {
   const [dsrOptions, setDsrOptions] = useState([]);
@@ -13,6 +13,7 @@ export default function RepresentativeVisitingHistory() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [filteredData, setFilteredData] = useState([]);
+  const [userError, setUserError] = useState(false);
 
   useEffect(() => {
     // Fetch representatives from the users table
@@ -29,7 +30,37 @@ export default function RepresentativeVisitingHistory() {
     fetchDsr();
   }, []);
 
+  const setStartOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(0, 0, 0, 0);  // Set hours, minutes, seconds, and milliseconds to 0
+    return newDate;
+  };
+  
+  // Set end date to 23:59:59 (end of the day) if needed
+  const setEndOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(23, 59, 59, 999);  // Set hours, minutes, seconds, and milliseconds to the end of the day
+    return newDate;
+  };
+
+  const formatDateForSQL = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    // Return the formatted date in 'YYYY-MM-DD HH:MM:SS' format
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
   const handleFilter = async () => {
+    if (!selectedDsr) {
+      setUserError(true);
+      return;  // Stop form submission
+    }
+    setUserError(false);
     try {
       // Step 1: Filter from represent_visiting1 by date range and representative
       let visitingQuery = supabase
@@ -38,22 +69,22 @@ export default function RepresentativeVisitingHistory() {
         .eq('repid', selectedDsr.value)
         .order('punchingid',{ascending:true});
 
-      if (startDate && endDate) {
-        if (new Date(startDate) > new Date(endDate)) {
-          alert("Pick From Date cannot be later than Pick To Date.");
-          return;
-        }
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+        if (startDate && endDate) {
+          if (new Date(startDate) > new Date(endDate)) {
+            alert("Pick From Date cannot be later than Pick To Date.");
+            return;
+          }
+          const startOfDay = formatDateForSQL(setStartOfDay(startDate));
+          const endOfDay = formatDateForSQL(setEndOfDay(endDate));
         visitingQuery = visitingQuery
-          .gte('created', new Date(startDate).toISOString())  // Ensure only date is used
-          .lte('created', adjustedEndDate.toISOString());
+          .gte('created', startOfDay)  // Ensure only date is used
+          .lte('created', endOfDay);
       } else if (startDate) {
-        visitingQuery = visitingQuery.gte('created', new Date(startDate).toISOString());
+        const startOfDay = formatDateForSQL(setStartOfDay(startDate));
+        visitingQuery = visitingQuery.gte('created', startOfDay);
       } else if (endDate) {
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
-        visitingQuery = visitingQuery.lte('created', adjustedEndDate.toISOString());
+        const endOfDay = formatDateForSQL(setEndOfDay(endDate));
+        visitingQuery = visitingQuery.lte('created', endOfDay);
       }
 
       const { data: filteredVisitingData, error: visitingError } = await visitingQuery;
@@ -110,10 +141,6 @@ export default function RepresentativeVisitingHistory() {
       return '00:00:00'; // Default or placeholder value
     }
     
-    // Further validation can be added here if needed
-  
-    // Example: Format the time string (e.g., "HH:mm:ss")
-    // Here, we'll assume `timeString` is in "HH:mm:ss" format or similar
     const parts = timeString.split(':');
     if (parts.length !== 3) {
       console.log('Invalid time format');
@@ -157,6 +184,11 @@ export default function RepresentativeVisitingHistory() {
               placeholder="Select Representative"
               styles={customSelectStyles}
             />
+            {userError && (
+                <div className="text-danger" style={{ marginTop: '5px' }}>
+                  Please select a Representative.
+                </div>
+              )}
           </Form.Group>
         </Row>
         <Row className="mb-2 filter-row">

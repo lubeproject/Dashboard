@@ -473,17 +473,22 @@ export default function InvoiceHistory() {
   const [paymentApprovals, setPaymentApprovals] = useState([]);
   const navigate = useNavigate();
   const {user} = useContext(UserContext);
-  const location = useLocation();
-  
+  const location = useLocation();  
 
   useEffect(() => {
-    if (location.state) {
+    // Check if there's relevant state to apply filters automatically
+    if (location.state && location.state.selectedUser) {
       const { selectedUser, startDate, endDate } = location.state;
+      
+      // Update local state with these values
       setSelectedUser(selectedUser);
       setStartDate(startDate ? new Date(startDate) : null);
       setEndDate(endDate ? new Date(endDate) : null);
+  
+      // Convert dates to appropriate format or use as is if already in Date format
     }
   }, [location.state]);
+
 
   useEffect(() => {
     // Fetch users from the users table
@@ -494,6 +499,7 @@ export default function InvoiceHistory() {
           .select('*')
           .in('role', ['retailer', 'mechanic'])
           .order('userid', { ascending: true });
+
         if(user?.role === 'representative'){
           userQuery = userQuery
           .eq('representativeid',user?.userid)
@@ -550,12 +556,14 @@ export default function InvoiceHistory() {
     }
   };
 
-  useEffect(() => {
-    // Call handleFilter whenever selectedUser, startDate or endDate changes
-    if (selectedUser || (startDate && endDate)) {
-      handleFilter();
-    }
-  }, [selectedUser, startDate, endDate]);
+  // useEffect(() => {
+  //   // Call handleFilter whenever selectedUser, startDate or endDate changes
+  //   if (selectedUser || (startDate && endDate)) {
+  //     handleFilter();
+  //   }
+  // }, [selectedUser, startDate, endDate]);
+
+
 
   const formatDate = dateString => {
     const date = new Date(dateString);
@@ -579,26 +587,60 @@ export default function InvoiceHistory() {
     return `${day}-${month}-${year}`; // Change format as needed
   };
 
+  const setStartOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(0, 0, 0, 0);  // Set hours, minutes, seconds, and milliseconds to 0
+    return newDate;
+  };
+  
+  // Set end date to 23:59:59 (end of the day) if needed
+  const setEndOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(23, 59, 59, 999);  // Set hours, minutes, seconds, and milliseconds to the end of the day
+    return newDate;
+  };
+
+  const formatDateForSQL = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    // Return the formatted date in 'YYYY-MM-DD HH:MM:SS' format
+    return `${year}-${month}-${day}`;
+  };
+
   const handleFilter = async () => {
     if (!selectedUser) {
-      alert('Please select a user');
+      alert('No selected user to filter.');
       return;
     }
-    let query = supabase.from('invoices1').select('*');
+    let query = supabase.from('invoices1')
+      .select('*')
+      .eq('userid', selectedUser.value)
+      .order('invid',{ascending:false});
 
-    if (selectedUser) {
-      query = query.eq('userid', selectedUser.value);
-    }
+    // if (selectedUser) {
+    //   query = query.eq('userid', selectedUser.value);
+    // }
 
     if (startDate && endDate) {
       if (startDate > endDate) {
         alert('Pick From Date cannot be later than Pick To Date.');
         return;
       }
-
+    }
+    if(startDate){
+      const startOfDay = formatDateForSQL(setStartOfDay(startDate));
       query = query
-        .gte('invdate', startDate.toISOString().split('T')[0])
-        .lte('invdate', endDate.toISOString().split('T')[0]);
+        .gte('invdate', startOfDay);
+    }
+    if(endDate){
+      const endOfDay = formatDateForSQL(setEndOfDay(endDate));
+      query = query
+        .lte('invdate', endOfDay);
     }
 
     const { data, error } = await query;
@@ -635,7 +677,6 @@ export default function InvoiceHistory() {
             <h4 className="text-center">Invoice History</h4>
           </Col>
         </Row>
-        <br/>
         <Row className="mb-2 select-row justify-content-md-center">
           <Col md={6} xs={12} className="mb-2">
             <Form.Group controlId="formUser">
@@ -645,10 +686,12 @@ export default function InvoiceHistory() {
                 options={usersOptions}
                 placeholder="Select User"
               />
+              {!selectedUser && (
+                <p className="text-danger">Please select a User</p>
+              )}
             </Form.Group>
           </Col>
         </Row>
-        <br/>
         <Row className="mb-2 filter-row justify-content-md-center">
           <Col md={3} xs={6} className="mb-2">
             <DatePicker

@@ -296,12 +296,10 @@ by CENTROID ENGINEERING SOLUTIONS`;
   return (
     <div className="register-container">
       <div className="register-box">
-        <h2>
-          <b>Register to Lube</b>
-        </h2>
+        <h2><b>Register to Lube</b></h2>
         {error.form && <p className="error-message">{error.form}</p>}
         <form onSubmit={handleRegister}>
-          <div className="inline-group">
+          <div className="form-row">
             <div className="form-group">
               <label htmlFor="role">Role:</label>
               <select
@@ -311,9 +309,7 @@ by CENTROID ENGINEERING SOLUTIONS`;
                 onChange={(e) => handleInputChange("role", e.target.value)}
                 required
               >
-                <option value="" disabled hidden>
-                  Select Role
-                </option>
+                <option value="" disabled hidden>Select Role</option>
                 <option value="representative">Representative</option>
                 <option value="retailer">Retailer</option>
                 <option value="mechanic">Mechanic</option>
@@ -333,34 +329,34 @@ by CENTROID ENGINEERING SOLUTIONS`;
               {error.mobile && <p className="error-message">{error.mobile}</p>}
             </div>
           </div>
-          <div className="form-group">
-            <label htmlFor="name">Name:</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={name}
-              onChange={(e) => handleInputChange("name", e.target.value)}
-              required
-            />
-            {error.name && <p className="error-message">{error.name}</p>}
-          </div>
-          {role !== "representative" && (
+          <div className="form-row">
             <div className="form-group">
-              <label htmlFor="shopname">Shop Name:</label>
+              <label htmlFor="name">Name:</label>
               <input
                 type="text"
-                id="shopname"
-                name="shopname"
-                value={shopname}
-                onChange={(e) => handleInputChange("shopname", e.target.value)}
-                required={role === "retailer" || role === "mechanic"}
+                id="name"
+                name="name"
+                value={name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                required
               />
-              {error.shopname && (
-                <p className="error-message">{error.shopname}</p>
-              )}
+              {error.name && <p className="error-message">{error.name}</p>}
             </div>
-          )}
+            {role !== "representative" && (
+              <div className="form-group">
+                <label htmlFor="shopname">Shop Name:</label>
+                <input
+                  type="text"
+                  id="shopname"
+                  name="shopname"
+                  value={shopname}
+                  onChange={(e) => handleInputChange("shopname", e.target.value)}
+                  required={role === "retailer" || role === "mechanic"}
+                />
+                {error.shopname && <p className="error-message">{error.shopname}</p>}
+              </div>
+            )}
+          </div>
           <div className="form-group">
             <label htmlFor="address">Address:</label>
             <input
@@ -385,53 +381,47 @@ by CENTROID ENGINEERING SOLUTIONS`;
             />
             {error.email && <p className="error-message">{error.email}</p>}
           </div>
-          <div className="form-group">
-            <label htmlFor="password">Password:</label>
-            <div className="password-container">
-              <input
-                type={passwordVisible ? "text" : "password"}
-                id="password"
-                name="password"
-                value={password}
-                onChange={handlePasswordChange}
-                required
-              />
-              <FontAwesomeIcon
-                icon={passwordVisible ? faEyeSlash : faEye}
-                className="eye-icon"
-                onClick={togglePasswordVisibility}
-              />
-              {error.password && (
-                <p className="error-message">{error.password}</p>
-              )}
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="password">Password:</label>
+              <div className="password-container">
+                <input
+                  type={passwordVisible ? "text" : "password"}
+                  id="password"
+                  name="password"
+                  value={password}
+                  onChange={handlePasswordChange}
+                  required
+                />
+                <FontAwesomeIcon
+                  icon={passwordVisible ? faEyeSlash : faEye}
+                  className="eye-icon"
+                  onClick={togglePasswordVisibility}
+                />
+              </div>
+              {error.password && <p className="error-message">{error.password}</p>}
+            </div>
+            <div className="form-group">
+              <label htmlFor="confirmPassword">Confirm Password:</label>
+              <div className="password-container">
+                <input
+                  type={confirmPasswordVisible ? "text" : "password"}
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={confirmPassword}
+                  onChange={handleConfirmPasswordChange}
+                  required
+                />
+                <FontAwesomeIcon
+                  icon={confirmPasswordVisible ? faEyeSlash : faEye}
+                  className="eye-icon"
+                  onClick={toggleConfirmPasswordVisibility}
+                />
+              </div>
+              {!passwordMatch && <p className="error-message">Passwords don't match</p>}
             </div>
           </div>
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password:</label>
-            <div className="password-container">
-              <input
-                type={confirmPasswordVisible ? "text" : "password"}
-                id="confirmPassword"
-                name="confirmPassword"
-                value={confirmPassword}
-                onChange={handleConfirmPasswordChange}
-                required
-              />
-              <FontAwesomeIcon
-                icon={confirmPasswordVisible ? faEyeSlash : faEye}
-                className="eye-icon"
-                onClick={toggleConfirmPasswordVisibility}
-              />
-            </div>
-            {!passwordMatch && (
-              <p className="error-message">Passwords didn't match</p>
-            )}
-            {error.confirmPassword && (
-              <p className="error-message">{error.confirmPassword}</p>
-            )}
-          </div>
-
-          {
+          <div className="form-row otp-row">
             <div className="form-group">
               <label htmlFor="otp">Enter OTP:</label>
               <input
@@ -439,29 +429,29 @@ by CENTROID ENGINEERING SOLUTIONS`;
                 id="otp"
                 name="otp"
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                onChange={(e) => handleInputChange("otp", e.target.value)}
                 disabled={isRegistering || isOtpValidated}
                 required
               />
+            </div>
+            <div className="form-group otp-button-container">
               <button
                 type="button"
                 onClick={handleGenerateOtp}
                 disabled={isOTPSent}
+                className="otp-button"
               >
                 {isOTPSent ? "Resend OTP" : "Generate OTP"}
               </button>
-              {error.otp && <p className="error-message">{error.otp}</p>}
             </div>
-          }
-
+          </div>
           <div className="form-group">
             <button
               type="submit"
-              className="button"
-              // disabled={isRegistering}
-          
+              className="submit-button"
+              disabled={isRegistering}
             >
-              Register
+              {isRegistering ? "Registering..." : "Register"}
             </button>
           </div>
         </form>

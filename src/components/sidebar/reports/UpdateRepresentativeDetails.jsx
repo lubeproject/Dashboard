@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Form, Button, Container, Row, Col } from 'react-bootstrap';
+import React, { useState, useEffect, useContext } from 'react';
+import { Form, Button, Container, Row, Col, Modal } from 'react-bootstrap';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './updateRepresentativeDetails.css';
 import { supabase } from '../../../supabaseClient';
+import { UserContext } from '../../context/UserContext';
 
 const UpdateRepresentativeDetails = () => {
   const location = useLocation();
@@ -15,8 +16,11 @@ const UpdateRepresentativeDetails = () => {
     email: '',
     mobileNumber: '',
   });
-
+  const {user} = useContext(UserContext);
   const [errors, setErrors] = useState({});
+  const [showModal, setShowModal] = useState(false); // State for modal visibility
+  const [isSubmitting, setIsSubmitting] = useState(false); // State to track if submission is in progress
+
 
   // Populate form data with representative data when rep changes
   useEffect(() => {
@@ -54,9 +58,18 @@ const UpdateRepresentativeDetails = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate form data
     const formErrors = validateForm();
     if (Object.keys(formErrors).length === 0) {
+      setShowModal(true); // Show confirmation modal
+    } else {
+      setErrors(formErrors);
+    }
+  };
+
+
+    const handleConfirmUpdate = async () => {
+      setIsSubmitting(true);
+      setShowModal(false);
       try {
         const { error } = await supabase
           .from('users')
@@ -68,6 +81,7 @@ const UpdateRepresentativeDetails = () => {
             address: formData.address,
             updatedtime: new Date().toISOString(),
             lastupdatedtime: new Date().toISOString(),
+            updatedby: user?.userid,
           })
           .eq('userid', rep.userid);
 
@@ -75,17 +89,20 @@ const UpdateRepresentativeDetails = () => {
           throw error;
         }
 
+        if (error) {
+          throw error;
+        }
+  
         // Redirect or show success message
         console.log('Representative details updated successfully');
-        // Example: redirect to another page or show a success message
+        navigate('/portal/representativelist'); // Redirect after successful update
       } catch (error) {
         console.error('Error updating Representative details:', error);
         setErrors({ ...errors, submit: 'Failed to update details. Please try again.' });
+      } finally {
+        setIsSubmitting(false);
       }
-    } else {
-      setErrors(formErrors);
-    }
-  };
+    };
 
   const handleCancel= () => {
     navigate('/portal/representativelist');
@@ -234,15 +251,30 @@ const UpdateRepresentativeDetails = () => {
                 <Form.Control.Feedback type="invalid">{errors.address}</Form.Control.Feedback>
               </Form.Group>
 
-              <Button type="submit" className="mt-3 w-100"> {/* Added mt-3 for top margin and w-100 for full width */}
+              <Button type="submit" className="mt-3 w-100" disabled={isSubmitting}>
                 Submit
               </Button>
               <Button variant="secondary" className="w-48" onClick={handleCancel} style={{ alignItems: 'center',backgroundColor:'red' }}>
-                  Cancel
-                </Button>
+                Cancel
+              </Button>
             </Form>
           </Col>
         </Row>
+        {/* Confirmation Modal */}
+        <Modal show={showModal} onHide={() => setShowModal(false)} centered>
+          <Modal.Header closeButton>
+            <Modal.Title className="text-center">Update Representative Details</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>Are you sure you want to update the details of <br/>{formData.name}?</Modal.Body>
+          <Modal.Footer className="d-flex justify-content-between">
+            <Button variant="primary" className="me-auto" style={{ width: '100px'}} onClick={handleConfirmUpdate} disabled={isSubmitting}>
+            {isSubmitting ? 'Updating...' : 'Confirm'}
+            </Button>
+            <Button variant="danger" style={{ width: '100px'}} onClick={() => setShowModal(false)}>
+              Cancel
+            </Button>
+          </Modal.Footer>
+        </Modal>
       </Container>
     </main>
   );

@@ -57,7 +57,8 @@ export default function AddRetailerStock() {
     const { data, error } = await supabase
       .from('user_request')
       .select('reqid, createdtime')
-      .eq('userid', userId);
+      .eq('userid', userId)
+      .order('reqid',{ascending:false});
     if (error) {
       console.error('Error fetching requests:', error);
     } else {
@@ -117,7 +118,7 @@ export default function AddRetailerStock() {
   const handleQtyChange = (index, value) => {
     const newItems = [...tempRequestItems];
     const newQty = parseFloat(value);
-
+    const itemWeight = newItems[index].itemweight;
     // Validate the quantity input
     if (isNaN(newQty) || newQty < 0) {
         newItems[index].tempDeliveredQty = 0;
@@ -125,10 +126,12 @@ export default function AddRetailerStock() {
       newItems[index].tempDeliveredQty = 0;
     } else if (newQty > (newItems[index].pendingqty)) {
         newItems[index].tempDeliveredQty = newItems[index].pendingqty;
-    } else {
-        newItems[index].tempDeliveredQty = newQty;
-    }
-
+    } else if (newQty % itemWeight !== 0) {
+      alert(`Please check the entered quantity for ${newItems[index].itemname}. Quantity must be in multiples of ${itemWeight}.`);
+      return;
+  } else {
+      newItems[index].tempDeliveredQty = newQty;
+  }
     // Calculate new values for total litres and boxes
     newItems[index].calculatedTotalLitres = (newItems[index].totalliters * newItems[index].tempDeliveredQty) / newItems[index].qty;
     newItems[index].calculatednoofboxes = (newItems[index].noofboxes * newItems[index].tempDeliveredQty) / newItems[index].qty;
@@ -229,7 +232,7 @@ export default function AddRetailerStock() {
   
       if (prepaidBalance > 0) {
         initialPaidAmount = Math.min(prepaidBalance, invoiceAmountValue);
-        paymentModeDescription = 'Adjustment from Previous Payments';
+        paymentModeDescription = 'Adjustment';
   
         // Check if the invoice can be fully paid using prepaid
         if (initialPaidAmount === invoiceAmountValue) {
@@ -438,7 +441,7 @@ export default function AddRetailerStock() {
     }
   };
 
-    return (
+  return (
     <main id='main' className='main'>
       <Container>
         <Row className="justify-content-md-center mt-4">
@@ -504,6 +507,7 @@ export default function AddRetailerStock() {
                   isInvalid={!!errors.invoiceAmount}
                   placeholder="Invoice Amount"
                   min = "0"
+                  step="0.01"
                 />
                 <Form.Control.Feedback type="invalid">
                   {errors.invoiceAmount}
@@ -555,6 +559,8 @@ export default function AddRetailerStock() {
                             onChange={(e) => handleQtyChange(index, item.pendingqty === 0 ? 0 : e.target.value)}
                             onWheel={(e) => e.target.blur()}
                             readOnly={item.pendingqty === 0}
+                            min="0"
+                            step= "1"
                           />
                           </td>
                           <td>{item.calculatedTotalLitres.toFixed(2)}</td>

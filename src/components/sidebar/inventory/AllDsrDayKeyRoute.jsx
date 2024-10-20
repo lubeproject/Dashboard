@@ -1,9 +1,10 @@
 import React,{useState, useRef, useEffect, useContext} from 'react';
 import { supabase } from '../../../supabaseClient';
 import "./allDsrDayKeyRoute.css";
+import { FaChevronRight } from "react-icons/fa";
 import { Container, Row, Col, Button, Form, Table } from 'react-bootstrap';
 import Select from 'react-select';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { UserContext } from "../../context/UserContext";
 
 export default function AllDsrDayKeyRoute() {
@@ -14,6 +15,18 @@ export default function AllDsrDayKeyRoute() {
   const [filteredData, setFilteredData] = useState([]);
   const navigate = useNavigate();
   const { user} = useContext(UserContext);
+  const location = useLocation();
+  
+  useEffect(() => {
+    // Check if there's relevant state to apply filters automatically
+    if (location.state && location.state.selectedDsr) {
+      const {selectedDsr,selectedDay} = location.state;
+      // Update local state with these values
+      setSelectedDsr(selectedDsr);
+      setSelectedDay(selectedDay);
+      // Convert dates to appropriate format or use as is if already in Date format
+    }
+  }, [location.state]);
 
   useEffect(() => {
     // Fetch mechanics from the users table
@@ -55,12 +68,21 @@ export default function AllDsrDayKeyRoute() {
     fetchDays();
   }, []);
 
-  const handleDetailsClick = (userId) => {
+  const handleDetailsClick = (userId,selectedDsr,selectedDay) => {
     // Navigate to another page with the invoice details
-    navigate(`/portal/retailer-summary`,{state:{userId}});
+    navigate(`/portal/retailer-summary`,{state:{userId,selectedDsr,selectedDay}});
   };
 
   const handleFilter = async () => {
+    if(!selectedDsr){
+      alert("Please Select a DSR.");
+      return;
+    }
+    if(!selectedDay){
+      alert("Please Select a Visiting Day.");
+      return;
+    }
+
     try {
       // Fetch all records for the selected retailer
       // const { data: allDsrDetails, error: dsrError } = await supabase
@@ -147,7 +169,11 @@ export default function AllDsrDayKeyRoute() {
               options={daysOptions}
               placeholder="Select Visiting Day"
               styles={customSelectStyles}
+              required
             />
+            {!selectedDay && (
+        <p className="text-danger">Please select a Visiting Day.</p>
+      )}
           </Form.Group>
         </Col>
       </Row>
@@ -180,9 +206,15 @@ export default function AllDsrDayKeyRoute() {
                     <td>{data.shopname || 'N/A'}</td>
                     <td>{data.role || 'N/A'}</td>
                     <td>{data.visitingday || 'N/A'}</td>
-                    <td>
+                    {/* <td>
                       <Button variant="warning" onClick={() => handleDetailsClick(data.visitorid)}>Details</Button>
-                    </td>
+                    </td> */}
+                    <td>{data.role === 'retailer' ? (
+                        <Button variant="warning" size="sm" className="details-button" onClick={() => handleDetailsClick(data.visitorid,selectedDsr,selectedDay)}>
+                          <b>Details</b> <FaChevronRight />
+                        </Button>
+                        ) : null
+                      }</td>
                   </tr>
                 ))
               ) : (

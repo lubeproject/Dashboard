@@ -247,6 +247,7 @@ export default function MechanicList(){
               <th>Sl.No</th>
               <th>Mechanic Name</th>
               <th>Address</th>
+              <th>Reward Points</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -257,6 +258,7 @@ export default function MechanicList(){
                   <td>{index + 1}</td>
                   <td>{item.shopname}</td>
                   <td>{item.address}</td>
+                  <td>{item.rewardpoints || 0}</td>
                   <td className="d-flex flex-row">
                     <Button
                       variant={item.active === "Y" ? "danger" : "success"}

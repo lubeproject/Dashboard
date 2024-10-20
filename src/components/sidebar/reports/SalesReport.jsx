@@ -13,6 +13,31 @@ export default function SalesReport() {
   const [filteredData, setFilteredData] = useState([]);
   const [filterApplied, setFilterApplied] = useState(false);
 
+  const setStartOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(0, 0, 0, 0);  // Set hours, minutes, seconds, and milliseconds to 0
+    return newDate;
+  };
+  
+  // Set end date to 23:59:59 (end of the day) if needed
+  const setEndOfDay = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(23, 59, 59, 999);  // Set hours, minutes, seconds, and milliseconds to the end of the day
+    return newDate;
+  };
+
+  const formatDateForSQL = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    // Return the formatted date in 'YYYY-MM-DD HH:MM:SS' format
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
   const handleFilter = async () => {
     try {
       // Step 1: Filter invoices by date range
@@ -23,20 +48,20 @@ export default function SalesReport() {
           alert("Pick From Date cannot be later than Pick To Date.");
           return;
         }
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+        const formattedStartDate = formatDateForSQL(setStartOfDay(startDate));
+        const formattedEndDate = formatDateForSQL(setEndOfDay(endDate));
         invoiceQuery = invoiceQuery
-          .gte('createdtime', new Date(startDate).toISOString())
-          .lt('createdtime', adjustedEndDate.toISOString());
-        console.log("Date Range Filter Applied:", startDate, "to", adjustedEndDate);
+        .gte('createdtime', formattedStartDate)
+        .lte('createdtime', formattedEndDate);
+      console.log("Date Range Filter Applied:", formattedStartDate, "to", formattedEndDate);
       } else if (startDate) {
-        invoiceQuery = invoiceQuery.gte('createdtime', new Date(startDate).toISOString());
-        console.log("Start Date Filter Applied:", startDate);
+        const formattedStartDate = formatDateForSQL(setStartOfDay(startDate));
+        invoiceQuery = invoiceQuery.gte('createdtime', formattedStartDate);
+        console.log("Start Date Filter Applied:", formattedStartDate);
       } else if (endDate) {
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
-        invoiceQuery = invoiceQuery.lt('createdtime', adjustedEndDate.toISOString());
-        console.log("End Date Filter Applied:", adjustedEndDate);
+        const formattedEndDate = formatDateForSQL(setEndOfDay(endDate));
+        invoiceQuery = invoiceQuery.lte('createdtime', formattedEndDate);
+        console.log("End Date Filter Applied:", formattedEndDate);
       }
   
       const { data: filteredInvoices, error: invoiceError } = await invoiceQuery;
@@ -57,7 +82,8 @@ export default function SalesReport() {
       const { data: invoiceItems, error: itemsError } = await supabase
         .from('invoice_items1')
         .select('*')
-        .in('invid', invIdArray);
+        .in('invid', invIdArray)
+        .gt('qty',0);
   
       if (itemsError) {
         console.error('Error fetching invoice items:', itemsError.message);
@@ -65,12 +91,11 @@ export default function SalesReport() {
       }
   
       // Step 3: Fetch user details from users table
-      const userIdArray = [...new Set(filteredInvoices.map(invoice => invoice.userid))]; // Get unique user IDs
+      const userIdArray = [...new Set(filteredInvoices.flatMap(invoice => [invoice.userid, invoice.createdby]))]; // Get unique user IDs
       const { data: users, error: userError } = await supabase
         .from('users')
         .select('userid, name, representativename, cginno')
-        .in('userid', userIdArray)
-        .in('role', ['retailer','mechanic']);
+        .in('userid', userIdArray);
   
       if (userError) {
         console.error('Error fetching user details:', userError.message);
@@ -81,6 +106,7 @@ export default function SalesReport() {
       const finalData = invoiceItems.map(item => {
         const invoice = filteredInvoices.find(inv => inv.invid === item.invid);
         const user = users.find(ret => ret.userid === invoice.userid);
+        const creator = users.find(user => user.userid === invoice.createdby);
   
         return {
           ...item,
@@ -88,6 +114,7 @@ export default function SalesReport() {
           username: user ? user.name : 'N/A',
           representativename: user ? user.representativename : 'N/A',
           cginno: user ? user.cginno : 'N/A',
+          orderedby: creator ? creator.name : 'N/A',
         };
       });
   
@@ -168,15 +195,16 @@ export default function SalesReport() {
                       <th>Account / GCIN / DSR </th>
                       <th>Product / Segment / Category</th>
                       {/* <th>Size</th> */}
+                      <th>Ordered By</th>
                       <th>Sales (Litres)</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredData
-                    .sort((a, b) => new Date(b.updatedtime) - new Date(a.updatedtime)) // Sort in descending order
+                    .sort((a, b) => new Date(b.createdtime) - new Date(a.createdtime)) // Sort in descending order
                     .map((data, index) => (
                       <tr key={index}>
-                        <td>Inv.no.{data.tallyrefinvno} <br /> {formatDate(data.updatedtime)}</td>
+                        <td> {data.tallyrefinvno} <br /> {formatDate(data.createdtime)}</td>
                         <td>
                           {data.username.trim()} <br /> {/* Retailer Name */}
                           {data.cginno} <br/>  
@@ -188,6 +216,7 @@ export default function SalesReport() {
                           <span style={{ color: 'blue' }}> {data.categoryname.trim()} </span> {/* Category Name on a new line */}
                         </td>
                         {/* <td>{data.itemweight}</td> */}
+                        <td style={{ color: data.orderedby.trim() === data.representativename.trim() ? 'green' : 'red' }}>{data.orderedby.trim()}</td>
                         <td>{data.liters}</td>
                       </tr>
                     ))}

@@ -131,6 +131,8 @@ export default function PaymentEntry() {
             label: visit.shopname,
             name: visit.visitor,
             role: visit.role,
+            repname: visit.repname,
+            repid: visit.repid,
           }))
         );
       }
@@ -145,6 +147,17 @@ export default function PaymentEntry() {
       }
       setIsLoading(false);
       fetchVisiting();
+    } else if (user?.role === 'retailer' || user?.role === 'mechanic') {
+      setUserOptions([
+        {
+          value: user.userid,
+          label: user.shopname,
+          name: user.name,
+          role: user.role,
+          repname: user.representativename||'Not Assigned',
+          repid: user.representativeid||1,
+        },
+      ]);
     } else {
       fetchUserOptions();
     }
@@ -159,8 +172,7 @@ export default function PaymentEntry() {
           .eq('userid', User.value)
           .single();
         if (!error) {
-          // console.log(data);
-          const prepaid = parseFloat(data.prepaid) || 0; // Handle invalid values
+          const prepaid = parseFloat(data.prepaid).toFixed(2) || 0; // Handle invalid values
           setPrepaidBalance(prepaid);
         } else {
           console.error('Error fetching prepaid balance:', error);
@@ -421,7 +433,7 @@ export default function PaymentEntry() {
         usershopname: User.label,
         invoices: invoiceIds.join(', '), // Combine all invoice IDs as a single string
         paymode: paymentMode.label,
-        amount: parseFloat(amount), // Use original amount here
+        amount: parseFloat(amount).toFixed(2), // Use original amount here
         remarks: remarks.trim(),
         paymentstatus: 'Pending',
         payref: paymentReference || null,
@@ -459,7 +471,7 @@ export default function PaymentEntry() {
         paymentstatus: 'To be cleared',
         payref: paymentReference || (paymentMode.label === 'Adjustment' ? adjustMode.label : null),
         remarks: remarks.trim(),
-        amount: parseFloat(amount), // Use the original amount entered
+        amount: parseFloat(amount).toFixed(2), // Use the original amount entered
         active: 'Y',
         chequedate: chequeDate || new Date().toISOString().split('T')[0],
         createdtime: new Date().toISOString(),
@@ -525,23 +537,39 @@ export default function PaymentEntry() {
   // }, [invoices, amount]);
 
   useEffect(() => {
+    if (!invoices || invoices.length === 0) return;
+  
+    try {
+      let calculatedTotalBalance = 0;
+  
+      invoices.forEach((invoice) => {
+        const balance = invoice.amount - invoice.paidamount; // Calculate the balance for each invoice
+        calculatedTotalBalance += balance; // Add each balance to the total balance
+      });
+  
+      setTotalBalance(calculatedTotalBalance); // Update total balance for all invoices
+    } catch (err) {
+      console.error('Error calculating Total Balance:', err);
+    }
+  }, [invoices]); // This effect depends only on the invoices, so it will run when invoices change
+  
+  // useEffect to calculate "To Be Cleared" based on payment approvals
+  useEffect(() => {
     const calculateToBeCleared = async () => {
-      if (!invoices || invoices.length === 0) return;
+      if (!invoices || invoices.length === 0 || !paymentApprovals || paymentApprovals.length === 0) return;
   
       try {
-        let remainingAmount = 0; // This will be the total amount available for distribution
-        let newDistributedApprovals = {}; // To store the "To Be Cleared" amounts per invoice
-        let totalBalance = 0; // To store total balance across invoices
+        let remainingAmount = 0; // Total amount available for distribution from payment approvals
+        let newDistributedApprovals = {}; // Store the "To Be Cleared" amounts per invoice
   
-        // First, we calculate the total amount to be distributed from the payment_approval table
+        // Calculate the total amount to be distributed from the payment_approval table
         paymentApprovals.forEach((approval) => {
           remainingAmount += approval.amount; // Add up all approval amounts for this user
         });
   
-        // Now, calculate "To Be Cleared" for each invoice in order
+        // Calculate "To Be Cleared" for each invoice in order
         invoices.forEach((invoice) => {
           const balance = invoice.amount - invoice.paidamount; // Calculate the balance for each invoice
-          totalBalance += balance; // Add to total balance
   
           // Allocate the amount to this invoice, capped by the invoice's balance and remaining amount
           if (remainingAmount > 0) {
@@ -554,7 +582,6 @@ export default function PaymentEntry() {
         });
   
         setDistributedApprovals(newDistributedApprovals); // Set the "To Be Cleared" values for each invoice
-        setTotalBalance(totalBalance); // Set total balance for all invoices
       } catch (err) {
         console.error('Error calculating To Be Cleared:', err);
       }
@@ -563,8 +590,8 @@ export default function PaymentEntry() {
     if (paymentApprovals && paymentApprovals.length > 0) {
       calculateToBeCleared(); // Trigger the calculation when payment approvals are available
     }
-  }, [paymentApprovals, invoices]); // Re-run when payment approvals or invoices change
-  
+  }, [paymentApprovals, invoices]);
+    
 
   return (
     <main id='main' className='main'>
@@ -601,6 +628,7 @@ export default function PaymentEntry() {
                   onWheel={(e) => e.target.blur()}
                   onChange={(e) => setAmount(e.target.value)}
                   min="0"
+                  step="0.01"
                   required
                 />
               </Form.Group>
@@ -768,13 +796,14 @@ export default function PaymentEntry() {
           <Modal.Title style={{ textAlign: 'center', width: '100%' }}>Pending Invoices</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {invoices.length === 0 ? (
-            <p>No pending invoices for this user.</p>
-          ) : (
-            <div>
-              <div style={{ float: 'right', color: 'red', marginBottom: '10px' }}>
-                Total Balance: <b>₹ {totalBalance.toFixed(2)}</b>
+        <div style={{ position:'absolute' ,right: '10px', color: 'red', top: '10px' }}>
+                <span style={{color:'green'}}>Advance Paid: <b>₹ {prepaidBalance||0}</b></span><br />
+                Total Balance: <b>₹ {totalBalance.toFixed(2)||0}</b>
               </div>
+          {invoices.length === 0 ? (
+            <p style={{marginTop:'50px'}}>No pending invoices for this user.</p>
+          ) : (
+            <div style={{marginTop:'50px'}}>
               <Table striped bordered hover responsive className="table-sm"> 
                 {/* Added 'table-sm' class to make table more compact */}
                 <thead>
