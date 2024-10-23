@@ -246,6 +246,7 @@ const [access, setAccess] = useState("");
       
       <Route path="viewQrCode" element={<ViewQrCode  />} />
       <Route path="paymententry" element={<PaymentEntry/>} />
+      <Route path="redeemRewards" element={<RedeemReward  />} />
      
 
    {/* Under Report components */}
@@ -274,7 +275,7 @@ const [access, setAccess] = useState("");
        <Route path="workinprogress" element={<WorkProgress/>} />
        <Route path="redeemRewards" element={<RedeemReward  />} />
       <Route path="viewQrCode" element={<ViewQrCode  />} />
-      <Route path="mechanicPurchaseReport" element={<MechanicPurchaseReport/>} />
+      <Route path="mechanicPurchaseReport" element={<SalesReportMechanicwise/>} />
               <Route path="mechanicttemwisesalesreport" element={<SalesReportMechanicwiseItemwise/>} />           
                  <Route path="mechanicttemwisepurchasereport" element={<MechanicItenwisePurchase/>} />
 

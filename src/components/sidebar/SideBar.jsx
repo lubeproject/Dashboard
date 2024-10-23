@@ -317,7 +317,16 @@ export default function SideBar() {
                 <span>Item Request</span>
               </Link>
             </li>
-
+            <li>
+              <Link
+                to="/portal/redeemRewards"
+                style={{ textDecoration: "none" }}
+                onClick={handleToggleSideBar}
+              >
+                <i class="bi bi-gift" style={{fontSize:"20px"}}></i>
+                <span>Redeem Reward</span>
+              </Link>
+            </li>
             {/* <li>
               <Link
                 to="/portal/billingtomechanic"
@@ -772,7 +781,7 @@ export default function SideBar() {
             
             <li>
               <Link
-                to="/portal/mechanicttemwisepurchasereport"
+                to="/portal/mechanicttemwisesalesreport"
                 style={{ textDecoration: "none" }}
                 onClick={handleToggleSideBar}
               >
